@@ -1,7 +1,10 @@
 import {Router} from "./Router";
 import Twig from 'twig';
-export class Tina4{
-    constructor(config=null) {
+
+const fs = require('fs');
+
+export class Tina4 {
+    constructor(config = null) {
         if (config === undefined || config === null) {
             if (window['tina4'] !== undefined && window['tina4']['config'] !== undefined) {
                 config = window['tina4']['config'];
@@ -9,11 +12,11 @@ export class Tina4{
                 config = {defaultTarget: 'root'};
             }
         }
-        console.log ('Config found', config);
+        console.log('Config found', config);
         Tina4.resolveRoutes(window.location.pathname, config.defaultTarget);
     }
 
-    static initialize(config=null){
+    static initialize(config = null) {
         if (window['tina4'] === undefined) {
             console.log('Initialize Tina4');
             window['tina4'] = {};
@@ -27,12 +30,9 @@ export class Tina4{
             window['tina4']['config'] = {defaultTarget: 'root'};
         }
 
-        //load the templates in
-
         //add the navigate handler
         // @ts-ignore
-        window.navigate = function(path, target='root', method:string='GET', data = null) {
-            console.log (window['tina4']);
+        window.navigate = function (path, target = 'root', method: string = 'GET', data = null) {
             if (window['tina4']['config'].defaultTarget !== null) {
                 target = window['tina4']['config'].defaultTarget;
             }
@@ -41,13 +41,41 @@ export class Tina4{
         };
     }
 
-    static resolveRoutes (path, target, method:string='GET', data=null) {
+    static resolveRoutes(path, target, method: string = 'GET', data = null) {
         return new Router(path, target, method, data).run();
     }
 
-    static renderTemplate(content, params) {
-        console.log ('Rendering Twig', content, params);
-        let template = Twig.twig({data: content});
-        return template.render(params);
+    static getFileExtension(filename) {
+        let split = filename.trim().split('.');
+        return split[split.length - 1];
+    }
+
+    static renderTemplate(content, params, callback) {
+        console.log('Rendering Twig', content, params);
+        if (this.getFileExtension(content) == 'twig') {
+            console.log('Looking to load ', content);
+            try {
+                Twig.twig(
+                    {
+                        id: content,
+                        href: `/templates/${content}`,
+                        load: (template) => {
+                            console.log(`Template loaded: `, template, params);
+                            if (callback) {
+                                return callback(template.render(params));
+                            }
+                        }
+                    });
+            }
+            catch(exception) {
+                if (callback) {
+                    return callback(Twig.twig({ref: content}).render(params));
+                }
+            }
+        } else {
+            let template = Twig.twig({data: content});
+            return callback(template.render(params));
+        }
+        return false;
     }
 }

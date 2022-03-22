@@ -56,7 +56,7 @@ export class Router {
     match (url:string, path:string, method:string): boolean {
         if  (this.method !== method) return false;
         url = this.cleanUrl(url);
-        console.log('Match', url, path, method);
+        console.log('Matching', url, path, method);
         const  urlExpression  =  /(.*)\/(.*)|{(.*)}/g;
         const  pathExpression  =  /(.*)\/(.*)|{(.*)}/g;
 
@@ -65,7 +65,6 @@ export class Router {
         } else {
             this.matchesUrl = urlExpression.exec (url);
             this.matchesPath = pathExpression.exec (path);
-
             if (this.matchesUrl.length === this.matchesPath.length) {
                 this.matched = true;
                 this.matchesUrl.every(function (urlPath, index) {
@@ -90,13 +89,13 @@ export class Router {
     }
 
     parse(url: string, target: string, callback) {
+        console.log (window['tina4']['routes']);
         window['tina4']['routes'].every(function(route){
-           if (this.match(url, route.path, route.method )) {
-               callback ( target, route.callback( Router.response, this.params) );
-               return false;
-           } else {
-               return true;
-           }
+            console.log('looking', route.path, url);
+            if (this.match(url, route.path, route.method )) {
+                return callback ( target, route.callback( Router.response, this.params ) );
+            }
+            return true;
         }.bind(this));
     }
 
@@ -116,7 +115,7 @@ export class Router {
         this.params = this.getRequestParams();
         this.params.data = this.data;
         this.parse(this.url, this.target, function (target, content) {
-            console.log ('Target', target);
+            console.log ('Target', target, content);
             if (document.getElementById(target) !== null) {
                 document.getElementById(target).innerHTML = content;
                 //Attach the form submit handler
