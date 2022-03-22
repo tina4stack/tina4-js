@@ -23,3 +23,8 @@ import {Post} from "../../tina4/Post";
 
     return response ('You bellowed?', 200)
 });
+
+(new Get()).add( '/', function(response, request) {
+    let content = Tina4.renderTemplate(`index.twig`, {test: "Hello World!"});
+    return response (content, 200, 'text/html')
+});

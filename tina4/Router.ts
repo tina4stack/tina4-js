@@ -21,7 +21,7 @@ export class Router {
     }
 
     static add(method, path, callback) {
-        Tina4.setup();
+        Tina4.initialize();
         console.log('Adding Route', method, path);
         if (window['tina4'] !== undefined) {
             window['tina4']['routes'].push({method: method, path: path, callback: callback});
