@@ -50,31 +50,30 @@ export class Tina4 {
         return split[split.length - 1];
     }
 
-    static renderTemplate(content, params, callback) {
-        console.log('Rendering Twig', content, params);
+    static renderTemplate(content, params) {
         if (this.getFileExtension(content) == 'twig') {
-            console.log('Looking to load ', content);
             try {
                 Twig.twig(
                     {
                         id: content,
                         href: `/templates/${content}`,
+                        async:false,
                         load: (template) => {
                             console.log(`Template loaded: `, template, params);
-                            if (callback) {
-                                return callback(template.render(params));
-                            }
+
+                                template.render(params);
+
                         }
                     });
             }
             catch(exception) {
-                if (callback) {
-                    return callback(Twig.twig({ref: content}).render(params));
-                }
+
+                    return Twig.twig({ref: content}).render(params);
+
             }
         } else {
             let template = Twig.twig({data: content});
-            return callback(template.render(params));
+            return template.render(params);
         }
         return false;
     }

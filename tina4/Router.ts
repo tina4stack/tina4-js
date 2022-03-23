@@ -93,7 +93,11 @@ export class Router {
         window['tina4']['routes'].every(function(route){
             console.log('looking', route.path, url);
             if (this.match(url, route.path, route.method )) {
-                return callback ( target, route.callback( Router.response, this.params ) );
+                let html = route.callback( Router.response, this.params );
+                if (!html) { //try again if we failed the first time - twig async is not working
+                    html = route.callback( Router.response, this.params );
+                }
+                return callback ( target, html );
             }
             return true;
         }.bind(this));
