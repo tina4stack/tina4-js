@@ -5,7 +5,6 @@ import Twig from 'twig';
 import {Tina4Config} from "./components/Tina4Config";
 import {Tina4Api} from "./components/Tina4Api";
 
-
 export class Tina4 {
     constructor(config = null) {
         if (config === undefined || config === null) {
@@ -70,30 +69,26 @@ export class Tina4 {
         return split[split.length - 1];
     }
 
-    static renderTemplate(content, params) {
+    static renderTemplate(content, params, callback) {
         if (this.getFileExtension(content) == 'twig') {
             try {
                 Twig.twig(
                     {
                         id: content,
                         href: `/templates/${content}`,
-                        async:false,
+                        async:true,
                         load: (template) => {
                             console.log(`Template loaded: `, template, params);
-
-                                template.render(params);
-
+                            callback(template.render(params));
                         }
                     });
             }
             catch(exception) {
-
-                    return Twig.twig({ref: content}).render(params);
-
+                callback( Twig.twig({ref: content}).render(params));
             }
         } else {
             let template = Twig.twig({data: content});
-            return template.render(params);
+            callback( template.render(params));
         }
         return false;
     }

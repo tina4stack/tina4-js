@@ -100,20 +100,26 @@ export class Router {
     parse(url: string, target: string, callback) {
         //console.log (window['tina4']['routes']);
         let routes = Globals.get('routes');
+        let rendered = false;
         routes.every(function(route){
-            //console.log('looking', route.path, url);
             if (this.match(url, route.path, route.method )) {
                 if (route.method === 'GET') {
-                    history.pushState({}, '', route.path);
+                    history.pushState({}, '', url);
                 }
-                let html = route.callback( Router.response, this.params );
-                if (!html) { //try again if we failed the first time - twig async is not working
-                    html = route.callback( Router.response, this.params );
-                }
-                return callback ( target, html );
+                route.callback( function(content, httpCode, contentType) {
+                     callback ( target, Router.response(content, httpCode, contentType) );
+                }, this.params );
+                rendered = true;
             }
             return true;
         }.bind(this));
+
+        if (!rendered) {
+            //See if we can find a twig file
+            Tina4.renderTemplate(`${url}.twig`, {}, function (html) {
+                callback(target, Router.response(html, 200, 'text/html'));
+            });
+        }
     }
 
     submitHandler(event) {
