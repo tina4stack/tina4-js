@@ -1,6 +1,7 @@
 import {Tina4} from "../../tina4/Tina4";
 import {Get} from "../../tina4/Get";
 import {Post} from "../../tina4/Post";
+import {Api} from "../../tina4/Api";
 
 (new Get()).add('/test/hello', function (response, request) {
     let content = `<h1>Hello World Again!</h1>`;
@@ -23,8 +24,10 @@ import {Post} from "../../tina4/Post";
 });
 
 (new Post()).add("/test", function (response, request) {
+    //Send and API request
     console.log('POST', request);
-    return response('You bellowed?', 200)
+    let result = Api.sendRequest(request);
+    return response(result, 200);
 });
 
 

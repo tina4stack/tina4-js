@@ -1,13 +1,16 @@
+import {Globals} from "./Globals"
 import {Router} from "./Router";
+import {History} from "./History";
 import Twig from 'twig';
+import {Tina4Config} from "./components/Tina4Config";
+import {Tina4Api} from "./components/Tina4Api";
 
-const fs = require('fs');
 
 export class Tina4 {
     constructor(config = null) {
         if (config === undefined || config === null) {
-            if (window['tina4'] !== undefined && window['tina4']['config'] !== undefined) {
-                config = window['tina4']['config'];
+            if (Globals.defined() && Globals.get('config')) {
+                config = Globals.get('config');
             } else {
                 config = {defaultTarget: 'root'};
             }
@@ -17,31 +20,48 @@ export class Tina4 {
     }
 
     static initialize(config = null) {
-        if (window['tina4'] === undefined) {
+        if (!Globals.defined()) {
             console.log('Initialize Tina4');
-            window['tina4'] = {};
-            window['tina4']['routes'] = [];
-            window['tina4']['twig'] = Twig;
+            Globals.initialize();
+            Globals.set('routes', []);
+            Globals.set('twig', Twig);
+            localStorage.setItem('history', JSON.stringify([]));
+            Tina4.registerComponents();
         }
 
         if (config !== null) {
-            window['tina4']['config'] = config;
+            Globals.set('config', config);
         } else {
-            window['tina4']['config'] = {defaultTarget: 'root'};
+            Globals.set('config', {defaultTarget: 'root'});
+        }
+
+        //back navigation in the browser
+        window.onpopstate=function(e){
+            if (e.state) {
+                let pathInfo = History.resolveHistory ();
+                Tina4.resolveRoutes(pathInfo.path, pathInfo.target, 'GET', {});
+            }
         }
 
         //add the navigate handler
         // @ts-ignore
         window.navigate = function (path, target = 'root', method: string = 'GET', data = null) {
-            if (window['tina4']['config'].defaultTarget !== null) {
-                target = window['tina4']['config'].defaultTarget;
+            if (Globals.get('config').defaultTarget !== null) {
+                target = Globals.get('config').defaultTarget;
             }
-            history.pushState({}, '', path);
+
             Tina4.resolveRoutes(path, target, method, data);
         };
     }
 
+    static registerComponents() {
+        console.log('Register components');
+        customElements.define('tina4-config', Tina4Config);
+        customElements.define('tina4-api', Tina4Api);
+    }
+
     static resolveRoutes(path, target, method: string = 'GET', data = null) {
+        History.addHistory (path, target, method);
         return new Router(path, target, method, data).run();
     }
 

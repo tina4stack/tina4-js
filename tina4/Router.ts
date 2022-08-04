@@ -1,3 +1,4 @@
+import {Globals} from "./Globals";
 import {Tina4} from "./Tina4";
 
 export class Router {
@@ -12,7 +13,7 @@ export class Router {
     private matched;
 
     constructor(url, target, method, data=null)  {
-        console.log('Constructing', url, target, method, data);
+        //console.log('Constructing', url, target, method, data);
         if (method === undefined) method = 'GET';
         this.url = url;
         this.target = target;
@@ -22,15 +23,23 @@ export class Router {
 
     static add(method, path, callback) {
         Tina4.initialize();
-        console.log('Adding Route', method, path);
-        if (window['tina4'] !== undefined) {
-            window['tina4']['routes'].push({method: method, path: path, callback: callback});
+        //console.log('Adding Route', method, path);
+        if (Globals.defined()) {
+            Globals.append('routes', {method: method, path: path, callback: callback});
         }
     }
 
     static response(content, httpCode, contentType) {
         console.log('Response', content, httpCode, contentType);
+
         //manipulate content based on the contentType
+        if ( typeof content === 'object' &&
+            !Array.isArray(content) &&
+            content !== null
+        ) {
+            content = JSON.stringify(content);
+        }
+
         return content;
     }
 
@@ -56,7 +65,7 @@ export class Router {
     match (url:string, path:string, method:string): boolean {
         if  (this.method !== method) return false;
         url = this.cleanUrl(url);
-        console.log('Matching', url, path, method);
+        //console.log('Matching', url, path, method);
         const  urlExpression  =  /(.*)\/(.*)|{(.*)}/g;
         const  pathExpression  =  /(.*)\/(.*)|{(.*)}/g;
 
@@ -89,10 +98,14 @@ export class Router {
     }
 
     parse(url: string, target: string, callback) {
-        console.log (window['tina4']['routes']);
-        window['tina4']['routes'].every(function(route){
-            console.log('looking', route.path, url);
+        //console.log (window['tina4']['routes']);
+        let routes = Globals.get('routes');
+        routes.every(function(route){
+            //console.log('looking', route.path, url);
             if (this.match(url, route.path, route.method )) {
+                if (route.method === 'GET') {
+                    history.pushState({}, '', route.path);
+                }
                 let html = route.callback( Router.response, this.params );
                 if (!html) { //try again if we failed the first time - twig async is not working
                     html = route.callback( Router.response, this.params );
@@ -106,7 +119,7 @@ export class Router {
     submitHandler(event) {
         if (event.preventDefault) event.preventDefault();
         let form = event.target;
-        console.log ('Form', form.action, window.location.pathname, form);
+        //console.log ('Form', form.action, window.location.pathname, form);
         if (form.action === undefined) form.action = window.location.pathname;
 
         // @ts-ignore
@@ -119,13 +132,13 @@ export class Router {
         this.params = this.getRequestParams();
         this.params.data = this.data;
         this.parse(this.url, this.target, function (target, content) {
-            console.log ('Target', target, content);
+            //console.log ('Target', target, content);
             if (document.getElementById(target) !== null) {
                 document.getElementById(target).innerHTML = content;
                 //Attach the form submit handler
                 let forms = Array.prototype.slice.call(document.getElementsByTagName('form'));
                 forms.forEach(function (form) {
-                    console.log('Found form', form.method);
+                    //console.log('Found form', form.method);
                     if (form.attachEvent) {
                         // @ts-ignore
                         form.attachEvent("submit", window.submitHandler);
