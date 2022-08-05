@@ -47,15 +47,10 @@ echo {"extends": "@parcel/config-default","resolvers": ["@parcel/resolver-glob",
 </html>
 ```
 
-#### Add static paths
+#### Add static paths & scripts
 ```json
 {
   "devDependencies": {
-    "@parcel/resolver-glob": "^2.7.0",
-    "parcel": "^2.7.0",
-    "parcel-reporter-static-files-copy": "^1.4.0",
-    "path-browserify": "^1.0.1",
-    "process": "^0.11.10"
   },
   "dependencies": {
     "tina4js": "^0.0.1"
@@ -63,6 +58,10 @@ echo {"extends": "@parcel/config-default","resolvers": ["@parcel/resolver-glob",
   "staticFiles": {
     "staticPath": "src/templates",
     "staticOutPath": "templates"
+  },
+  "scripts": {
+    "start": "parcel index.html",
+    "build": "parcel build"
   }
 }
 ```
@@ -70,8 +69,8 @@ echo {"extends": "@parcel/config-default","resolvers": ["@parcel/resolver-glob",
 #### Examples of routes
 
 ```ts
-import {Tina4} from "../../tina4/Tina4";
-import {Get} from "../../tina4/Get";
+import {Get} from "tina4js/tina4/Get";
+import {Tina4} from "tina4js/tina4/Tina4";
 
 (new Get()).add('/test/hello', function (response, request) {
     let content = `<h1>Hello World Again!</h1>`;
@@ -105,9 +104,9 @@ import {Get} from "../../tina4/Get";
 #### Post Routes
 This is configured using the tina4-api tag in the index.html file
 ```ts
-import {Post} from "../../tina4/Post";
-import {Api} from "../../tina4/Api";
-import {Tina4} from "../../tina4/Tina4";
+import {Post} from "tina4js/tina4/Post";
+import {Api} from "tina4js/tina4/Api";
+import {Tina4} from "tina4js/tina4/Tina4";
 
 (new Post()).add("/test", function (response, request) {
     //Send and API request
@@ -157,6 +156,11 @@ contact.twig - tied to the POST route above
 {% endfor %}
 ```
 
+#### Running
+
+```
+npm start
+```
 
 Components
 
