@@ -1,6 +1,8 @@
 {
   "name": "tina4js",
   "source": "index.html",
+  "version": "0.0.2",
+  "description" : "This is not another framework!",
   "dependencies": {
     "fs": "^0.0.1-security",
     "twig": "^1.15.4"

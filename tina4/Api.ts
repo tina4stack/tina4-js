@@ -32,9 +32,11 @@ export class Api {
             }
         };
 
-        xhr.send(null);
-
-
+        if (method === 'POST') {
+            xhr.send(request);
+        } else {
+            xhr.send(null);
+        }
     }
 
 }
