@@ -7,7 +7,7 @@ const currentDir = process.cwd();
 if (args) {
     switch (args[0]) {
         case 'install':
-                let installPath = path.join(currentDir, '/test');
+                let installPath = currentDir; //path.join(currentDir, '/test');
                 console.log(`Installing to ${installPath}...`);
                 install(installPath);
             break;
