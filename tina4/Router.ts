@@ -115,6 +115,9 @@ export class Router {
         }.bind(this));
 
         if (!rendered) {
+            if (url === '/') {
+                url = 'index';
+            }
             //See if we can find a twig file
             Tina4.renderTemplate(`${url}.twig`, {}, function (html) {
                 callback(target, Router.response(html, 200, 'text/html'));
