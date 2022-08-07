@@ -1,69 +1,24 @@
 # Tina4js - This is not another Framework for Javascript #
 
-Right now there is not much to see, but you can start playing by following these instructions
+Begin your Tina4 journey by following these steps
 
-#### Installing Parcel
+#### Install Parcel
+Parcel is a great tool to use whilst developing your project, not only does it allow you to use type script but it will bundle your project into a dist folder automatically.
 ```
 npm install --save-dev parcel
 ```
 
 #### Installing Tina4js
+We've tried to make installing Tina4js as easy as possible, this should result in a working project.
 ```
 npm install tina4js
+npm install -g tina4js
+tina4 install
 ```
 
-#### Create the src folders
-Linux / MacOS
+#### Running your project
 ```
-mkdir src
-mkdir src/routes
-mkdir src/templates
-```
-Windows
-```
-mkdir src
-mkdir src\routes
-mkdir src\templates
-```
-
-#### Create .parcelrc file
-```
-echo {"extends": "@parcel/config-default","resolvers": ["@parcel/resolver-glob", "..."],"reporters":  ["...", "parcel-reporter-static-files-copy"]} > .parcelrc
-```
-
-#### Create index.html
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Tina4 JS</title>
-</head>
-<body>
-<tina4-api url="https://randomuser.me/api/" token=""></tina4-api>
-<div id="root"></div>
-<script type="module" src="node_modules/tina4js/tina4.ts"></script>
-</body>
-</html>
-```
-
-#### Add static paths & scripts
-```json
-{
-  "devDependencies": {
-  },
-  "dependencies": {
-    "tina4js": "^0.0.1"
-  },
-  "staticFiles": {
-    "staticPath": "src/templates",
-    "staticOutPath": "templates"
-  },
-  "scripts": {
-    "start": "parcel index.html",
-    "build": "parcel build"
-  }
-}
+npm run start
 ```
 
 #### Examples of routes
