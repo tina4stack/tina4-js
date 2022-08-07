@@ -3,3 +3,4 @@
 /.cache/
 /.parcel-cache/
 /dist/
+/test/

@@ -2,9 +2,10 @@
   "name": "tina4js",
   "source": "index.html",
   "version": "0.0.3",
-  "description" : "This is not another framework!",
+  "description": "This is not another framework!",
   "dependencies": {
     "fs": "^0.0.1-security",
+    "tina4js": "^0.0.2",
     "twig": "^1.15.4"
   },
   "devDependencies": {
@@ -23,5 +24,8 @@
   "staticFiles": {
     "staticPath": "src/templates",
     "staticOutPath": "templates"
+  },
+  "bin": {
+    "tina4": "./bin/tina4.js"
   }
 }
