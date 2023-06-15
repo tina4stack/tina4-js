@@ -6,7 +6,7 @@
   "dependencies": {
     "fs": "^0.0.1-security",
     "tina4js": "^0.0.2",
-    "twig": "^1.15.4"
+    "twig": "^1.16.0"
   },
   "devDependencies": {
     "@parcel/resolver-glob": "^2.3.2",
