@@ -4,7 +4,7 @@
   "version": "0.0.6",
   "description": "This is not another framework!",
   "dependencies": {
-    "fs": "^0.0.1-security",
+    "fs": "^0.0.2",
     "tina4js": "^0.0.2",
     "twig": "^1.15.4"
   },
