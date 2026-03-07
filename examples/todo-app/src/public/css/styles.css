@@ -1,0 +1,278 @@
+/* Tina4 Todo App Styles */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: #f5f5f5;
+  color: #333;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+#root {
+  width: 100%;
+  max-width: 550px;
+}
+
+/* ── App Layout ───────────────────────────────────── */
+
+.todo-app {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.todo-app header {
+  padding: 1.5rem 2rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.todo-app h1 {
+  font-size: 2rem;
+  font-weight: 300;
+  color: #e74c3c;
+  letter-spacing: -0.02em;
+}
+
+.todo-app header nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.todo-app header nav a {
+  color: #999;
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.todo-app header nav a:hover {
+  color: #333;
+}
+
+/* ── Input ────────────────────────────────────────── */
+
+.todo-input {
+  display: flex;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+}
+
+.todo-input input {
+  flex: 1;
+  padding: 1rem 1.5rem;
+  border: none;
+  font-size: 1rem;
+  outline: none;
+  background: transparent;
+}
+
+.todo-input input::placeholder {
+  color: #ccc;
+  font-style: italic;
+}
+
+.todo-input button {
+  padding: 1rem 1.5rem;
+  border: none;
+  background: #e74c3c;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background 0.15s;
+}
+
+.todo-input button:hover {
+  background: #c0392b;
+}
+
+/* ── Toggle All ───────────────────────────────────── */
+
+.toggle-all-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.8rem;
+  color: #999;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.toggle-all {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ── Todo List ────────────────────────────────────── */
+
+.todo-list {
+  list-style: none;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  padding: 0.875rem 1.5rem;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.1s;
+}
+
+.todo-item:hover {
+  background: #fafafa;
+}
+
+.todo-item label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  cursor: pointer;
+}
+
+.todo-item input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: #27ae60;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.todo-item span {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.todo-item[data-done] span {
+  text-decoration: line-through;
+  color: #bbb;
+}
+
+.todo-item .remove {
+  opacity: 0;
+  border: none;
+  background: none;
+  color: #e74c3c;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  line-height: 1;
+  transition: opacity 0.15s;
+}
+
+.todo-item:hover .remove {
+  opacity: 1;
+}
+
+/* ── Footer ───────────────────────────────────────── */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.8rem;
+  color: #999;
+  gap: 0.5rem;
+}
+
+.count {
+  flex-shrink: 0;
+}
+
+.filters {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.filters button {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  color: #999;
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-transform: capitalize;
+  transition: border-color 0.15s;
+}
+
+.filters button:hover {
+  border-color: #ddd;
+}
+
+.filters button.selected {
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+.clear {
+  flex-shrink: 0;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: none;
+  color: #999;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.clear:hover {
+  color: #e74c3c;
+  text-decoration: underline;
+}
+
+/* ── Empty State ──────────────────────────────────── */
+
+.empty {
+  padding: 2rem;
+  text-align: center;
+  color: #ccc;
+  font-style: italic;
+}
+
+/* ── About Page ───────────────────────────────────── */
+
+.about {
+  padding: 2rem;
+}
+
+.about h1 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.about p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.about ul {
+  margin: 0 0 1rem 1.5rem;
+  line-height: 1.8;
+}
+
+.about a {
+  color: #e74c3c;
+  text-decoration: none;
+}
+
+.about a:hover {
+  text-decoration: underline;
+}
+
+.page {
+  padding: 2rem;
+}
+
+.page a {
+  color: #e74c3c;
+}

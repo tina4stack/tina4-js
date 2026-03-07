@@ -4,28 +4,28 @@
   "description": "Sub-3KB reactive framework — signals, web components, routing, PWA",
   "type": "module",
   "main": "dist/tina4.cjs.js",
-  "module": "dist/tina4.esm.js",
+  "module": "dist/tina4.es.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/tina4.esm.js",
+      "import": "./dist/tina4.es.js",
       "require": "./dist/tina4.cjs.js",
       "types": "./dist/index.d.ts"
     },
     "./core": {
-      "import": "./dist/core.esm.js",
+      "import": "./dist/core.es.js",
       "types": "./dist/core/index.d.ts"
     },
     "./router": {
-      "import": "./dist/router.esm.js",
+      "import": "./dist/router.es.js",
       "types": "./dist/router/index.d.ts"
     },
     "./api": {
-      "import": "./dist/api.esm.js",
+      "import": "./dist/api.es.js",
       "types": "./dist/api/index.d.ts"
     },
     "./pwa": {
-      "import": "./dist/pwa.esm.js",
+      "import": "./dist/pwa.es.js",
       "types": "./dist/pwa/index.d.ts"
     }
   },
