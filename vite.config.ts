@@ -18,10 +18,7 @@ export default defineConfig({
         entryFileNames: '[name].[format].js',
       },
     },
-    minify: 'terser',
-    terserOptions: {
-      compress: { passes: 3 },
-    },
+    minify: 'esbuild',
     outDir: 'dist',
   },
 });

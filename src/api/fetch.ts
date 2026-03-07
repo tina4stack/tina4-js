@@ -154,8 +154,6 @@ export const api = {
     return request<T>('DELETE', path);
   },
 
-  intercept(type: 'request', fn: RequestInterceptor): void;
-  intercept(type: 'response', fn: ResponseInterceptor): void;
   intercept(type: 'request' | 'response', fn: RequestInterceptor | ResponseInterceptor): void {
     if (type === 'request') {
       requestInterceptors.push(fn as RequestInterceptor);

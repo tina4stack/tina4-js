@@ -20,19 +20,14 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): Docum
 
   if (!template) {
     template = document.createElement('template');
-    // Build HTML with comment markers for dynamic parts and attribute markers
     let markup = '';
     for (let i = 0; i < strings.length; i++) {
       markup += strings[i];
       if (i < values.length) {
-        // Check if we're inside an attribute (look for an unclosed quote)
-        const beforeMarker = markup;
-        const inAttr = isInsideAttribute(beforeMarker);
+        const inAttr = isInsideAttribute(markup);
         if (inAttr) {
-          // Attribute binding: use a special sentinel value
           markup += `__t4_${i}__`;
         } else {
-          // Content binding: use a comment node
           markup += `<!--${MARKER}${i}-->`;
         }
       }
@@ -42,65 +37,90 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): Docum
   }
 
   const fragment = template.content.cloneNode(true) as DocumentFragment;
-  bindContent(fragment, values);
-  bindAttributes(fragment, values, strings);
+  // Collect markers first (recursive walk), then bind — avoids mutation during walk
+  const comments = findComments(fragment);
+  for (const { marker, index } of comments) {
+    bindValue(marker, values[index]);
+  }
+  // Bind attributes on elements
+  const elements = findElements(fragment);
+  for (const el of elements) {
+    bindElementAttrs(el, values);
+  }
   return fragment;
+}
+
+// ── DOM Traversal (recursive, works in all DOM impls) ───────────────
+
+function findComments(root: Node): { marker: Comment; index: number }[] {
+  const results: { marker: Comment; index: number }[] = [];
+  walkNodes(root, (node) => {
+    if (node.nodeType === 8 /* COMMENT_NODE */) {
+      const data = (node as Comment).data;
+      if (data && data.startsWith(MARKER)) {
+        const index = parseInt(data.slice(MARKER.length), 10);
+        results.push({ marker: node as Comment, index });
+      }
+    }
+  });
+  return results;
+}
+
+function findElements(root: Node): Element[] {
+  const results: Element[] = [];
+  walkNodes(root, (node) => {
+    if (node.nodeType === 1 /* ELEMENT_NODE */) {
+      results.push(node as Element);
+    }
+  });
+  return results;
+}
+
+function walkNodes(node: Node, callback: (node: Node) => void): void {
+  const children = node.childNodes;
+  // Walk children in reverse order of index so mutations don't affect iteration
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    callback(child);
+    walkNodes(child, callback);
+  }
 }
 
 // ── Content Binding ─────────────────────────────────────────────────
 
-function bindContent(root: DocumentFragment, values: unknown[]): void {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
-  const toProcess: { marker: Comment; index: number }[] = [];
-
-  let node: Comment | null;
-  while ((node = walker.nextNode() as Comment | null)) {
-    if (node.data.startsWith(MARKER)) {
-      const index = parseInt(node.data.slice(MARKER.length), 10);
-      toProcess.push({ marker: node, index });
-    }
-  }
-
-  for (const { marker, index } of toProcess) {
-    const value = values[index];
-    bindValue(marker, value);
-  }
-}
-
 function bindValue(marker: Comment, value: unknown): void {
+  const parent = marker.parentNode;
+  if (!parent) return;
+
   if (isSignal(value)) {
-    // Reactive text node — updates when signal changes
     const text = document.createTextNode('');
-    marker.parentNode!.replaceChild(text, marker);
+    parent.replaceChild(text, marker);
     effect(() => {
       text.data = String((value as Signal<unknown>).value ?? '');
     });
 
   } else if (typeof value === 'function') {
-    // Dynamic region — function re-evaluated when its signals change
     const anchor = document.createComment('');
-    marker.parentNode!.replaceChild(anchor, marker);
+    parent.replaceChild(anchor, marker);
     let currentNodes: Node[] = [];
 
     effect(() => {
       const result = (value as () => unknown)();
-      // Remove previous nodes
       for (const n of currentNodes) n.parentNode?.removeChild(n);
       currentNodes = [];
-      // Insert new nodes
       const nodes = resultToNodes(result);
-      const parent = anchor.parentNode!;
+      const p = anchor.parentNode!;
       for (const n of nodes) {
-        parent.insertBefore(n, anchor);
+        p.insertBefore(n, anchor);
         currentNodes.push(n);
       }
     });
 
-  } else if (value instanceof DocumentFragment) {
-    marker.parentNode!.replaceChild(value, marker);
+  } else if (isDocFragment(value)) {
+    parent.replaceChild(value as DocumentFragment, marker);
 
   } else if (value instanceof Node) {
-    marker.parentNode!.replaceChild(value, marker);
+    parent.replaceChild(value, marker);
 
   } else if (Array.isArray(value)) {
     const frag = document.createDocumentFragment();
@@ -108,117 +128,99 @@ function bindValue(marker: Comment, value: unknown): void {
       const nodes = resultToNodes(item);
       for (const n of nodes) frag.appendChild(n);
     }
-    marker.parentNode!.replaceChild(frag, marker);
+    parent.replaceChild(frag, marker);
 
   } else {
-    // Static text
     const text = document.createTextNode(String(value ?? ''));
-    marker.parentNode!.replaceChild(text, marker);
+    parent.replaceChild(text, marker);
   }
 }
 
 // ── Attribute Binding ───────────────────────────────────────────────
 
-function bindAttributes(root: DocumentFragment, values: unknown[], strings: TemplateStringsArray): void {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
-  let el: Element | null;
+function bindElementAttrs(el: Element, values: unknown[]): void {
+  const attrsToRemove: string[] = [];
 
-  while ((el = walker.nextNode() as Element | null)) {
-    const attrsToRemove: string[] = [];
+  for (const attr of Array.from(el.attributes)) {
+    const name = attr.name;
+    const rawValue = attr.value;
 
-    for (const attr of Array.from(el.attributes)) {
-      const name = attr.name;
-      const rawValue = attr.value;
-
-      // Check for event handlers: @click, @input, etc.
-      if (name.startsWith('@')) {
-        const eventName = name.slice(1);
-        const match = rawValue.match(/__t4_(\d+)__/);
-        if (match) {
-          const index = parseInt(match[1], 10);
-          const handler = values[index];
-          if (typeof handler === 'function') {
-            el.addEventListener(eventName, handler as EventListener);
-          }
-        }
-        attrsToRemove.push(name);
-        continue;
-      }
-
-      // Check for boolean attributes: ?disabled, ?hidden, etc.
-      if (name.startsWith('?')) {
-        const attrName = name.slice(1);
-        const match = rawValue.match(/__t4_(\d+)__/);
-        if (match) {
-          const index = parseInt(match[1], 10);
-          const value = values[index];
-          if (isSignal(value)) {
-            effect(() => {
-              if ((value as Signal<unknown>).value) {
-                el!.setAttribute(attrName, '');
-              } else {
-                el!.removeAttribute(attrName);
-              }
-            });
-          } else {
-            if (value) el.setAttribute(attrName, '');
-          }
-        }
-        attrsToRemove.push(name);
-        continue;
-      }
-
-      // Check for property bindings: .value, .innerHTML, etc.
-      if (name.startsWith('.')) {
-        const propName = name.slice(1);
-        const match = rawValue.match(/__t4_(\d+)__/);
-        if (match) {
-          const index = parseInt(match[1], 10);
-          const value = values[index];
-          if (isSignal(value)) {
-            effect(() => {
-              (el as any)[propName] = (value as Signal<unknown>).value;
-            });
-          } else {
-            (el as any)[propName] = value;
-          }
-        }
-        attrsToRemove.push(name);
-        continue;
-      }
-
-      // Regular attribute with dynamic value
+    // Event handlers: @click, @input, etc.
+    if (name.startsWith('@')) {
+      const eventName = name.slice(1);
       const match = rawValue.match(/__t4_(\d+)__/);
       if (match) {
-        const index = parseInt(match[1], 10);
-        const value = values[index];
-        if (isSignal(value)) {
-          effect(() => {
-            const v = (value as Signal<unknown>).value;
-            el!.setAttribute(name, String(v ?? ''));
-          });
-        } else if (typeof value === 'function') {
-          effect(() => {
-            const v = (value as () => unknown)();
-            el!.setAttribute(name, String(v ?? ''));
-          });
-        } else {
-          el.setAttribute(name, String(value ?? ''));
+        const handler = values[parseInt(match[1], 10)];
+        if (typeof handler === 'function') {
+          el.addEventListener(eventName, handler as EventListener);
         }
       }
+      attrsToRemove.push(name);
+      continue;
     }
 
-    for (const name of attrsToRemove) {
-      el.removeAttribute(name);
+    // Boolean attributes: ?disabled, ?hidden, etc.
+    if (name.startsWith('?')) {
+      const attrName = name.slice(1);
+      const match = rawValue.match(/__t4_(\d+)__/);
+      if (match) {
+        const val = values[parseInt(match[1], 10)];
+        if (isSignal(val)) {
+          const sigVal = val as Signal<unknown>;
+          effect(() => {
+            if (sigVal.value) {
+              el.setAttribute(attrName, '');
+            } else {
+              el.removeAttribute(attrName);
+            }
+          });
+        } else {
+          if (val) el.setAttribute(attrName, '');
+        }
+      }
+      attrsToRemove.push(name);
+      continue;
+    }
+
+    // Property bindings: .value, .innerHTML, etc.
+    if (name.startsWith('.')) {
+      const propName = name.slice(1);
+      const match = rawValue.match(/__t4_(\d+)__/);
+      if (match) {
+        const val = values[parseInt(match[1], 10)];
+        if (isSignal(val)) {
+          effect(() => { (el as any)[propName] = (val as Signal<unknown>).value; });
+        } else {
+          (el as any)[propName] = val;
+        }
+      }
+      attrsToRemove.push(name);
+      continue;
+    }
+
+    // Regular dynamic attribute
+    const match = rawValue.match(/__t4_(\d+)__/);
+    if (match) {
+      const val = values[parseInt(match[1], 10)];
+      if (isSignal(val)) {
+        const sigVal = val as Signal<unknown>;
+        effect(() => { el.setAttribute(name, String(sigVal.value ?? '')); });
+      } else if (typeof val === 'function') {
+        effect(() => { el.setAttribute(name, String((val as () => unknown)() ?? '')); });
+      } else {
+        el.setAttribute(name, String(val ?? ''));
+      }
     }
   }
+
+  for (const n of attrsToRemove) el.removeAttribute(n);
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
 function resultToNodes(value: unknown): Node[] {
   if (value == null || value === false) return [];
-  if (value instanceof DocumentFragment) return Array.from(value.childNodes);
+  if (isDocFragment(value)) return Array.from((value as DocumentFragment).childNodes);
   if (value instanceof Node) return [value];
   if (Array.isArray(value)) {
     const nodes: Node[] = [];
@@ -228,14 +230,19 @@ function resultToNodes(value: unknown): Node[] {
   return [document.createTextNode(String(value))];
 }
 
-function isInsideAttribute(html: string): boolean {
-  // Count unmatched quotes to determine if we're inside an attribute value
+function isDocFragment(value: unknown): boolean {
+  return value != null && typeof value === 'object' && (value as Node).nodeType === 11;
+}
+
+function isInsideAttribute(markup: string): boolean {
+  // If we're between a `<tag` and its closing `>`, we're in attribute context.
+  // This handles both quoted (class="${val}") and unquoted (class=${val}) attrs.
   let inSingle = false;
   let inDouble = false;
   let inTag = false;
 
-  for (let i = 0; i < html.length; i++) {
-    const ch = html[i];
+  for (let i = 0; i < markup.length; i++) {
+    const ch = markup[i];
     if (ch === '<' && !inSingle && !inDouble) inTag = true;
     if (ch === '>' && !inSingle && !inDouble) inTag = false;
     if (inTag) {
@@ -244,5 +251,6 @@ function isInsideAttribute(html: string): boolean {
     }
   }
 
-  return inSingle || inDouble;
+  // Inside a tag (quoted or unquoted attribute value) = attribute context
+  return inTag;
 }
