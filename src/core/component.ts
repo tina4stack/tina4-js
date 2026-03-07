@@ -7,6 +7,21 @@
 
 import { signal, type Signal } from './signal';
 
+// ── Debug Hooks (tree-shakeable — null unless debug module imported) ──
+
+/** @internal Called when a Tina4Element is connected to the DOM. */
+export let __debugComponentMount: ((el: Tina4Element) => void) | null = null;
+/** @internal Called when a Tina4Element is disconnected from the DOM. */
+export let __debugComponentUnmount: ((el: Tina4Element) => void) | null = null;
+/** @internal Set the debug hooks. */
+export function __setDebugComponentHooks(
+  onMount: typeof __debugComponentMount,
+  onUnmount: typeof __debugComponentUnmount,
+) {
+  __debugComponentMount = onMount;
+  __debugComponentUnmount = onUnmount;
+}
+
 export type PropType = typeof String | typeof Number | typeof Boolean;
 
 export abstract class Tina4Element extends HTMLElement {
@@ -63,10 +78,12 @@ export abstract class Tina4Element extends HTMLElement {
     }
 
     this.onMount();
+    if (__debugComponentMount) __debugComponentMount(this);
   }
 
   disconnectedCallback(): void {
     this.onUnmount();
+    if (__debugComponentUnmount) __debugComponentUnmount(this);
   }
 
   attributeChangedCallback(name: string, _old: string | null, value: string | null): void {

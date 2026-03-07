@@ -10,12 +10,17 @@ export default defineConfig({
         router: resolve(__dirname, 'src/router/index.ts'),
         api: resolve(__dirname, 'src/api/index.ts'),
         pwa: resolve(__dirname, 'src/pwa/index.ts'),
+        debug: resolve(__dirname, 'src/debug/index.ts'),
       },
       formats: ['es', 'cjs'],
     },
     rollupOptions: {
       output: {
         entryFileNames: '[name].[format].js',
+        chunkFileNames: '[name].[format].js',
+        // Inline shared code into each entry — keeps imports self-contained
+        manualChunks: undefined,
+        inlineDynamicImports: false,
       },
     },
     minify: 'esbuild',

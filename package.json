@@ -1,6 +1,6 @@
 {
   "name": "tina4js",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0",
   "description": "Sub-3KB reactive framework — signals, web components, routing, PWA",
   "type": "module",
   "main": "dist/tina4.cjs.js",
@@ -27,6 +27,10 @@
     "./pwa": {
       "import": "./dist/pwa.es.js",
       "types": "./dist/pwa/index.d.ts"
+    },
+    "./debug": {
+      "import": "./dist/debug.es.js",
+      "types": "./dist/debug/index.d.ts"
     }
   },
   "sideEffects": false,

@@ -10,6 +10,21 @@
 /** The currently executing effect (used for auto-tracking). */
 let currentEffect: (() => void) | null = null;
 
+// ── Debug Hooks (tree-shakeable — null unless debug module imported) ──
+
+/** @internal Called when a signal is created. */
+export let __debugSignalCreate: ((s: Signal<unknown>, label?: string) => void) | null = null;
+/** @internal Called when a signal value changes. */
+export let __debugSignalUpdate: ((s: Signal<unknown>, oldVal: unknown, newVal: unknown) => void) | null = null;
+/** @internal Set the debug hooks. */
+export function __setDebugSignalHooks(
+  onCreate: typeof __debugSignalCreate,
+  onUpdate: typeof __debugSignalUpdate,
+) {
+  __debugSignalCreate = onCreate;
+  __debugSignalUpdate = onUpdate;
+}
+
 /** Batch depth counter — notifications deferred while > 0. */
 let batchDepth = 0;
 
@@ -37,11 +52,11 @@ export interface ReadonlySignal<T> {
   peek(): T;
 }
 
-export function signal<T>(initial: T): Signal<T> {
+export function signal<T>(initial: T, label?: string): Signal<T> {
   let value = initial;
   const subs = new Set<() => void>();
 
-  return {
+  const s: Signal<T> & { _debugInfo?: { label?: string; createdAt: number; updateCount: number; subs: Set<() => void> } } = {
     _t4: true as const,
 
     get value(): T {
@@ -51,12 +66,14 @@ export function signal<T>(initial: T): Signal<T> {
 
     set value(next: T) {
       if (Object.is(next, value)) return;
+      const old = value;
       value = next;
+      if (s._debugInfo) s._debugInfo.updateCount++;
+      if (__debugSignalUpdate) __debugSignalUpdate(s as Signal<unknown>, old, next);
       if (batchDepth > 0) {
-        for (const s of subs) batchQueue.add(s);
+        for (const sub of subs) batchQueue.add(sub);
       } else {
-        // Copy to avoid issues if a subscriber modifies the set
-        for (const s of [...subs]) s();
+        for (const sub of [...subs]) sub();
       }
     },
 
@@ -69,6 +86,14 @@ export function signal<T>(initial: T): Signal<T> {
       return value;
     },
   };
+
+  // Attach debug info if debug module is active
+  if (__debugSignalCreate) {
+    s._debugInfo = { label, createdAt: Date.now(), updateCount: 0, subs };
+    __debugSignalCreate(s as Signal<unknown>, label);
+  }
+
+  return s;
 }
 
 // ── Computed ─────────────────────────────────────────────────────────

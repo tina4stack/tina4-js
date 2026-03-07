@@ -28,7 +28,8 @@ interface RouterConfig {
   mode?: 'history' | 'hash';
 }
 
-type ChangeListener = (event: { path: string; params: RouteParams }) => void;
+export type ChangeEvent = { path: string; params: RouteParams; pattern: string; durationMs: number };
+type ChangeListener = (event: ChangeEvent) => void;
 
 // ── State ───────────────────────────────────────────────────────────
 
@@ -91,6 +92,7 @@ export function navigate(path: string, opts?: { replace?: boolean }): void {
 
 function resolve(): void {
   if (!targetEl) return;
+  const startTime = performance.now();
 
   const path = mode === 'hash'
     ? (location.hash.slice(1) || '/')
@@ -125,13 +127,14 @@ function resolve(): void {
     if (content instanceof Promise) {
       content.then((resolved) => {
         renderContent(targetEl!, resolved);
+        const durationMs = performance.now() - startTime;
+        for (const fn of listeners) fn({ path, params, pattern: r.pattern, durationMs });
       });
     } else {
       renderContent(targetEl!, content);
+      const durationMs = performance.now() - startTime;
+      for (const fn of listeners) fn({ path, params, pattern: r.pattern, durationMs });
     }
-
-    // Notify listeners
-    for (const fn of listeners) fn({ path, params });
 
     return;
   }
@@ -194,6 +197,11 @@ export const router = {
     };
   },
 };
+
+/** @internal Read-only access to registered routes (for debug overlay). */
+export function _getRoutes(): ReadonlyArray<{ pattern: string; hasGuard: boolean }> {
+  return routes.map(r => ({ pattern: r.pattern, hasGuard: !!r.guard }));
+}
 
 // ── Test Helper ─────────────────────────────────────────────────────
 
