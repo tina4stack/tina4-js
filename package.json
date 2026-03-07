@@ -1,31 +1,70 @@
 {
   "name": "tina4js",
-  "source": "index.html",
-  "version": "0.0.6",
-  "description": "This is not another framework!",
-  "dependencies": {
-    "fs": "^0.0.1-security",
-    "tina4js": "^0.0.2",
-    "twig": "^1.15.4"
+  "version": "1.0.0-alpha.1",
+  "description": "Sub-3KB reactive framework — signals, web components, routing, PWA",
+  "type": "module",
+  "main": "dist/tina4.cjs.js",
+  "module": "dist/tina4.esm.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/tina4.esm.js",
+      "require": "./dist/tina4.cjs.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./core": {
+      "import": "./dist/core.esm.js",
+      "types": "./dist/core/index.d.ts"
+    },
+    "./router": {
+      "import": "./dist/router.esm.js",
+      "types": "./dist/router/index.d.ts"
+    },
+    "./api": {
+      "import": "./dist/api.esm.js",
+      "types": "./dist/api/index.d.ts"
+    },
+    "./pwa": {
+      "import": "./dist/pwa.esm.js",
+      "types": "./dist/pwa/index.d.ts"
+    }
   },
-  "devDependencies": {
-    "@parcel/resolver-glob": "^2.3.2",
-    "@types/node": "^17.0.21",
-    "parcel": "latest",
-    "parcel-reporter-static-files-copy": "^1.3.4",
-    "path-browserify": "^1.0.1",
-    "process": "^0.11.10",
-    "typescript": "^4.2.3"
-  },
-  "scripts": {
-    "start": "parcel",
-    "build": "parcel build"
-  },
-  "staticFiles": {
-    "staticPath": "src/templates",
-    "staticOutPath": "templates"
-  },
+  "sideEffects": false,
   "bin": {
     "tina4": "./bin/tina4.js"
+  },
+  "files": [
+    "dist/",
+    "bin/",
+    "TINA4.md"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:types": "tsc --emitDeclarationOnly --outDir dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:size": "vitest run tests/size.test.ts",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vite": "^5.4.0",
+    "vitest": "^2.1.0",
+    "happy-dom": "^15.0.0"
+  },
+  "keywords": [
+    "framework",
+    "signals",
+    "web-components",
+    "pwa",
+    "lightweight",
+    "reactive",
+    "tina4"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tina4stack/tina4-js"
   }
 }

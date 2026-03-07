@@ -1,124 +1,220 @@
-# Tina4js - This is not another Framework for Javascript #
+# Tina4-JS
 
-Begin your Tina4 journey by following these steps
+Sub-3KB reactive framework — signals, web components, routing, and PWA.
 
-#### Install Parcel
-Parcel is a great tool to use whilst developing your project, not only does it allow you to use type script but it will bundle your project into a dist folder automatically.
-```
-npm install --save-dev parcel
-```
+Works standalone or embedded inside [tina4-php](https://github.com/tina4stack/tina4-php) / [tina4-python](https://github.com/tina4stack/tina4-python).
 
-#### Installing Tina4js
-We've tried to make installing Tina4js as easy as possible, this should result in a working project.
-```
+## Why?
+
+| Feature               | React  | Preact | Vue    | **tina4-js** |
+|-----------------------|--------|--------|--------|--------------|
+| Size (gzip)           | 42KB   | 3KB    | 33KB   | **~2KB**     |
+| Virtual DOM           | Yes    | Yes    | Yes    | **No**       |
+| Components            | Custom | Custom | Custom | **Native Web Components** |
+| Reactivity            | Hooks  | Hooks  | Proxy  | **Signals**  |
+| Router included       | No     | No     | No     | **Yes**      |
+| HTTP client included  | No     | No     | No     | **Yes**      |
+| PWA support           | No     | No     | No     | **Yes**      |
+| Backend integration   | None   | None   | None   | **tina4-php/python** |
+| Works without build   | No     | No     | No     | **Yes** (ESM) |
+
+No virtual DOM. Signals track exactly which DOM nodes need updating — O(1) updates.
+
+## Install
+
+```bash
 npm install tina4js
-npm install -g tina4js
-tina4 install
 ```
 
-#### Running your project
-```
-npm run start
+Or use via CDN with zero build tools:
+
+```html
+<script type="module">
+  import { signal, html } from 'https://cdn.jsdelivr.net/npm/tina4js/dist/tina4.esm.js';
+</script>
 ```
 
-#### Examples of routes
+## Quick Start
+
+```bash
+npm run dev    # dev server with HMR
+npm run build  # production build
+npm test       # run tests
+```
+
+---
+
+## API Reference
+
+### Signals — Reactive State
 
 ```ts
-import {Get} from "tina4js/tina4/Get";
-import {Tina4} from "tina4js/tina4/Tina4";
+import { signal, computed, effect, batch } from 'tina4js';
 
-(new Get()).add('/test/hello', function (response, request) {
-    let content = `<h1>Hello World Again!</h1>`;
-    return response(content, 200, 'text/html')
+// Create a reactive value
+const count = signal(0);
+count.value;       // read: 0
+count.value = 5;   // write: triggers subscribers
+
+// Derived value (auto-tracks dependencies)
+const doubled = computed(() => count.value * 2);
+doubled.value;     // 10 (read-only)
+
+// Side effect (auto-tracks dependencies)
+const dispose = effect(() => {
+  console.log(`Count is ${count.value}`);
 });
+// Runs immediately, then re-runs when count changes.
+// Call dispose() to stop.
 
-(new Get()).add('/test', function (response, request) {
-    Tina4.renderTemplate(`<h1>Hello {{name}}!</h1><form target="root" method="post"><input type="text" name="firstName" value="{{firstName}}"><button>Send</button></form>`, {
-            name: "Tina4",
-            firstName: "Tina4"
-        }, function (html) {
-            return response(html, 200, 'text/html')
-        }
-    );
-});
-
-(new Get()).add('/test/{id}', function (response, request) {
-    Tina4.renderTemplate(`<h1>Hello parsing params ok {{id}}!</h1>`, request, function(html) {
-       return response(html, 200, 'text/html');
-    });
-});
-
-(new Get()).add('/', function (response, request) {
-    Tina4.renderTemplate(`index.twig`, {test: "Hello World!", title: "Index Page"}, function(html) {
-        return response (html, 200, 'text/html');
-    });
-});
-
+// Batch multiple updates (one notification)
+batch(() => {
+  a.value = 1;
+  b.value = 2;
+}); // subscribers notified once
 ```
 
-#### Post Routes
-This is configured using the tina4-api tag in the index.html file
+### html`` — Tagged Template Renderer
+
 ```ts
-import {Post} from "tina4js/tina4/Post";
-import {Api} from "tina4js/tina4/Api";
-import {Tina4} from "tina4js/tina4/Tina4";
+import { html, signal } from 'tina4js';
 
-(new Post()).add("/test", function (response, request) {
-    //Send and API request
-    console.log('POST WORKING', request);
-    Api.sendRequest('',  request, 'GET', function(result) {
-        Tina4.renderTemplate(`contact.twig`, result, function(html){
-            return response(html, 200);
-        });
-    });
+const name = signal('World');
+
+// Creates real DOM nodes (not strings)
+const el = html`<h1>Hello ${name}!</h1>`;
+document.body.append(el);
+
+name.value = 'Tina4'; // DOM updates surgically — no diffing
+
+// Event handlers
+html`<button @click=${() => alert('clicked')}>Go</button>`;
+
+// Conditional rendering
+const show = signal(true);
+html`<div>${() => show.value ? html`<p>Visible</p>` : null}</div>`;
+
+// List rendering
+const items = signal(['a', 'b', 'c']);
+html`<ul>${() => items.value.map(i => html`<li>${i}</li>`)}</ul>`;
+
+// Reactive attributes
+const cls = signal('active');
+html`<div class=${cls}>Styled</div>`;
+
+// Boolean attributes
+const disabled = signal(false);
+html`<button ?disabled=${disabled}>Submit</button>`;
+```
+
+### Tina4Element — Web Components
+
+```ts
+import { Tina4Element, html, signal } from 'tina4js';
+
+class MyCounter extends Tina4Element {
+  static props = { label: String };
+  static styles = `:host { display: block; }`;
+
+  count = signal(0);
+
+  render() {
+    return html`
+      <span>${this.prop('label')}: ${this.count}</span>
+      <button @click=${() => this.count.value++}>+</button>
+    `;
+  }
+}
+
+customElements.define('my-counter', MyCounter);
+```
+
+```html
+<my-counter label="Clicks"></my-counter>
+```
+
+### Router — Client-Side Routing
+
+```ts
+import { route, router, navigate, html } from 'tina4js';
+
+route('/', () => html`<h1>Home</h1>`);
+route('/user/{id}', ({ id }) => html`<h1>User ${id}</h1>`);
+route('/admin', {
+  guard: () => isLoggedIn() || '/login',
+  handler: () => html`<h1>Admin</h1>`,
+});
+route('*', () => html`<h1>404</h1>`);
+
+router.start({ target: '#root', mode: 'history' });
+
+// Programmatic navigation
+navigate('/user/42');
+```
+
+### API — Fetch Client
+
+```ts
+import { api } from 'tina4js';
+
+api.configure({
+  baseUrl: '/api',
+  auth: true,  // auto Bearer + formToken (tina4-php/python compatible)
+});
+
+const users = await api.get('/users');
+const user  = await api.get('/users/{id}', { id: 42 });
+const result = await api.post('/users', { name: 'Andre' });
+
+// Interceptors
+api.intercept('request', (config) => {
+  config.headers['X-Custom'] = 'value';
+  return config;
+});
+
+api.intercept('response', (res) => {
+  if (res.status === 401) navigate('/login');
+  return res;
 });
 ```
 
-### Examples of templates
+### PWA — Progressive Web App
 
-base.twig
-```twig base.twig
-<div>
-    <nav>
-        <h1>Hello World Hello</h1>
-        <a href="#" onclick="navigate('/')">Home</a>
-        <a href="#" onclick="navigate('/test/hello')">Test</a>
-        <a href="#" onclick="navigate('/test/Hello')">Hello</a>
-        <a href="#" onclick="navigate('/test')">Hello</a>
-    </nav>
-</div>
-<div>
-    {% block content %}
-        Here is content
-    {% endblock %}
-</div>
+```ts
+import { pwa } from 'tina4js';
+
+pwa.register({
+  name: 'My App',
+  shortName: 'App',
+  themeColor: '#1a1a2e',
+  cacheStrategy: 'network-first',
+  precache: ['/', '/css/default.css'],
+  offlineRoute: '/offline',
+});
 ```
 
-index.twig
-```twig index.twig 
-{% extends "base.twig" %}
-{% block content %}
-    {{ test }}
-{% endblock %}
+---
+
+## Deployment Modes
+
+| Mode | Description |
+|------|-------------|
+| **Standalone** | `npm run build` → deploy `dist/` to any static host |
+| **tina4-php** | `npm run build` → JS bundle into `src/public/js/`, uses `TINA4_APP_DOCUMENT_ROOT` |
+| **tina4-python** | `npm run build` → JS bundle into `src/public/js/`, with catch-all route |
+| **Islands** | No SPA — hydrate individual web components in server-rendered pages |
+
+---
+
+## Development
+
+```bash
+npm test          # run all tests
+npm run test:watch # watch mode
+npm run build     # production build
+npm run dev       # dev server
 ```
 
-contact.twig - tied to the POST route above
-```twig contact.twig
-<h1>API Results</h1>
-{% for result in results %}
-    {{result.name.first}}
-    <img src="{{result.picture.large}}">
-{% endfor %}
-```
+## License
 
-#### Running
-
-```
-npm start
-```
-
-Components
-
-| Component | Example                                                       |
-|-----------|---------------------------------------------------------------|
-| tina4-api | ```<tina4-api url="https://randomuser.me/api/" token="" />``` |
+MIT
