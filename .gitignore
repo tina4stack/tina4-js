@@ -4,3 +4,5 @@
 /.parcel-cache/
 /dist/
 *.tsbuildinfo
+/.claude/launch.json
+/examples/todo-app/package-lock.json
