@@ -6,6 +6,8 @@
  * router.start(config)   — start the router
  */
 
+import { _setEffectCollector } from '../core/signal';
+
 export type RouteParams = Record<string, string>;
 export type RouteHandler = (params: RouteParams) => unknown;
 export type RouteGuard = () => boolean | string;
@@ -38,6 +40,11 @@ let targetEl: Element | null = null;
 let mode: 'history' | 'hash' = 'history';
 let started = false;
 const listeners: ChangeListener[] = [];
+
+/** Disposers for effects created by the current route's template. */
+let activeDisposers: (() => void)[] = [];
+/** Monotonic counter to detect stale async route handlers. */
+let routeVersion = 0;
 
 // ── Public API ──────────────────────────────────────────────────────
 
@@ -93,6 +100,7 @@ export function navigate(path: string, opts?: { replace?: boolean }): void {
 function resolve(): void {
   if (!targetEl) return;
   const startTime = performance.now();
+  const version = ++routeVersion;
 
   const path = mode === 'hash'
     ? (location.hash.slice(1) || '/')
@@ -118,20 +126,38 @@ function resolve(): void {
       }
     }
 
-    // Execute handler
-    const content = r.handler(params);
+    // Dispose effects from previous route
+    for (const dispose of activeDisposers) dispose();
+    activeDisposers = [];
 
     // Render to target
     targetEl.innerHTML = '';
 
+    // Collect effects created during handler + render
+    const disposers: (() => void)[] = [];
+    _setEffectCollector(disposers);
+
+    // Execute handler
+    const content = r.handler(params);
+
     if (content instanceof Promise) {
+      // Keep collector active for async templates (effects created after await)
       content.then((resolved) => {
+        _setEffectCollector(null);
+        if (version !== routeVersion) {
+          // Navigation happened while this async handler was pending — discard
+          for (const d of disposers) d();
+          return;
+        }
         renderContent(targetEl!, resolved);
+        activeDisposers = disposers;
         const durationMs = performance.now() - startTime;
         for (const fn of listeners) fn({ path, params, pattern: r.pattern, durationMs });
       });
     } else {
+      _setEffectCollector(null);
       renderContent(targetEl!, content);
+      activeDisposers = disposers;
       const durationMs = performance.now() - startTime;
       for (const fn of listeners) fn({ path, params, pattern: r.pattern, durationMs });
     }
@@ -142,11 +168,11 @@ function resolve(): void {
 
 function renderContent(target: Element, content: unknown): void {
   if (content instanceof DocumentFragment || content instanceof Node) {
-    target.appendChild(content);
+    target.replaceChildren(content);
   } else if (typeof content === 'string') {
     target.innerHTML = content;
   } else if (content != null) {
-    target.appendChild(document.createTextNode(String(content)));
+    target.replaceChildren(document.createTextNode(String(content)));
   }
 }
 
@@ -207,6 +233,9 @@ export function _getRoutes(): ReadonlyArray<{ pattern: string; hasGuard: boolean
 
 /** @internal Reset router state (for tests only). */
 export function _resetRouter(): void {
+  for (const dispose of activeDisposers) dispose();
+  activeDisposers = [];
+  routeVersion = 0;
   routes = [];
   targetEl = null;
   mode = 'history';

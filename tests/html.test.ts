@@ -204,3 +204,96 @@ describe('html template caching', () => {
     expect(b.firstElementChild?.className).toBe('cached');
   });
 });
+
+describe('html — inner effect cleanup', () => {
+  it('function binding disposes inner effects when re-evaluated', () => {
+    const items = signal(['a', 'b']);
+    const innerRunCount = { value: 0 };
+
+    const frag = html`<div>${() => {
+      return items.value.map(item => {
+        innerRunCount.value++;
+        return html`<span>${item}</span>`;
+      });
+    }}</div>`;
+    const div = frag.firstElementChild!;
+    document.body.appendChild(div);
+
+    // Initial render: 2 items
+    expect(div.querySelectorAll('span').length).toBe(2);
+    const initialRuns = innerRunCount.value;
+
+    // Update list — old inner effects should be cleaned up
+    items.value = ['x'];
+    expect(div.querySelectorAll('span').length).toBe(1);
+    expect(div.querySelector('span')?.textContent).toBe('x');
+
+    // Update again — should not accumulate stale spans
+    items.value = ['p', 'q', 'r'];
+    expect(div.querySelectorAll('span').length).toBe(3);
+  });
+
+  it('nested reactive signals in list items do not duplicate after list update', () => {
+    const items = signal([1, 2, 3]);
+    const multiplier = signal(1);
+
+    const frag = html`<ul>${() => items.value.map(i =>
+      html`<li>${() => `${i * multiplier.value}`}</li>`
+    )}</ul>`;
+    const ul = frag.firstElementChild!;
+    document.body.appendChild(ul);
+
+    expect(ul.querySelectorAll('li').length).toBe(3);
+    expect(ul.querySelectorAll('li')[0].textContent).toBe('1');
+
+    // Update multiplier — inner effects should update in-place
+    multiplier.value = 10;
+    expect(ul.querySelectorAll('li')[0].textContent).toBe('10');
+    expect(ul.querySelectorAll('li').length).toBe(3);
+
+    // Now change the list — old inner effects for items [1,2,3] should be disposed
+    items.value = [5, 6];
+    expect(ul.querySelectorAll('li').length).toBe(2);
+    expect(ul.querySelectorAll('li')[0].textContent).toBe('50');
+
+    // Update multiplier again — should NOT re-trigger disposed effects from old list
+    multiplier.value = 2;
+    expect(ul.querySelectorAll('li').length).toBe(2);
+    expect(ul.querySelectorAll('li')[0].textContent).toBe('10');
+    expect(ul.querySelectorAll('li')[1].textContent).toBe('12');
+  });
+
+  it('conditional content does not leak effects from the hidden branch', () => {
+    const show = signal(true);
+    const counter = signal(0);
+    let effectRunsWhenHidden = 0;
+
+    const frag = html`<div>${() => {
+      if (show.value) {
+        return html`<p>${() => {
+          const val = counter.value;
+          return `Count: ${val}`;
+        }}</p>`;
+      }
+      return html`<span>Hidden</span>`;
+    }}</div>`;
+    const div = frag.firstElementChild!;
+    document.body.appendChild(div);
+
+    expect(div.querySelector('p')?.textContent).toBe('Count: 0');
+
+    // Counter updates work while visible
+    counter.value = 5;
+    expect(div.querySelector('p')?.textContent).toBe('Count: 5');
+
+    // Hide — inner effects from the <p> branch should be disposed
+    show.value = false;
+    expect(div.querySelector('span')?.textContent).toBe('Hidden');
+
+    // Counter updates should NOT affect the DOM (old effect is disposed)
+    counter.value = 99;
+    // The hidden text should remain, no phantom <p> reappearing
+    expect(div.querySelector('p')).toBeNull();
+    expect(div.querySelector('span')?.textContent).toBe('Hidden');
+  });
+});

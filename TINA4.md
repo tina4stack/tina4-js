@@ -156,6 +156,20 @@ tina4 build --target python
 - `formToken` injected into POST/PUT/PATCH/DELETE body
 - Token auto-rotated via `FreshToken` response header
 
+## Debug Overlay
+
+```ts
+// Always-on
+import 'tina4js/debug';
+
+// Dev-only (recommended — stripped from production builds)
+if (import.meta.env.DEV) import('tina4js/debug');
+```
+
+- Toggle with **Ctrl+Shift+D**
+- Shows: live signal values + subscriber counts, mounted components, route navigation history with timing, API request/response log
+- Zero cost in production when using the `import.meta.env.DEV` guard (tree-shaken by Vite/Rollup)
+
 ## Framework Size
 
 | Module | Gzipped |

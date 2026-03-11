@@ -10,6 +10,22 @@
 /** The currently executing effect (used for auto-tracking). */
 let currentEffect: (() => void) | null = null;
 
+/** Cleanup functions for the currently executing effect's signal subscriptions. */
+let currentCleanups: (() => void)[] | null = null;
+
+/** @internal When set, effect() pushes its dispose function here. */
+let _effectCollector: (() => void)[] | null = null;
+
+/** @internal Start collecting effect disposers (used by router). */
+export function _setEffectCollector(collector: (() => void)[] | null): void {
+  _effectCollector = collector;
+}
+
+/** @internal Read the current effect collector (used by html renderer). */
+export function _getEffectCollector(): (() => void)[] | null {
+  return _effectCollector;
+}
+
 // ── Debug Hooks (tree-shakeable — null unless debug module imported) ──
 
 /** @internal Called when a signal is created. */
@@ -60,7 +76,13 @@ export function signal<T>(initial: T, label?: string): Signal<T> {
     _t4: true as const,
 
     get value(): T {
-      if (currentEffect) subs.add(currentEffect);
+      if (currentEffect) {
+        subs.add(currentEffect);
+        if (currentCleanups) {
+          const eff = currentEffect;
+          currentCleanups.push(() => subs.delete(eff));
+        }
+      }
       return value;
     },
 
@@ -131,23 +153,36 @@ export function computed<T>(fn: () => T): ReadonlySignal<T> {
 
 export function effect(fn: () => void): () => void {
   let disposed = false;
+  let cleanups: (() => void)[] = [];
 
   const execute = () => {
     if (disposed) return;
+    // Remove previous signal subscriptions before re-running
+    for (const c of cleanups) c();
+    cleanups = [];
+
     const prev = currentEffect;
+    const prevCleanups = currentCleanups;
     currentEffect = execute;
+    currentCleanups = cleanups;
     try {
       fn();
     } finally {
       currentEffect = prev;
+      currentCleanups = prevCleanups;
     }
   };
 
   execute();
 
-  return () => {
+  const dispose = () => {
     disposed = true;
+    // Remove from all signals' subscriber sets
+    for (const c of cleanups) c();
+    cleanups = [];
   };
+  if (_effectCollector) _effectCollector.push(dispose);
+  return dispose;
 }
 
 // ── Batch ───────────────────────────────────────────────────────────

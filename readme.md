@@ -193,6 +193,29 @@ pwa.register({
 });
 ```
 
+### Debug Overlay
+
+A built-in debug overlay that shows live signal values, component tree, route history, and API calls.
+
+```ts
+// Always-on (remove for production)
+import 'tina4js/debug';
+
+// Dev-only (recommended) — tree-shaken out of production builds
+if (import.meta.env.DEV) import('tina4js/debug');
+```
+
+Once enabled, toggle the overlay with **Ctrl+Shift+D**.
+
+The overlay shows four tabs:
+
+| Tab | What it shows |
+|-----|---------------|
+| **Signals** | All signals with current value, subscriber count, and update count |
+| **Components** | Mounted `Tina4Element` web components |
+| **Routes** | Navigation history with timing |
+| **API** | Intercepted `api.*` requests and responses |
+
 ---
 
 ## Deployment Modes
@@ -214,6 +237,30 @@ npm run test:watch # watch mode
 npm run build     # production build
 npm run dev       # dev server
 ```
+
+## Changelog
+
+### 1.0.5
+- **Fix:** Effects now properly unsubscribe from signals on dispose — prevents stale subscriptions accumulating in signal subscriber sets across navigations
+- **Fix:** Function bindings in `html` templates now dispose inner effects when re-evaluated — fixes duplicate DOM nodes from nested reactive lists and conditionals
+- Added 9 new tests covering effect subscription cleanup, inner effect disposal, and multi-navigation accumulation (116 total)
+
+### 1.0.4
+- Added router reactive effect cleanup tests (navigate away/back, stale effects, async handlers, stale async discard)
+- Added debug overlay documentation to README and TINA4.md
+
+### 1.0.3
+- **Fix:** `renderContent` now uses `replaceChildren` instead of `appendChild`, preventing duplicate content when async route handlers resolve.
+
+### 1.0.2
+- **Fix:** Router now disposes reactive effects when navigating between routes. Previously, signal subscriptions created by `html` templates survived DOM removal via `innerHTML = ''`, causing duplicate renders when revisiting a page.
+- **Fix:** Stale async route handlers are discarded if navigation occurs before they resolve.
+
+### 1.0.1
+- Debug overlay module with signal, component, route, and API inspectors
+- Todo app example and exports map file extension fixes
+- CLI scaffolding tool and TINA4.md AI context file
+- Fetch, PWA, integration, and size tests (102 total)
 
 ## License
 

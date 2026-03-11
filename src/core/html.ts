@@ -5,7 +5,7 @@
  * When a signal is interpolated, the DOM updates surgically — no diffing.
  */
 
-import { effect, isSignal, type Signal } from './signal';
+import { effect, isSignal, _setEffectCollector, _getEffectCollector, type Signal } from './signal';
 
 // Cache parsed templates by their static string parts identity
 const templateCache = new WeakMap<TemplateStringsArray, HTMLTemplateElement>();
@@ -103,13 +103,28 @@ function bindValue(marker: Comment, value: unknown): void {
     const anchor = document.createComment('');
     parent.replaceChild(anchor, marker);
     let currentNodes: Node[] = [];
+    let innerDisposers: (() => void)[] = [];
 
     effect(() => {
+      // Dispose inner effects from previous evaluation
+      for (const d of innerDisposers) d();
+      innerDisposers = [];
+
+      // Collect inner effects created by nested html`` templates
+      const localCollector: (() => void)[] = [];
+      const outerCollector = _getEffectCollector();
+      _setEffectCollector(localCollector);
+
       const result = (value as () => unknown)();
+
+      _setEffectCollector(outerCollector);
+      innerDisposers = localCollector;
+
       for (const n of currentNodes) n.parentNode?.removeChild(n);
       currentNodes = [];
       const nodes = resultToNodes(result);
-      const p = anchor.parentNode!;
+      const p = anchor.parentNode;
+      if (!p) return; // anchor detached from DOM — skip insertion
       for (const n of nodes) {
         p.insertBefore(n, anchor);
         currentNodes.push(n);

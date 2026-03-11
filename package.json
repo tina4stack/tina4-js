@@ -1,6 +1,6 @@
 {
   "name": "tina4js",
-  "version": "1.0.1",
+  "version": "1.0.5",
   "description": "Sub-3KB reactive framework — signals, web components, routing, PWA",
   "type": "module",
   "main": "dist/tina4.cjs.js",

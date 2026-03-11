@@ -223,3 +223,97 @@ describe('batch', () => {
     expect(s.value).toBe(1);
   });
 });
+
+describe('effect — subscription cleanup', () => {
+  it('dispose() removes effect from signal subscriber sets', () => {
+    const s = signal(0);
+    const fn = vi.fn();
+    const dispose = effect(() => { s.value; fn(); });
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    dispose();
+
+    // After dispose, signal updates should NOT trigger the effect
+    s.value = 1;
+    s.value = 2;
+    s.value = 3;
+    expect(fn).toHaveBeenCalledTimes(1); // still only the initial run
+  });
+
+  it('re-run cleans up old subscriptions when dependencies change', () => {
+    const a = signal(true);
+    const b = signal('B');
+    const c = signal('C');
+    const fn = vi.fn();
+
+    // Effect reads a; when a=true, reads b; when a=false, reads c
+    effect(() => {
+      if (a.value) {
+        b.value;
+      } else {
+        c.value;
+      }
+      fn();
+    });
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    // Switch to branch c
+    a.value = false;
+    expect(fn).toHaveBeenCalledTimes(2);
+
+    // Now b changes should NOT trigger the effect (it's no longer tracked)
+    b.value = 'B2';
+    expect(fn).toHaveBeenCalledTimes(2); // unchanged
+
+    // But c changes should trigger it
+    c.value = 'C2';
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it('disposed effect does not accumulate in subscriber sets across multiple signals', () => {
+    const s1 = signal(0);
+    const s2 = signal(0);
+    const fn = vi.fn();
+
+    const dispose = effect(() => {
+      s1.value;
+      s2.value;
+      fn();
+    });
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    dispose();
+
+    // Update both signals — should not re-trigger
+    s1.value = 10;
+    s2.value = 20;
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('multiple effects on same signal dispose independently', () => {
+    const s = signal(0);
+    const fn1 = vi.fn();
+    const fn2 = vi.fn();
+
+    const d1 = effect(() => { s.value; fn1(); });
+    const d2 = effect(() => { s.value; fn2(); });
+
+    expect(fn1).toHaveBeenCalledTimes(1);
+    expect(fn2).toHaveBeenCalledTimes(1);
+
+    // Dispose first effect only
+    d1();
+    s.value = 1;
+
+    // fn1 should NOT run again, fn2 should
+    expect(fn1).toHaveBeenCalledTimes(1);
+    expect(fn2).toHaveBeenCalledTimes(2);
+
+    // Dispose second
+    d2();
+    s.value = 2;
+
+    expect(fn1).toHaveBeenCalledTimes(1);
+    expect(fn2).toHaveBeenCalledTimes(2);
+  });
+});
