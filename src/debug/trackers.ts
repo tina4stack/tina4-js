@@ -124,8 +124,15 @@ export interface RouteEntry {
 
 const routeHistory: RouteEntry[] = [];
 const MAX_ROUTE_HISTORY = 50;
+let _getRoutesFn: (() => ReadonlyArray<{ pattern: string; hasGuard: boolean }>) | null = null;
 
 export const routeTracker = {
+  /** Set the function that reads registered routes (avoids direct import from router). */
+  setGetRoutes(fn: typeof _getRoutesFn) { _getRoutesFn = fn; },
+
+  getRegisteredRoutes(): ReadonlyArray<{ pattern: string; hasGuard: boolean }> {
+    return _getRoutesFn ? _getRoutesFn() : [];
+  },
   onNavigate(event: ChangeEvent) {
     routeHistory.unshift({
       path: event.path,

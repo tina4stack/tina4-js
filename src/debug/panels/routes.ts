@@ -2,7 +2,6 @@
  * Routes Panel — Registered routes and navigation history.
  */
 
-import { _getRoutes } from '../../router/router';
 import { routeTracker } from '../trackers';
 
 function formatDuration(ms: number): { text: string; cls: string } {
@@ -17,7 +16,7 @@ function formatTime(ts: number): string {
 }
 
 export function renderRoutesPanel(): string {
-  const registeredRoutes = _getRoutes();
+  const registeredRoutes = routeTracker.getRegisteredRoutes();
   const history = routeTracker.getHistory();
 
   let html = '';

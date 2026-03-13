@@ -12,7 +12,7 @@
 
 import { __setDebugSignalHooks } from '../core/signal';
 import { __setDebugComponentHooks } from '../core/component';
-import { router } from '../router/router';
+import { router, _getRoutes } from '../router/router';
 import { api } from '../api/fetch';
 import { signalTracker, componentTracker, routeTracker, apiTracker } from './trackers';
 import { Tina4Debug, registerDebugElement } from './overlay';
@@ -41,6 +41,7 @@ export function enableDebug(): void {
   );
 
   // ── Wire route tracking ────────────────────────────────────────────
+  routeTracker.setGetRoutes(_getRoutes);
   router.on('change', (event) => {
     routeTracker.onNavigate(event);
   });
