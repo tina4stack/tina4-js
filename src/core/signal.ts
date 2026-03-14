@@ -95,7 +95,11 @@ export function signal<T>(initial: T, label?: string): Signal<T> {
       if (batchDepth > 0) {
         for (const sub of subs) batchQueue.add(sub);
       } else {
-        for (const sub of [...subs]) sub();
+        let firstError: unknown;
+        for (const sub of [...subs]) {
+          try { sub(); } catch (e) { if (firstError === undefined) firstError = e; }
+        }
+        if (firstError !== undefined) throw firstError;
       }
     },
 
@@ -196,7 +200,11 @@ export function batch(fn: () => void): void {
     if (batchDepth === 0) {
       const queued = [...batchQueue];
       batchQueue.clear();
-      for (const s of queued) s();
+      let firstError: unknown;
+      for (const s of queued) {
+        try { s(); } catch (e) { if (firstError === undefined) firstError = e; }
+      }
+      if (firstError !== undefined) throw firstError;
     }
   }
 }

@@ -17,7 +17,7 @@ export type { RouteParams, RouteHandler, RouteGuard, RouteConfig } from './route
 
 // API
 export { api } from './api/fetch';
-export type { ApiConfig, ApiResponse } from './api/fetch';
+export type { ApiConfig, ApiResponse, RequestOptions } from './api/fetch';
 
 // PWA
 export { pwa } from './pwa/pwa';

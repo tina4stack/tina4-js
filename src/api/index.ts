@@ -3,4 +3,4 @@
  */
 
 export { api } from './fetch';
-export type { ApiConfig, ApiResponse, RequestInterceptor, ResponseInterceptor } from './fetch';
+export type { ApiConfig, ApiResponse, RequestOptions, RequestInterceptor, ResponseInterceptor } from './fetch';

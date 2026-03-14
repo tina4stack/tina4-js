@@ -48,11 +48,11 @@ describe('api', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/users', expect.objectContaining({ method: 'GET' }));
   });
 
-  it('replaces path parameters in GET', async () => {
-    fetchMock.mockResolvedValue(mockJsonResponse({ id: 42 }));
+  it('appends query string params in GET', async () => {
+    fetchMock.mockResolvedValue(mockJsonResponse([{ id: 1 }]));
 
-    await api.get('/users/{id}', { id: 42 });
-    expect(fetchMock).toHaveBeenCalledWith('/api/users/42', expect.any(Object));
+    await api.get('/users', { params: { page: 1, search: 'foo bar' } });
+    expect(fetchMock).toHaveBeenCalledWith('/api/users?page=1&search=foo%20bar', expect.any(Object));
   });
 
   it('handles text responses', async () => {
@@ -139,6 +139,42 @@ describe('api', () => {
     await api.get('/public');
     const [, opts] = fetchMock.mock.calls[0];
     expect(opts.headers['Authorization']).toBeUndefined();
+  });
+
+  // ── Custom Headers ──────────────────────────────────────────────
+
+  it('sends default headers from configure', async () => {
+    api.configure({ headers: { 'X-API-Key': 'abc123' } });
+    fetchMock.mockResolvedValue(mockJsonResponse({}));
+
+    await api.get('/data');
+    const [, opts] = fetchMock.mock.calls[0];
+    expect(opts.headers['X-API-Key']).toBe('abc123');
+  });
+
+  it('sends per-request headers that override defaults', async () => {
+    api.configure({ headers: { 'X-API-Key': 'default' } });
+    fetchMock.mockResolvedValue(mockJsonResponse({}));
+
+    await api.get('/data', { headers: { 'X-API-Key': 'override', 'X-Custom': 'extra' } });
+    const [, opts] = fetchMock.mock.calls[0];
+    expect(opts.headers['X-API-Key']).toBe('override');
+    expect(opts.headers['X-Custom']).toBe('extra');
+  });
+
+  it('sends per-request headers on POST', async () => {
+    fetchMock.mockResolvedValue(mockJsonResponse({}));
+
+    await api.post('/data', { name: 'test' }, { headers: { 'X-Trace': '123' } });
+    const [, opts] = fetchMock.mock.calls[0];
+    expect(opts.headers['X-Trace']).toBe('123');
+  });
+
+  it('sends query params on POST', async () => {
+    fetchMock.mockResolvedValue(mockJsonResponse({}));
+
+    await api.post('/data', { name: 'test' }, { params: { version: 2 } });
+    expect(fetchMock).toHaveBeenCalledWith('/api/data?version=2', expect.any(Object));
   });
 
   // ── Errors ─────────────────────────────────────────────────────

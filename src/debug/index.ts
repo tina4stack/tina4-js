@@ -14,6 +14,7 @@ import { __setDebugSignalHooks } from '../core/signal';
 import { __setDebugComponentHooks } from '../core/component';
 import { router, _getRoutes } from '../router/router';
 import { api } from '../api/fetch';
+import type { ApiResponse } from '../api/fetch';
 import { signalTracker, componentTracker, routeTracker, apiTracker } from './trackers';
 import { Tina4Debug, registerDebugElement } from './overlay';
 
@@ -47,12 +48,12 @@ export function enableDebug(): void {
   });
 
   // ── Wire API tracking ──────────────────────────────────────────────
-  api.intercept('request', (config) => {
+  api.intercept('request', (config: RequestInit & { headers: Record<string, string> }) => {
     apiTracker.onRequest(config);
     return config;
   });
 
-  api.intercept('response', (response) => {
+  api.intercept('response', (response: ApiResponse) => {
     apiTracker.onResponse(response);
     return response;
   });

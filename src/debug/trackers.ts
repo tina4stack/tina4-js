@@ -167,38 +167,35 @@ export interface ApiEntry {
 
 let apiId = 0;
 const apiLog: ApiEntry[] = [];
-const pendingRequests = new Map<string, ApiEntry>();
+const pendingRequests = new Map<number, ApiEntry>();
 const MAX_API_LOG = 100;
 
 export const apiTracker = {
-  onRequest(config: RequestInit & { headers: Record<string, string> }): void {
-    const id = ++apiId;
+  onRequest(config: RequestInit & { headers: Record<string, string>; _url?: string; _requestId?: number }): void {
+    const id = config._requestId ?? ++apiId;
     const entry: ApiEntry = {
       id,
       method: config.method ?? 'GET',
-      url: '', // will be set from URL context
+      url: config._url ?? '',
       hasAuth: !!config.headers?.['Authorization'],
       timestamp: Date.now(),
       pending: true,
     };
-    // Use a stringified id as key for the pending map
-    const key = String(id);
-    pendingRequests.set(key, entry);
+    pendingRequests.set(id, entry);
     apiLog.unshift(entry);
     if (apiLog.length > MAX_API_LOG) apiLog.pop();
   },
 
-  onResponse(response: { status: number; ok: boolean }): void {
-    // Match with latest pending request
-    for (const [key, entry] of pendingRequests) {
-      if (entry.pending) {
-        entry.status = response.status;
-        entry.durationMs = Date.now() - entry.timestamp;
-        entry.pending = false;
-        if (!response.ok) entry.error = `HTTP ${response.status}`;
-        pendingRequests.delete(key);
-        break;
-      }
+  onResponse(response: { status: number; ok: boolean; _requestId?: number }): void {
+    // Correlate by request ID for correct matching with concurrent requests
+    const id = response._requestId;
+    const entry = id != null ? pendingRequests.get(id) : undefined;
+    if (entry) {
+      entry.status = response.status;
+      entry.durationMs = Date.now() - entry.timestamp;
+      entry.pending = false;
+      if (!response.ok) entry.error = `HTTP ${response.status}`;
+      pendingRequests.delete(id!);
     }
   },
 
