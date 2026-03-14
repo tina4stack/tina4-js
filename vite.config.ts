@@ -11,6 +11,7 @@ export default defineConfig({
         api: resolve(__dirname, 'src/api/index.ts'),
         pwa: resolve(__dirname, 'src/pwa/index.ts'),
         debug: resolve(__dirname, 'src/debug/index.ts'),
+        ws: resolve(__dirname, 'src/ws/index.ts'),
       },
       formats: ['es', 'cjs'],
     },

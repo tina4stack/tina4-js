@@ -22,3 +22,7 @@ export type { ApiConfig, ApiResponse, RequestOptions } from './api/fetch';
 // PWA
 export { pwa } from './pwa/pwa';
 export type { PWAConfig } from './pwa/pwa';
+
+// WebSocket
+export { ws } from './ws/ws';
+export type { SocketStatus, SocketOptions, ManagedSocket } from './ws/ws';

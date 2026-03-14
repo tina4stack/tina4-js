@@ -15,6 +15,7 @@
 | Navigate | `navigate('/path')` |
 | API | `await api.get('/path')`, `.post`, `.put`, `.patch`, `.delete` |
 | PWA | `pwa.register({ name, themeColor, cacheStrategy })` |
+| WebSocket | `ws.connect('wss://...', { reconnect: true })` — signals for status/messages |
 | Debug | `import 'tina4js/debug'` — toggle with Ctrl+Shift+D |
 
 ## File Conventions
@@ -239,6 +240,58 @@ tina4 build --target python
 - `formToken` injected into POST/PUT/PATCH/DELETE body
 - Token auto-rotated via `FreshToken` response header
 
+## WebSocket (Signal-Driven)
+
+```ts
+import { ws } from 'tina4js/ws';
+import { signal } from 'tina4js';
+
+// Connect with auto-reconnect
+const socket = ws.connect('wss://api.example.com/live', {
+  reconnect: true,           // auto-reconnect (default: true)
+  reconnectDelay: 1000,      // initial delay ms (default: 1000)
+  reconnectMaxDelay: 30000,  // max backoff ms (default: 30000)
+  reconnectAttempts: Infinity, // max attempts (default: Infinity)
+});
+
+// Reactive state — all signals
+socket.status.value;      // 'connecting' | 'open' | 'closed' | 'reconnecting'
+socket.connected.value;   // boolean
+socket.lastMessage.value; // last parsed message
+socket.error.value;       // last error or null
+socket.reconnectCount.value; // number of reconnect attempts
+
+// Send — objects auto-stringify
+socket.send({ type: 'chat', text: 'hello' });
+socket.send('raw string');
+
+// Listen for events
+socket.on('message', (data) => { /* parsed JSON or string */ });
+socket.on('open', () => { });
+socket.on('close', (code, reason) => { });
+socket.on('error', (err) => { });
+
+// Pipe messages directly into a signal
+const messages = signal<ChatMessage[]>([]);
+socket.pipe(messages, (msg, current) => [...current, msg as ChatMessage]);
+
+// Disconnect (stops reconnect)
+socket.close();
+```
+
+### Real-time UI with Signals
+
+```ts
+// Chat example — messages auto-render in the template
+const chatLog = signal<{user: string, text: string}[]>([]);
+const socket = ws.connect('wss://chat.example.com');
+socket.pipe(chatLog, (msg, log) => [...log, msg as any]);
+
+route('/chat', () => html`
+  <ul>${() => chatLog.value.map(m => html`<li><b>${m.user}</b>: ${m.text}</li>`)}</ul>
+`);
+```
+
 ## Debug Overlay
 
 ```ts
@@ -261,9 +314,10 @@ if (import.meta.env.DEV) import('tina4js/debug');
 | Core (signals + html + component) | ~1.5 KB |
 | Router | ~0.12 KB |
 | API | ~0.97 KB |
+| WebSocket | ~0.91 KB |
 | PWA | ~1.16 KB |
 | Debug overlay | ~5.1 KB |
-| **Total (core modules)** | **~3.75 KB** |
+| **Total (core modules)** | **~4.66 KB** |
 
 ## Architecture
 
@@ -272,6 +326,7 @@ src/
   core/       signal.ts, html.ts, component.ts  — reactive primitives
   router/     router.ts                          — client-side routing
   api/        fetch.ts                           — HTTP with auth + headers
+  ws/         ws.ts                              — WebSocket with auto-reconnect
   pwa/        pwa.ts                             — service worker + manifest
   debug/      overlay, trackers, panels          — dev debug overlay
   index.ts    barrel re-export
@@ -290,6 +345,7 @@ import { signal, html } from 'tina4js/core';
 import { route, router } from 'tina4js/router';
 import { api } from 'tina4js/api';
 import { pwa } from 'tina4js/pwa';
+import { ws } from 'tina4js/ws';
 import 'tina4js/debug';
 ```
 
@@ -299,6 +355,7 @@ import 'tina4js/debug';
 import type { Signal, ReadonlySignal } from 'tina4js';
 import type { RouteParams, RouteHandler, RouteGuard, RouteConfig } from 'tina4js';
 import type { ApiConfig, ApiResponse, RequestOptions } from 'tina4js';
+import type { SocketStatus, SocketOptions, ManagedSocket } from 'tina4js';
 import type { PWAConfig } from 'tina4js';
 import type { PropType } from 'tina4js';
 ```

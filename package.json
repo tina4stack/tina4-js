@@ -31,6 +31,10 @@
     "./debug": {
       "import": "./dist/debug.es.js",
       "types": "./dist/debug/index.d.ts"
+    },
+    "./ws": {
+      "import": "./dist/ws.es.js",
+      "types": "./dist/ws/index.d.ts"
     }
   },
   "sideEffects": false,
