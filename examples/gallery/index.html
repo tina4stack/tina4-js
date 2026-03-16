@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tina4js Gallery — Real-World Examples</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a; color: #e2e8f0; min-height: 100vh;
+    }
+    header {
+      text-align: center; padding: 3rem 1rem 2rem;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-bottom: 1px solid #1e293b;
+    }
+    header h1 { font-size: 2.5rem; font-weight: 700; }
+    header h1 span { color: #38bdf8; }
+    header p { color: #94a3b8; margin-top: 0.5rem; font-size: 1.1rem; }
+    .stats {
+      display: flex; justify-content: center; gap: 2rem; margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #38bdf8; }
+    .stat-label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 1.5rem; max-width: 1200px; margin: 2rem auto; padding: 0 1rem;
+    }
+    .card {
+      background: #1e293b; border-radius: 12px; overflow: hidden;
+      border: 1px solid #334155; transition: transform 0.2s, border-color 0.2s;
+    }
+    .card:hover { transform: translateY(-4px); border-color: #38bdf8; }
+    .card-header {
+      padding: 1.25rem 1.5rem 0.75rem; display: flex; align-items: center; gap: 0.75rem;
+    }
+    .card-icon { font-size: 1.5rem; }
+    .card-title { font-size: 1.15rem; font-weight: 600; }
+    .card-body { padding: 0 1.5rem 1rem; }
+    .card-desc { color: #94a3b8; font-size: 0.9rem; line-height: 1.5; }
+    .card-tags {
+      display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem;
+    }
+    .tag {
+      font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 99px;
+      background: #0f172a; color: #38bdf8; border: 1px solid #1e3a5f;
+      text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    .card-footer {
+      padding: 0.75rem 1.5rem; border-top: 1px solid #334155;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .difficulty { font-size: 0.75rem; color: #64748b; }
+    .difficulty .dots { color: #38bdf8; }
+    .btn {
+      display: inline-block; padding: 0.4rem 1rem; border-radius: 6px;
+      background: #38bdf8; color: #0f172a; font-weight: 600; font-size: 0.85rem;
+      text-decoration: none; transition: background 0.2s;
+    }
+    .btn:hover { background: #7dd3fc; }
+    footer {
+      text-align: center; padding: 2rem; color: #475569; font-size: 0.85rem;
+      border-top: 1px solid #1e293b; margin-top: 2rem;
+    }
+    footer a { color: #38bdf8; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span>tina4js</span> Gallery</h1>
+    <p>Real-world examples you can learn from, copy, and build on</p>
+    <div class="stats">
+      <div class="stat"><div class="stat-value">9</div><div class="stat-label">Examples</div></div>
+      <div class="stat"><div class="stat-value">7</div><div class="stat-label">Modules Used</div></div>
+      <div class="stat"><div class="stat-value">&lt;3KB</div><div class="stat-label">Framework Size</div></div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">📊</span>
+        <span class="card-title">Admin Dashboard</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">Live stats dashboard with reactive counters, computed KPIs, polling effects, and a notification feed. Shows how signals replace Redux/Vuex for real-time data.</p>
+        <div class="card-tags"><span class="tag">signal</span><span class="tag">computed</span><span class="tag">effect</span><span class="tag">component</span></div>
+      </div>
+      <div class="card-footer">
+        <span class="difficulty">Beginner <span class="dots">●●○○</span></span>
+        <a href="01-dashboard.html" class="btn">View</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">👤</span>
+        <span class="card-title">Contact Manager</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">Full CRUD app with API calls, search/filter, pagination, and form validation. Demonstrates the API module with interceptors and error handling.</p>
+        <div class="card-tags"><span class="tag">api</span><span class="tag">signal</span><span class="tag">component</span><span class="tag">html</span></div>
+      </div>
+      <div class="card-footer">
+        <span class="difficulty">Intermediate <span class="dots">●●●○</span></span>
+        <a href="02-contacts.html" class="btn">View</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">💬</span>
+        <span class="card-title">Real-time Chat</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">WebSocket-powered chat room with typing indicators, message history piped into signals, auto-reconnect status, and online user list.</p>
+        <div class="card-tags"><span class="tag">websocket</span><span class="tag">signal</span><span class="tag">pipe</span><span class="tag">component</span></div>
+      </div>
+      <div class="card-footer">
+        <span class="difficulty">Intermediate <span class="dots">●●●○</span></span>
+        <a href="03-chat.html" class="btn">View</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">🔐</span>
+        <span class="card-title">Auth Flow</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">Login/register with JWT tokens, protected routes via guards, token refresh, role-based access, and automatic redirect on 401.</p>
+        <div class="card-tags"><span class="tag">router</span><span class="tag">guard</span><span class="tag">api</span><span class="tag">signal</span></div>
+      </div>
+      <div class="card-footer">
+        <span class="difficulty">Intermediate <span class="dots">●●●○</span></span>
+        <a href="04-auth.html" class="btn">View</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">🛒</span>
+        <span class="card-title">Shopping Cart</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">E-commerce cart with product listing, quantity controls, computed totals, localStorage persistence, and shared state across components.</p>
+        <div class="card-tags"><span class="tag">signal</span><span class="tag">computed</span><span class="tag">component</span><span class="tag">batch</span></div>
+      </div>
+      <div class="card-footer">
+        <span class="difficulty">Beginner <span class="dots">●●○○</span></span>
+        <a href="05-cart.html" class="btn">View</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">📝</span>
+        <span class="card-title">Dynamic Form Builder</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">Drag-and-drop form builder with live preview, reactive validation, conditional fields, and JSON schema export. Showcases complex signal graphs.</p>
+        <div class="card-tags"><span class="tag">signal</span><span class="tag">computed</span><span class="tag">component</span><span class="tag">html</span></div>
+      </div>
+      <div class="card-footer">
+        <span class="difficulty">Advanced <span class="dots">●●●●</span></span>
+        <a href="06-forms.html" class="btn">View</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">📱</span>
+        <span class="card-title">PWA Notes</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">Offline-capable notes app with service worker caching, installable as PWA, markdown preview, and sync-on-reconnect pattern.</p>
+        <div class="card-tags"><span class="tag">pwa</span><span class="tag">signal</span><span class="tag">component</span><span class="tag">api</span></div>
+      </div>
+      <div class="card-footer">
+        <span class="difficulty">Intermediate <span class="dots">●●●○</span></span>
+        <a href="07-pwa-notes.html" class="btn">View</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">📋</span>
+        <span class="card-title">Data Table</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">Sortable, filterable, paginated data table with column resizing, row selection, bulk actions, and CSV export — all reactive.</p>
+        <div class="card-tags"><span class="tag">signal</span><span class="tag">computed</span><span class="tag">component</span><span class="tag">batch</span></div>
+      </div>
+      <div class="card-footer">
+        <span class="difficulty">Advanced <span class="dots">●●●●</span></span>
+        <a href="08-datatable.html" class="btn">View</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">🔍</span>
+        <span class="card-title">Live Search</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">Type-ahead search with debounced API calls, result highlighting, keyboard navigation, recent searches, and loading states.</p>
+        <div class="card-tags"><span class="tag">signal</span><span class="tag">effect</span><span class="tag">api</span><span class="tag">html</span></div>
+      </div>
+      <div class="card-footer">
+        <span class="difficulty">Beginner <span class="dots">●●○○</span></span>
+        <a href="09-search.html" class="btn">View</a>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Built with <a href="https://www.npmjs.com/package/tina4js">tina4js</a> v1.0.7 — Sub-3KB reactive framework</p>
+    <p style="margin-top:0.5rem">Each example is self-contained. View source to learn.</p>
+  </footer>
+</body>
+</html>

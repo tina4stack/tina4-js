@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Table — tina4js Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .nav { padding: 0.75rem 1.5rem; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .nav a { color: #38bdf8; text-decoration: none; font-size: 0.85rem; }
+    .nav .title { font-weight: 600; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .subtitle { color: #64748b; margin-bottom: 1.5rem; }
+
+    /* Toolbar */
+    .toolbar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+    .search-input { padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 0.85rem; outline: none; min-width: 220px; }
+    .search-input:focus { border-color: #38bdf8; }
+    .filter-select { padding: 0.4rem 0.5rem; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 0.8rem; outline: none; cursor: pointer; }
+    .filter-select:focus { border-color: #38bdf8; }
+    .toolbar-right { margin-left: auto; display: flex; gap: 0.5rem; align-items: center; }
+    .export-btn { padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 0.8rem; cursor: pointer; }
+    .export-btn:hover { border-color: #38bdf8; color: #38bdf8; }
+    .row-count { font-size: 0.8rem; color: #64748b; }
+
+    /* Bulk actions */
+    .bulk-bar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; padding: 0.6rem 1rem; background: #1e3a5f; border-radius: 8px; border: 1px solid #38bdf8; }
+    .bulk-bar.hidden { display: none; }
+    .bulk-count { font-size: 0.85rem; color: #38bdf8; font-weight: 600; }
+    .bulk-btn { padding: 0.3rem 0.75rem; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 0.8rem; cursor: pointer; }
+    .bulk-btn:hover { border-color: #38bdf8; }
+    .bulk-btn.danger { color: #f87171; }
+    .bulk-btn.danger:hover { border-color: #f87171; }
+    .bulk-clear { margin-left: auto; background: none; border: none; color: #64748b; cursor: pointer; font-size: 0.8rem; }
+    .bulk-clear:hover { color: #e2e8f0; }
+
+    /* Table */
+    .table-wrap { background: #1e293b; border-radius: 10px; border: 1px solid #334155; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; border-bottom: 1px solid #334155; cursor: pointer; user-select: none; white-space: nowrap; }
+    th:hover { color: #94a3b8; }
+    th .sort-arrow { margin-left: 0.3rem; font-size: 0.65rem; }
+    th.sorted { color: #38bdf8; }
+    td { padding: 0.55rem 0.75rem; border-bottom: 1px solid #0f172a; }
+    tr:hover td { background: #334155; }
+    tr.selected td { background: #1e3a5f; }
+    .cb-cell { width: 36px; text-align: center; }
+    input[type="checkbox"] { accent-color: #38bdf8; cursor: pointer; }
+    .status-badge { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 99px; }
+    .status-active { background: #0f2e1a; color: #4ade80; border: 1px solid #166534; }
+    .status-inactive { background: #2e1a1a; color: #f87171; border: 1px solid #991b1b; }
+    .status-onleave { background: #2e2a0f; color: #facc15; border: 1px solid #854d0e; }
+    .salary { font-variant-numeric: tabular-nums; }
+
+    /* Pagination */
+    .pagination { display: flex; gap: 0.5rem; align-items: center; justify-content: space-between; margin-top: 1rem; flex-wrap: wrap; }
+    .page-info { font-size: 0.8rem; color: #64748b; }
+    .page-controls { display: flex; gap: 0.25rem; align-items: center; }
+    .page-btn { padding: 0.3rem 0.6rem; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 0.8rem; cursor: pointer; }
+    .page-btn:hover { border-color: #38bdf8; }
+    .page-btn.active { background: #38bdf8; color: #0f172a; border-color: #38bdf8; }
+    .page-btn:disabled { opacity: 0.3; cursor: default; }
+    .per-page-wrap { display: flex; align-items: center; gap: 0.4rem; }
+    .per-page-label { font-size: 0.8rem; color: #64748b; }
+
+    /* Source */
+    .source { margin-top: 2rem; background: #1e293b; border-radius: 10px; padding: 1.5rem; border: 1px solid #334155; }
+    .source h3 { margin-bottom: 1rem; color: #94a3b8; font-size: 0.9rem; }
+    pre { background: #0f172a; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; color: #e2e8f0; }
+    code .kw { color: #c084fc; }
+    code .fn { color: #38bdf8; }
+    code .str { color: #4ade80; }
+    code .cm { color: #64748b; }
+    code .num { color: #fb923c; }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <span class="title">08 — Data Table</span>
+    <a href="index.html">&larr; Gallery</a>
+  </div>
+  <div class="container">
+    <h1>Data Table</h1>
+    <p class="subtitle">Sortable, filterable, paginated table with row selection and CSV export — reactive computed pipeline</p>
+
+    <div class="toolbar" id="toolbar"></div>
+    <div class="bulk-bar hidden" id="bulk-bar"></div>
+    <div class="table-wrap"><table id="data-table"></table></div>
+    <div class="pagination" id="pagination"></div>
+
+    <div class="source">
+      <h3>How it works — Computed Pipeline</h3>
+      <pre><code><span class="kw">const</span> raw = <span class="fn">signal</span>(data);
+<span class="kw">const</span> searched = <span class="fn">computed</span>(() => raw.value.<span class="fn">filter</span>(r => <span class="fn">matchesSearch</span>(r, query.value)));
+<span class="kw">const</span> filtered = <span class="fn">computed</span>(() => searched.value.<span class="fn">filter</span>(r => <span class="fn">matchesFilters</span>(r, filters.value)));
+<span class="kw">const</span> sorted   = <span class="fn">computed</span>(() => [...filtered.value].<span class="fn">sort</span>(<span class="fn">compareFn</span>(sortCol.value, sortDir.value)));
+<span class="kw">const</span> paged    = <span class="fn">computed</span>(() => sorted.value.<span class="fn">slice</span>(offset.value, offset.value + perPage.value));</code></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    // ── Inline tina4js primitives (for standalone demo) ──────────────
+    // In a real app: import { signal, computed, effect, batch } from 'tina4js';
+    let currentSub = null;
+    const batchQueue = new Set();
+    let batching = false;
+
+    function signal(initial, label) {
+      let val = initial;
+      const subs = new Set();
+      const s = {
+        get value() { if (currentSub) subs.add(currentSub); return val; },
+        set value(v) {
+          if (Object.is(val, v)) return;
+          val = v;
+          if (batching) { for (const sub of subs) batchQueue.add(sub); }
+          else { for (const sub of [...subs]) sub(); }
+        },
+        _subscribe(fn) { subs.add(fn); return () => subs.delete(fn); },
+        peek() { return val; },
+        _label: label
+      };
+      return s;
+    }
+
+    function computed(fn) {
+      const s = signal(undefined);
+      effect(() => { s.value = fn(); });
+      return { get value() { return s.value; }, _subscribe: s._subscribe, peek: s.peek };
+    }
+
+    function effect(fn) {
+      const run = () => { const prev = currentSub; currentSub = run; try { fn(); } finally { currentSub = prev; } };
+      run();
+      return () => {};
+    }
+
+    function batch(fn) {
+      batching = true;
+      try { fn(); } finally {
+        batching = false;
+        const queued = [...batchQueue];
+        batchQueue.clear();
+        for (const s of queued) s();
+      }
+    }
+
+    // ── Sample Data ───────────────────────────────────────────────────
+    const firstNames = ['James','Mary','Robert','Patricia','John','Jennifer','Michael','Linda','David','Elizabeth','William','Barbara','Richard','Susan','Joseph','Jessica','Thomas','Sarah','Charles','Karen','Christopher','Lisa','Daniel','Nancy','Matthew','Betty','Anthony','Margaret','Mark','Sandra','Donald','Ashley','Steven','Dorothy','Paul','Kimberly','Andrew','Emily','Joshua','Donna','Kenneth','Michelle','Kevin','Carol','Brian','Amanda','George','Melissa','Timothy','Deborah'];
+    const lastNames = ['Smith','Johnson','Williams','Brown','Jones','Garcia','Miller','Davis','Rodriguez','Martinez','Hernandez','Lopez','Gonzalez','Wilson','Anderson','Thomas','Taylor','Moore','Jackson','Martin','Lee','Perez','Thompson','White','Harris','Sanchez','Clark','Ramirez','Lewis','Robinson','Walker','Young','Allen','King','Wright','Scott','Torres','Nguyen','Hill','Flores','Green','Adams','Nelson','Baker','Hall','Rivera','Campbell','Mitchell','Carter','Roberts'];
+    const departments = ['Engineering','Marketing','Sales','HR','Finance','Operations','Design','Support'];
+    const statuses = ['Active','Active','Active','Active','Active','Inactive','On Leave'];
+
+    function randomDate(start, end) {
+      return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+    }
+
+    const data = Array.from({ length: 50 }, (_, i) => {
+      const first = firstNames[Math.floor(Math.random() * firstNames.length)];
+      const last = lastNames[Math.floor(Math.random() * lastNames.length)];
+      return {
+        id: i + 1,
+        name: first + ' ' + last,
+        email: first.toLowerCase() + '.' + last.toLowerCase() + '@company.com',
+        department: departments[Math.floor(Math.random() * departments.length)],
+        salary: Math.floor(Math.random() * 80000 + 45000),
+        hireDate: randomDate(new Date(2018, 0, 1), new Date(2025, 11, 31)),
+        status: statuses[Math.floor(Math.random() * statuses.length)],
+      };
+    });
+
+    // ── State ──────────────────────────────────────────────────────────
+    const raw = signal(data, 'raw');
+    const query = signal('', 'query');
+    const deptFilter = signal('', 'deptFilter');
+    const statusFilter = signal('', 'statusFilter');
+    const sortCol = signal('name', 'sortCol');
+    const sortDir = signal('asc', 'sortDir');
+    const currentPage = signal(1, 'currentPage');
+    const perPage = signal(10, 'perPage');
+    const selected = signal(new Set(), 'selected');
+
+    // ── Computed Pipeline ─────────────────────────────────────────────
+    function matchesSearch(row, q) {
+      if (!q) return true;
+      const lower = q.toLowerCase();
+      return row.name.toLowerCase().includes(lower) ||
+        row.email.toLowerCase().includes(lower) ||
+        row.department.toLowerCase().includes(lower);
+    }
+
+    function matchesFilters(row, dept, status) {
+      if (dept && row.department !== dept) return false;
+      if (status && row.status !== status) return false;
+      return true;
+    }
+
+    const searched = computed(() => raw.value.filter(r => matchesSearch(r, query.value)));
+    const filtered = computed(() => searched.value.filter(r => matchesFilters(r, deptFilter.value, statusFilter.value)));
+    const sorted = computed(() => {
+      const col = sortCol.value;
+      const dir = sortDir.value;
+      return [...filtered.value].sort((a, b) => {
+        let va = a[col], vb = b[col];
+        if (col === 'hireDate') { va = va.getTime(); vb = vb.getTime(); }
+        if (col === 'salary') { /* already numbers */ }
+        else if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+        if (va < vb) return dir === 'asc' ? -1 : 1;
+        if (va > vb) return dir === 'asc' ? 1 : -1;
+        return 0;
+      });
+    });
+    const totalFiltered = computed(() => filtered.value.length);
+    const totalPages = computed(() => Math.max(1, Math.ceil(totalFiltered.value / perPage.value)));
+    const offset = computed(() => (currentPage.value - 1) * perPage.value);
+    const paged = computed(() => sorted.value.slice(offset.value, offset.value + perPage.value));
+    const selectedCount = computed(() => selected.value.size);
+
+    // Reset page on filter change
+    effect(() => {
+      query.value; deptFilter.value; statusFilter.value; perPage.value;
+      currentPage.value = 1;
+    });
+
+    // ── Toolbar ───────────────────────────────────────────────────────
+    const toolbarEl = document.getElementById('toolbar');
+
+    const searchInput = document.createElement('input');
+    searchInput.className = 'search-input';
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search name, email, or department...';
+    searchInput.addEventListener('input', (e) => { query.value = e.target.value; });
+
+    const deptSelect = document.createElement('select');
+    deptSelect.className = 'filter-select';
+    deptSelect.innerHTML = '<option value="">All Departments</option>' +
+      departments.map(d => `<option value="${d}">${d}</option>`).join('');
+    deptSelect.addEventListener('change', (e) => { deptFilter.value = e.target.value; });
+
+    const statusSelect = document.createElement('select');
+    statusSelect.className = 'filter-select';
+    statusSelect.innerHTML = '<option value="">All Statuses</option><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="On Leave">On Leave</option>';
+    statusSelect.addEventListener('change', (e) => { statusFilter.value = e.target.value; });
+
+    const rightWrap = document.createElement('div');
+    rightWrap.className = 'toolbar-right';
+    const rowCountSpan = document.createElement('span');
+    rowCountSpan.className = 'row-count';
+    const exportBtn = document.createElement('button');
+    exportBtn.className = 'export-btn';
+    exportBtn.textContent = 'Export CSV';
+    exportBtn.addEventListener('click', exportCsv);
+    rightWrap.append(rowCountSpan, exportBtn);
+
+    toolbarEl.append(searchInput, deptSelect, statusSelect, rightWrap);
+
+    effect(() => {
+      const start = offset.value + 1;
+      const end = Math.min(offset.value + perPage.value, totalFiltered.value);
+      const total = totalFiltered.value;
+      rowCountSpan.textContent = total === 0 ? '0 results' : `Showing ${start}-${end} of ${total} results`;
+    });
+
+    // ── Bulk Actions ──────────────────────────────────────────────────
+    const bulkBar = document.getElementById('bulk-bar');
+
+    effect(() => {
+      const count = selectedCount.value;
+      if (count === 0) {
+        bulkBar.className = 'bulk-bar hidden';
+        return;
+      }
+      bulkBar.className = 'bulk-bar';
+      bulkBar.innerHTML = '';
+
+      const countSpan = document.createElement('span');
+      countSpan.className = 'bulk-count';
+      countSpan.textContent = count + ' row' + (count !== 1 ? 's' : '') + ' selected';
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'bulk-btn danger';
+      deleteBtn.textContent = 'Delete Selected';
+      deleteBtn.addEventListener('click', () => {
+        const sel = selected.peek();
+        raw.value = raw.peek().filter(r => !sel.has(r.id));
+        selected.value = new Set();
+      });
+
+      const exportSelBtn = document.createElement('button');
+      exportSelBtn.className = 'bulk-btn';
+      exportSelBtn.textContent = 'Export Selected';
+      exportSelBtn.addEventListener('click', () => {
+        const sel = selected.peek();
+        const rows = raw.peek().filter(r => sel.has(r.id));
+        downloadCsv(rows);
+      });
+
+      const clearBtn = document.createElement('button');
+      clearBtn.className = 'bulk-clear';
+      clearBtn.textContent = 'Clear selection';
+      clearBtn.addEventListener('click', () => { selected.value = new Set(); });
+
+      bulkBar.append(countSpan, deleteBtn, exportSelBtn, clearBtn);
+    });
+
+    // ── Table ─────────────────────────────────────────────────────────
+    const tableEl = document.getElementById('data-table');
+    const columns = [
+      { key: 'name', label: 'Name' },
+      { key: 'email', label: 'Email' },
+      { key: 'department', label: 'Department' },
+      { key: 'salary', label: 'Salary' },
+      { key: 'hireDate', label: 'Hire Date' },
+      { key: 'status', label: 'Status' },
+    ];
+
+    function formatSalary(n) { return '$' + n.toLocaleString(); }
+    function formatDate(d) { return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
+
+    function statusClass(s) {
+      if (s === 'Active') return 'status-active';
+      if (s === 'Inactive') return 'status-inactive';
+      return 'status-onleave';
+    }
+
+    effect(() => {
+      const rows = paged.value;
+      const col = sortCol.value;
+      const dir = sortDir.value;
+      const sel = selected.value;
+      const allPageIds = rows.map(r => r.id);
+      const allSelected = allPageIds.length > 0 && allPageIds.every(id => sel.has(id));
+
+      tableEl.innerHTML = '';
+
+      // Header
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+
+      const thCb = document.createElement('th');
+      thCb.className = 'cb-cell';
+      const headerCb = document.createElement('input');
+      headerCb.type = 'checkbox';
+      headerCb.checked = allSelected;
+      headerCb.addEventListener('change', () => {
+        const next = new Set(selected.peek());
+        if (headerCb.checked) {
+          allPageIds.forEach(id => next.add(id));
+        } else {
+          allPageIds.forEach(id => next.delete(id));
+        }
+        selected.value = next;
+      });
+      thCb.appendChild(headerCb);
+      headRow.appendChild(thCb);
+
+      columns.forEach(c => {
+        const th = document.createElement('th');
+        th.className = col === c.key ? 'sorted' : '';
+        const arrow = col === c.key ? (dir === 'asc' ? ' \u25b2' : ' \u25bc') : '';
+        th.innerHTML = c.label + '<span class="sort-arrow">' + arrow + '</span>';
+        th.addEventListener('click', () => {
+          if (sortCol.peek() === c.key) {
+            sortDir.value = sortDir.peek() === 'asc' ? 'desc' : 'asc';
+          } else {
+            batch(() => {
+              sortCol.value = c.key;
+              sortDir.value = 'asc';
+            });
+          }
+        });
+        headRow.appendChild(th);
+      });
+
+      thead.appendChild(headRow);
+      tableEl.appendChild(thead);
+
+      // Body
+      const tbody = document.createElement('tbody');
+      if (rows.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = columns.length + 1;
+        td.style.cssText = 'text-align:center;padding:2rem;color:#475569;';
+        td.textContent = 'No matching records found';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      } else {
+        rows.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.className = sel.has(row.id) ? 'selected' : '';
+
+          const tdCb = document.createElement('td');
+          tdCb.className = 'cb-cell';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = sel.has(row.id);
+          cb.addEventListener('change', () => {
+            const next = new Set(selected.peek());
+            if (cb.checked) next.add(row.id); else next.delete(row.id);
+            selected.value = next;
+          });
+          tdCb.appendChild(cb);
+          tr.appendChild(tdCb);
+
+          columns.forEach(c => {
+            const td = document.createElement('td');
+            if (c.key === 'salary') {
+              td.className = 'salary';
+              td.textContent = formatSalary(row.salary);
+            } else if (c.key === 'hireDate') {
+              td.textContent = formatDate(row.hireDate);
+            } else if (c.key === 'status') {
+              const badge = document.createElement('span');
+              badge.className = 'status-badge ' + statusClass(row.status);
+              badge.textContent = row.status;
+              td.appendChild(badge);
+            } else {
+              td.textContent = row[c.key];
+            }
+            tr.appendChild(td);
+          });
+
+          tbody.appendChild(tr);
+        });
+      }
+      tableEl.appendChild(tbody);
+    });
+
+    // ── Pagination ────────────────────────────────────────────────────
+    const paginationEl = document.getElementById('pagination');
+
+    effect(() => {
+      const total = totalPages.value;
+      const current = currentPage.value;
+      const pp = perPage.value;
+      paginationEl.innerHTML = '';
+
+      // Per-page selector
+      const ppWrap = document.createElement('div');
+      ppWrap.className = 'per-page-wrap';
+      const ppLabel = document.createElement('span');
+      ppLabel.className = 'per-page-label';
+      ppLabel.textContent = 'Rows per page:';
+      const ppSelect = document.createElement('select');
+      ppSelect.className = 'filter-select';
+      [10, 25, 50].forEach(n => {
+        const opt = document.createElement('option');
+        opt.value = n; opt.textContent = n;
+        if (n === pp) opt.selected = true;
+        ppSelect.appendChild(opt);
+      });
+      ppSelect.addEventListener('change', (e) => { perPage.value = parseInt(e.target.value); });
+      ppWrap.append(ppLabel, ppSelect);
+
+      // Page info
+      const info = document.createElement('span');
+      info.className = 'page-info';
+      info.textContent = 'Page ' + current + ' of ' + total;
+
+      // Page buttons
+      const controls = document.createElement('div');
+      controls.className = 'page-controls';
+
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'page-btn';
+      prevBtn.textContent = '\u2190';
+      prevBtn.disabled = current <= 1;
+      prevBtn.addEventListener('click', () => { if (currentPage.peek() > 1) currentPage.value = currentPage.peek() - 1; });
+      controls.appendChild(prevBtn);
+
+      const maxButtons = 5;
+      let startPage = Math.max(1, current - Math.floor(maxButtons / 2));
+      let endPage = Math.min(total, startPage + maxButtons - 1);
+      if (endPage - startPage < maxButtons - 1) startPage = Math.max(1, endPage - maxButtons + 1);
+
+      for (let i = startPage; i <= endPage; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'page-btn' + (i === current ? ' active' : '');
+        btn.textContent = i;
+        btn.addEventListener('click', () => { currentPage.value = i; });
+        controls.appendChild(btn);
+      }
+
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'page-btn';
+      nextBtn.textContent = '\u2192';
+      nextBtn.disabled = current >= total;
+      nextBtn.addEventListener('click', () => { if (currentPage.peek() < totalPages.peek()) currentPage.value = currentPage.peek() + 1; });
+      controls.appendChild(nextBtn);
+
+      paginationEl.append(ppWrap, info, controls);
+    });
+
+    // ── CSV Export ─────────────────────────────────────────────────────
+    function downloadCsv(rows) {
+      const headers = ['Name','Email','Department','Salary','Hire Date','Status'];
+      const csvRows = [headers.join(',')];
+      rows.forEach(r => {
+        csvRows.push([
+          '"' + r.name + '"',
+          '"' + r.email + '"',
+          '"' + r.department + '"',
+          r.salary,
+          '"' + formatDate(r.hireDate) + '"',
+          '"' + r.status + '"',
+        ].join(','));
+      });
+      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'employees.csv';
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function exportCsv() {
+      downloadCsv(filtered.peek());
+    }
+  </script>
+</body>
+</html>

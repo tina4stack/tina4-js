@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Manager — tina4js Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .nav { padding: 0.75rem 1.5rem; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .nav a { color: #38bdf8; text-decoration: none; font-size: 0.85rem; }
+    .nav .title { font-weight: 600; }
+    .container { max-width: 800px; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #64748b; margin-bottom: 1.5rem; }
+    .toolbar { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    input, select { padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 0.9rem; }
+    input:focus, select:focus { outline: none; border-color: #38bdf8; }
+    input[type="text"] { flex: 1; min-width: 200px; }
+    .btn { padding: 0.5rem 1rem; border-radius: 6px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+    .btn-primary { background: #38bdf8; color: #0f172a; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .btn-ghost { background: transparent; color: #94a3b8; border: 1px solid #334155; }
+    .btn:hover { opacity: 0.9; }
+    table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 10px; overflow: hidden; border: 1px solid #334155; }
+    th { text-align: left; padding: 0.75rem 1rem; font-size: 0.75rem; text-transform: uppercase; color: #64748b; background: #0f172a; letter-spacing: 0.05em; }
+    td { padding: 0.65rem 1rem; border-top: 1px solid #0f172a; font-size: 0.9rem; }
+    tr:hover td { background: #334155; }
+    .avatar { width: 28px; height: 28px; border-radius: 50%; background: #38bdf8; color: #0f172a; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; margin-right: 0.5rem; vertical-align: middle; }
+    .tag-dept { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 99px; }
+    .tag-eng { background: #1e3a5f; color: #38bdf8; }
+    .tag-sales { background: #3b1f2b; color: #f87171; }
+    .tag-design { background: #1f3b2b; color: #4ade80; }
+    .tag-hr { background: #3b351f; color: #fbbf24; }
+    .pagination { display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem; }
+    .pagination button { width: 32px; height: 32px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; cursor: pointer; font-size: 0.85rem; }
+    .pagination button.active { background: #38bdf8; color: #0f172a; border-color: #38bdf8; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .modal { background: #1e293b; border-radius: 12px; padding: 1.5rem; width: 90%; max-width: 450px; border: 1px solid #334155; }
+    .modal h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+    .form-group { margin-bottom: 0.75rem; }
+    .form-group label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.25rem; }
+    .form-group input, .form-group select { width: 100%; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
+    .status { text-align: center; padding: 2rem; color: #64748b; }
+    .count { font-size: 0.85rem; color: #64748b; }
+    .source { margin-top: 2rem; background: #1e293b; border-radius: 10px; padding: 1.5rem; border: 1px solid #334155; }
+    .source h3 { margin-bottom: 1rem; color: #94a3b8; font-size: 0.9rem; }
+    pre { background: #0f172a; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; }
+    .hidden { display: none; }
+    .error { color: #f87171; font-size: 0.8rem; margin-top: 0.25rem; }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <span class="title">02 — Contact Manager</span>
+    <a href="index.html">&larr; Gallery</a>
+  </div>
+  <div class="container">
+    <h1>Contact Manager</h1>
+    <p class="subtitle">CRUD operations with search, filter, pagination, and form validation</p>
+
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="Search contacts...">
+      <select id="deptFilter">
+        <option value="">All Departments</option>
+        <option value="Engineering">Engineering</option>
+        <option value="Sales">Sales</option>
+        <option value="Design">Design</option>
+        <option value="HR">HR</option>
+      </select>
+      <button class="btn btn-primary" id="addBtn">+ Add Contact</button>
+    </div>
+    <div id="count" class="count"></div>
+    <div id="tableWrap"></div>
+    <div id="pagination" class="pagination"></div>
+    <div id="modalWrap"></div>
+
+    <div class="source">
+      <h3>How it works — API Integration</h3>
+      <pre><code>import { signal, computed, effect } from 'tina4js';
+import { api } from 'tina4js/api';
+
+// Configure API
+api.configure({
+  baseUrl: '/api/v1',
+  auth: true,
+  headers: { 'X-App': 'contacts' }
+});
+
+// State
+const contacts = signal([]);
+const search = signal('');
+const deptFilter = signal('');
+const page = signal(1);
+const perPage = 5;
+
+// Filtered + paginated (computed)
+const filtered = computed(() =>
+  contacts.value
+    .filter(c => !search.value || c.name.toLowerCase().includes(search.value.toLowerCase()))
+    .filter(c => !deptFilter.value || c.department === deptFilter.value)
+);
+
+const paged = computed(() => {
+  const start = (page.value - 1) * perPage;
+  return filtered.value.slice(start, start + perPage);
+});
+
+// CRUD
+async function loadContacts() {
+  const data = await api.get('/contacts');
+  contacts.value = data;
+}
+
+async function createContact(c) {
+  const created = await api.post('/contacts', c);
+  contacts.value = [...contacts.value, created];
+}
+
+async function deleteContact(id) {
+  await api.delete(`/contacts/${id}`);
+  contacts.value = contacts.value.filter(c => c.id !== id);
+}
+
+// Render reacts to signal changes
+effect(() => renderTable(paged.value));</code></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    // ── Signals (inline for standalone demo) ─────────────────────────
+    let currentSub = null;
+    const batchQueue = new Set();
+    let batching = false;
+
+    function signal(initial) {
+      let val = initial;
+      const subs = new Set();
+      return {
+        get value() { if (currentSub) subs.add(currentSub); return val; },
+        set value(v) { if (Object.is(val, v)) return; val = v; if (batching) { for (const s of subs) batchQueue.add(s); } else { for (const s of [...subs]) s(); } },
+        peek() { return val; }
+      };
+    }
+
+    function computed(fn) {
+      const s = signal(undefined);
+      effect(() => { s.value = fn(); });
+      return { get value() { return s.value; }, peek: s.peek };
+    }
+
+    function effect(fn) {
+      const run = () => { const prev = currentSub; currentSub = run; try { fn(); } finally { currentSub = prev; } };
+      run();
+    }
+
+    function batch(fn) {
+      batching = true;
+      try { fn(); } finally { batching = false; const q = [...batchQueue]; batchQueue.clear(); for (const s of q) s(); }
+    }
+
+    // ── Sample Data ──────────────────────────────────────────────────
+    let nextId = 11;
+    const SAMPLE = [
+      { id:1, name:'Alice Chen', email:'alice@example.com', phone:'555-0101', department:'Engineering' },
+      { id:2, name:'Bob Martinez', email:'bob@example.com', phone:'555-0102', department:'Sales' },
+      { id:3, name:'Carol Williams', email:'carol@example.com', phone:'555-0103', department:'Design' },
+      { id:4, name:'Dave Johnson', email:'dave@example.com', phone:'555-0104', department:'Engineering' },
+      { id:5, name:'Eve Brown', email:'eve@example.com', phone:'555-0105', department:'HR' },
+      { id:6, name:'Frank Lee', email:'frank@example.com', phone:'555-0106', department:'Sales' },
+      { id:7, name:'Grace Kim', email:'grace@example.com', phone:'555-0107', department:'Design' },
+      { id:8, name:'Henry Davis', email:'henry@example.com', phone:'555-0108', department:'Engineering' },
+      { id:9, name:'Ivy Wilson', email:'ivy@example.com', phone:'555-0109', department:'HR' },
+      { id:10, name:'Jack Thompson', email:'jack@example.com', phone:'555-0110', department:'Sales' },
+    ];
+
+    // ── State ────────────────────────────────────────────────────────
+    const contacts = signal([...SAMPLE]);
+    const searchVal = signal('');
+    const deptFilter = signal('');
+    const page = signal(1);
+    const perPage = 5;
+    const editing = signal(null); // null or contact object
+
+    const filtered = computed(() =>
+      contacts.value
+        .filter(c => !searchVal.value || c.name.toLowerCase().includes(searchVal.value.toLowerCase()) || c.email.toLowerCase().includes(searchVal.value.toLowerCase()))
+        .filter(c => !deptFilter.value || c.department === deptFilter.value)
+    );
+
+    const totalPages = computed(() => Math.ceil(filtered.value.length / perPage) || 1);
+
+    const paged = computed(() => {
+      const start = (page.value - 1) * perPage;
+      return filtered.value.slice(start, start + perPage);
+    });
+
+    // ── Render Table ─────────────────────────────────────────────────
+    const tableWrap = document.getElementById('tableWrap');
+    const countEl = document.getElementById('count');
+    const paginationEl = document.getElementById('pagination');
+    const deptClasses = { Engineering:'tag-eng', Sales:'tag-sales', Design:'tag-design', HR:'tag-hr' };
+
+    effect(() => {
+      const items = paged.value;
+      countEl.textContent = `Showing ${items.length} of ${filtered.value.length} contacts`;
+
+      if (items.length === 0) {
+        tableWrap.innerHTML = '<div class="status">No contacts found</div>';
+        return;
+      }
+      tableWrap.innerHTML = `<table>
+        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Dept</th><th></th></tr></thead>
+        <tbody>${items.map(c => `<tr>
+          <td><span class="avatar">${c.name.split(' ').map(n=>n[0]).join('')}</span>${c.name}</td>
+          <td>${c.email}</td>
+          <td>${c.phone}</td>
+          <td><span class="tag-dept ${deptClasses[c.department] || ''}">${c.department}</span></td>
+          <td>
+            <button class="btn btn-ghost edit-btn" data-id="${c.id}" style="padding:0.25rem 0.5rem">Edit</button>
+            <button class="btn btn-danger del-btn" data-id="${c.id}" style="padding:0.25rem 0.5rem;margin-left:0.25rem">Del</button>
+          </td>
+        </tr>`).join('')}</tbody></table>`;
+
+      tableWrap.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const c = contacts.value.find(x => x.id === +btn.dataset.id);
+          if (c) editing.value = { ...c };
+        });
+      });
+      tableWrap.querySelectorAll('.del-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          contacts.value = contacts.value.filter(x => x.id !== +btn.dataset.id);
+        });
+      });
+    });
+
+    // ── Pagination ───────────────────────────────────────────────────
+    effect(() => {
+      const tp = totalPages.value;
+      const cp = page.value;
+      paginationEl.innerHTML = '';
+      for (let i = 1; i <= tp; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        if (i === cp) btn.className = 'active';
+        btn.addEventListener('click', () => { page.value = i; });
+        paginationEl.appendChild(btn);
+      }
+    });
+
+    // Reset page on filter change
+    effect(() => { searchVal.value; deptFilter.value; page.value = 1; });
+
+    // ── Search & Filter Bindings ─────────────────────────────────────
+    document.getElementById('search').addEventListener('input', e => { searchVal.value = e.target.value; });
+    document.getElementById('deptFilter').addEventListener('change', e => { deptFilter.value = e.target.value; });
+
+    // ── Modal ────────────────────────────────────────────────────────
+    const modalWrap = document.getElementById('modalWrap');
+
+    document.getElementById('addBtn').addEventListener('click', () => {
+      editing.value = { id: 0, name: '', email: '', phone: '', department: 'Engineering' };
+    });
+
+    effect(() => {
+      const c = editing.value;
+      if (!c) { modalWrap.innerHTML = ''; return; }
+
+      modalWrap.innerHTML = `<div class="modal-overlay"><div class="modal">
+        <h2>${c.id ? 'Edit' : 'Add'} Contact</h2>
+        <div class="form-group"><label>Name</label><input id="m-name" value="${c.name}"><div class="error hidden" id="e-name">Name is required</div></div>
+        <div class="form-group"><label>Email</label><input id="m-email" value="${c.email}"><div class="error hidden" id="e-email">Valid email required</div></div>
+        <div class="form-group"><label>Phone</label><input id="m-phone" value="${c.phone}"></div>
+        <div class="form-group"><label>Department</label>
+          <select id="m-dept"><option ${c.department==='Engineering'?'selected':''}>Engineering</option><option ${c.department==='Sales'?'selected':''}>Sales</option><option ${c.department==='Design'?'selected':''}>Design</option><option ${c.department==='HR'?'selected':''}>HR</option></select>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="m-cancel">Cancel</button>
+          <button class="btn btn-primary" id="m-save">Save</button>
+        </div>
+      </div></div>`;
+
+      document.getElementById('m-cancel').addEventListener('click', () => { editing.value = null; });
+      document.querySelector('.modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) editing.value = null; });
+
+      document.getElementById('m-save').addEventListener('click', () => {
+        const name = document.getElementById('m-name').value.trim();
+        const email = document.getElementById('m-email').value.trim();
+        const phone = document.getElementById('m-phone').value.trim();
+        const department = document.getElementById('m-dept').value;
+
+        let valid = true;
+        if (!name) { document.getElementById('e-name').classList.remove('hidden'); valid = false; }
+        else { document.getElementById('e-name').classList.add('hidden'); }
+        if (!email || !email.includes('@')) { document.getElementById('e-email').classList.remove('hidden'); valid = false; }
+        else { document.getElementById('e-email').classList.add('hidden'); }
+        if (!valid) return;
+
+        if (c.id) {
+          contacts.value = contacts.value.map(x => x.id === c.id ? { ...x, name, email, phone, department } : x);
+        } else {
+          contacts.value = [...contacts.value, { id: nextId++, name, email, phone, department }];
+        }
+        editing.value = null;
+      });
+    });
+  </script>
+</body>
+</html>

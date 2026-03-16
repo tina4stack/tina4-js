@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-time Chat — tina4js Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .nav { padding: 0.75rem 1.5rem; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .nav a { color: #38bdf8; text-decoration: none; font-size: 0.85rem; }
+    .nav .title { font-weight: 600; }
+    .container { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #64748b; margin-bottom: 1.5rem; }
+    .btn { padding: 0.5rem 1rem; border-radius: 6px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+    .btn-primary { background: #38bdf8; color: #0f172a; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .btn-ghost { background: transparent; color: #94a3b8; border: 1px solid #334155; }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    input { padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 0.9rem; }
+    input:focus { outline: none; border-color: #38bdf8; }
+
+    .chat-layout { display: grid; grid-template-columns: 1fr 200px; gap: 1rem; margin-bottom: 1.5rem; }
+    @media (max-width: 640px) { .chat-layout { grid-template-columns: 1fr; } }
+
+    .chat-main { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .status-bar { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; background: #1e293b; border-radius: 8px; border: 1px solid #334155; font-size: 0.85rem; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.connected { background: #4ade80; }
+    .status-dot.disconnected { background: #ef4444; }
+    .status-dot.reconnecting { background: #fbbf24; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .status-text { flex: 1; }
+
+    .username-bar { display: flex; gap: 0.5rem; }
+    .username-bar input { flex: 1; }
+
+    .messages-box { background: #1e293b; border-radius: 10px; border: 1px solid #334155; height: 400px; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .msg { max-width: 75%; padding: 0.5rem 0.75rem; border-radius: 10px; font-size: 0.9rem; line-height: 1.4; }
+    .msg-sent { background: #38bdf8; color: #0f172a; align-self: flex-end; border-bottom-right-radius: 2px; }
+    .msg-received { background: #334155; color: #e2e8f0; align-self: flex-start; border-bottom-left-radius: 2px; }
+    .msg-system { background: transparent; color: #64748b; align-self: center; font-size: 0.8rem; font-style: italic; }
+    .msg-sender { font-size: 0.7rem; font-weight: 700; margin-bottom: 0.15rem; opacity: 0.7; }
+    .msg-time { font-size: 0.65rem; opacity: 0.5; margin-top: 0.15rem; text-align: right; }
+
+    .typing-indicator { font-size: 0.8rem; color: #64748b; height: 1.2em; padding: 0 0.25rem; }
+
+    .input-bar { display: flex; gap: 0.5rem; }
+    .input-bar input { flex: 1; }
+
+    .sidebar { display: flex; flex-direction: column; gap: 0.75rem; }
+    .sidebar-panel { background: #1e293b; border-radius: 10px; border: 1px solid #334155; padding: 0.75rem; }
+    .sidebar-panel h3 { font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .user-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0; font-size: 0.85rem; }
+    .user-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; flex-shrink: 0; }
+    .user-you { color: #38bdf8; font-weight: 600; }
+
+    .source { margin-top: 2rem; background: #1e293b; border-radius: 10px; padding: 1.5rem; border: 1px solid #334155; }
+    .source h3 { margin-bottom: 1rem; color: #94a3b8; font-size: 0.9rem; }
+    pre { background: #0f172a; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; color: #e2e8f0; }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <span class="title">03 — Real-time Chat</span>
+    <a href="index.html">&larr; Gallery</a>
+  </div>
+  <div class="container">
+    <h1>Real-time Chat</h1>
+    <p class="subtitle">WebSocket chat with signals, typing indicators, auto-reconnect, and online users</p>
+
+    <div class="chat-layout">
+      <div class="chat-main">
+        <div class="username-bar">
+          <input type="text" id="usernameInput" placeholder="Your username..." value="You">
+          <button class="btn btn-ghost" id="setUsername">Set Name</button>
+          <button class="btn btn-danger" id="disconnectBtn">Simulate Disconnect</button>
+        </div>
+        <div class="status-bar">
+          <div class="status-dot" id="statusDot"></div>
+          <span class="status-text" id="statusText"></span>
+        </div>
+        <div class="messages-box" id="messagesBox"></div>
+        <div class="typing-indicator" id="typingIndicator"></div>
+        <div class="input-bar">
+          <input type="text" id="msgInput" placeholder="Type a message..." disabled>
+          <button class="btn btn-primary" id="sendBtn" disabled>Send</button>
+        </div>
+      </div>
+      <div class="sidebar">
+        <div class="sidebar-panel">
+          <h3>Online Users</h3>
+          <div id="usersList"></div>
+        </div>
+        <div class="sidebar-panel">
+          <h3>Room Info</h3>
+          <div style="font-size:0.85rem;color:#94a3b8;">
+            <div id="roomMsgCount"></div>
+            <div id="roomUserCount"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="source">
+      <h3>How it works — WebSocket Module</h3>
+      <pre><code>import { ws } from 'tina4js';
+
+const socket = ws.connect('wss://chat.example.com', {
+  reconnect: true,
+  reconnectDelay: 1000
+});
+
+// Pipe messages into a signal
+const messages = signal([]);
+socket.pipe(messages, (msg, current) => [...current, msg]);
+
+// Reactive status
+effect(() => {
+  statusEl.textContent = socket.status.value;
+});
+
+// Send
+socket.send({ type: 'message', text: input.value });</code></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    // ── Inline tina4js primitives (for standalone demo) ──────────────
+    let currentSub = null;
+    const batchQueue = new Set();
+    let batching = false;
+
+    function signal(initial, label) {
+      let val = initial;
+      const subs = new Set();
+      const s = {
+        get value() { if (currentSub) subs.add(currentSub); return val; },
+        set value(v) { if (Object.is(val, v)) return; val = v; if (batching) { for (const sub of subs) batchQueue.add(sub); } else { for (const sub of [...subs]) sub(); } },
+        peek() { return val; },
+        _label: label
+      };
+      return s;
+    }
+
+    function computed(fn) {
+      const s = signal(undefined);
+      effect(() => { s.value = fn(); });
+      return { get value() { return s.value; }, peek: s.peek };
+    }
+
+    function effect(fn) {
+      const run = () => { const prev = currentSub; currentSub = run; try { fn(); } finally { currentSub = prev; } };
+      run();
+      return () => {};
+    }
+
+    function batch(fn) {
+      batching = true;
+      try { fn(); } finally { batching = false; const q = [...batchQueue]; batchQueue.clear(); for (const s of q) s(); }
+    }
+
+    // ── Simulated Users ─────────────────────────────────────────────
+    const BOT_USERS = ['Alice', 'Bob', 'Charlie', 'Diana'];
+    const BOT_MESSAGES = [
+      'Hey everyone!', 'How are you doing?', 'Anyone seen the new release?',
+      'That sounds great!', 'I agree with that.', 'LOL',
+      'Can someone help me with a bug?', 'Sure, what is it?',
+      'Just pushed a fix.', 'Nice work!', 'brb',
+      'Has anyone tried the new API?', 'It works perfectly.',
+      'Meeting in 10 minutes.', 'Thanks for the heads up!',
+      'I love this framework!', 'Same here, so lightweight.',
+    ];
+
+    function timeStr() {
+      const d = new Date();
+      return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+    }
+
+    // ── State ────────────────────────────────────────────────────────
+    const username = signal('You', 'username');
+    const connectionStatus = signal('disconnected', 'connectionStatus'); // connected | disconnected | reconnecting
+    const messages = signal([], 'messages');
+    const typingUser = signal('', 'typingUser');
+    const onlineUsers = signal([...BOT_USERS], 'onlineUsers');
+
+    const messageCount = computed(() => messages.value.length);
+    const userCount = computed(() => onlineUsers.value.length + 1); // +1 for self
+
+    // ── DOM Refs ─────────────────────────────────────────────────────
+    const messagesBox = document.getElementById('messagesBox');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const usernameInput = document.getElementById('usernameInput');
+    const usersList = document.getElementById('usersList');
+    const roomMsgCount = document.getElementById('roomMsgCount');
+    const roomUserCount = document.getElementById('roomUserCount');
+
+    // ── Connection Simulation ────────────────────────────────────────
+    let reconnectTimer = null;
+    let botInterval = null;
+    let typingTimer = null;
+    let userJoinLeaveInterval = null;
+
+    function simulateConnect() {
+      connectionStatus.value = 'connected';
+      messages.value = [...messages.value, { type: 'system', text: 'Connected to chat room', time: timeStr() }];
+      startBotSimulation();
+    }
+
+    function simulateDisconnect() {
+      connectionStatus.value = 'disconnected';
+      stopBotSimulation();
+      messages.value = [...messages.value, { type: 'system', text: 'Disconnected from server', time: timeStr() }];
+
+      // Begin reconnect after a delay
+      setTimeout(() => {
+        if (connectionStatus.peek() === 'disconnected') {
+          connectionStatus.value = 'reconnecting';
+          messages.value = [...messages.value, { type: 'system', text: 'Attempting to reconnect...', time: timeStr() }];
+
+          reconnectTimer = setTimeout(() => {
+            if (connectionStatus.peek() === 'reconnecting') {
+              simulateConnect();
+              messages.value = [...messages.value, { type: 'system', text: 'Reconnected successfully!', time: timeStr() }];
+            }
+          }, 2500);
+        }
+      }, 1000);
+    }
+
+    function startBotSimulation() {
+      // Random bot messages
+      botInterval = setInterval(() => {
+        if (connectionStatus.peek() !== 'connected') return;
+        if (Math.random() > 0.4) return;
+
+        const users = onlineUsers.peek();
+        if (users.length === 0) return;
+        const sender = users[Math.floor(Math.random() * users.length)];
+
+        // Show typing first
+        typingUser.value = sender;
+        setTimeout(() => {
+          if (connectionStatus.peek() !== 'connected') return;
+          const text = BOT_MESSAGES[Math.floor(Math.random() * BOT_MESSAGES.length)];
+          messages.value = [...messages.value, { type: 'received', sender, text, time: timeStr() }];
+          typingUser.value = '';
+        }, 800 + Math.random() * 1200);
+      }, 3000);
+
+      // Random user join/leave
+      userJoinLeaveInterval = setInterval(() => {
+        if (connectionStatus.peek() !== 'connected') return;
+        const current = onlineUsers.peek();
+        if (Math.random() > 0.5 && current.length < BOT_USERS.length) {
+          // Someone joins
+          const offline = BOT_USERS.filter(u => !current.includes(u));
+          if (offline.length > 0) {
+            const joiner = offline[Math.floor(Math.random() * offline.length)];
+            onlineUsers.value = [...current, joiner];
+            messages.value = [...messages.value, { type: 'system', text: `${joiner} joined the room`, time: timeStr() }];
+          }
+        } else if (current.length > 1) {
+          // Someone leaves
+          const idx = Math.floor(Math.random() * current.length);
+          const leaver = current[idx];
+          onlineUsers.value = current.filter((_, i) => i !== idx);
+          messages.value = [...messages.value, { type: 'system', text: `${leaver} left the room`, time: timeStr() }];
+        }
+      }, 8000);
+    }
+
+    function stopBotSimulation() {
+      clearInterval(botInterval);
+      clearInterval(userJoinLeaveInterval);
+      clearTimeout(reconnectTimer);
+      typingUser.value = '';
+    }
+
+    // ── Render: Connection Status ────────────────────────────────────
+    effect(() => {
+      const status = connectionStatus.value;
+      statusDot.className = 'status-dot ' + status;
+      statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+      msgInput.disabled = status !== 'connected';
+      sendBtn.disabled = status !== 'connected';
+    });
+
+    // ── Render: Messages ─────────────────────────────────────────────
+    effect(() => {
+      const msgs = messages.value;
+      messagesBox.innerHTML = '';
+      msgs.forEach(m => {
+        const div = document.createElement('div');
+        if (m.type === 'system') {
+          div.className = 'msg msg-system';
+          div.textContent = m.text;
+        } else if (m.type === 'sent') {
+          div.className = 'msg msg-sent';
+          div.innerHTML = `<div class="msg-sender">${esc(m.sender)}</div>${esc(m.text)}<div class="msg-time">${m.time}</div>`;
+        } else {
+          div.className = 'msg msg-received';
+          div.innerHTML = `<div class="msg-sender">${esc(m.sender)}</div>${esc(m.text)}<div class="msg-time">${m.time}</div>`;
+        }
+        messagesBox.appendChild(div);
+      });
+      messagesBox.scrollTop = messagesBox.scrollHeight;
+    });
+
+    function esc(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    // ── Render: Typing Indicator ─────────────────────────────────────
+    effect(() => {
+      const who = typingUser.value;
+      typingIndicator.textContent = who ? `${who} is typing...` : '';
+    });
+
+    // ── Render: Online Users ─────────────────────────────────────────
+    effect(() => {
+      const users = onlineUsers.value;
+      const me = username.value;
+      usersList.innerHTML = `<div class="user-item"><span class="user-dot"></span><span class="user-you">${esc(me)} (you)</span></div>` +
+        users.map(u => `<div class="user-item"><span class="user-dot"></span><span>${esc(u)}</span></div>`).join('');
+    });
+
+    // ── Render: Room Info ────────────────────────────────────────────
+    effect(() => { roomMsgCount.textContent = `Messages: ${messageCount.value}`; });
+    effect(() => { roomUserCount.textContent = `Users online: ${userCount.value}`; });
+
+    // ── Event Handlers ───────────────────────────────────────────────
+    function sendMessage() {
+      const text = msgInput.value.trim();
+      if (!text || connectionStatus.peek() !== 'connected') return;
+      messages.value = [...messages.value, { type: 'sent', sender: username.peek(), text, time: timeStr() }];
+      msgInput.value = '';
+      msgInput.focus();
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+    document.getElementById('setUsername').addEventListener('click', () => {
+      const name = usernameInput.value.trim();
+      if (name) {
+        const old = username.peek();
+        username.value = name;
+        if (connectionStatus.peek() === 'connected') {
+          messages.value = [...messages.value, { type: 'system', text: `${old} changed name to ${name}`, time: timeStr() }];
+        }
+      }
+    });
+
+    document.getElementById('disconnectBtn').addEventListener('click', () => {
+      if (connectionStatus.peek() === 'connected') {
+        simulateDisconnect();
+      }
+    });
+
+    // ── Initial Connection ───────────────────────────────────────────
+    messages.value = [{ type: 'system', text: 'Connecting to chat room...', time: timeStr() }];
+    setTimeout(simulateConnect, 800);
+  </script>
+</body>
+</html>

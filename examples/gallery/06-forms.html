@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Form Builder — tina4js Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .nav { padding: 0.75rem 1.5rem; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .nav a { color: #38bdf8; text-decoration: none; font-size: 0.85rem; }
+    .nav .title { font-weight: 600; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .subtitle { color: #64748b; margin-bottom: 1.5rem; }
+
+    .layout { display: grid; grid-template-columns: 220px 1fr 1fr; gap: 1.5rem; align-items: start; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+    /* Palette */
+    .palette { background: #1e293b; border-radius: 10px; border: 1px solid #334155; padding: 1rem; position: sticky; top: 1.5rem; }
+    .palette h3 { font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.75rem; }
+    .palette-btn { width: 100%; padding: 0.5rem 0.75rem; margin-bottom: 0.4rem; border: 1px solid #334155; border-radius: 6px; background: #0f172a; color: #e2e8f0; cursor: pointer; font-size: 0.8rem; text-align: left; display: flex; align-items: center; gap: 0.5rem; transition: background 0.2s, border-color 0.2s; }
+    .palette-btn:hover { background: #334155; border-color: #475569; }
+    .palette-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+    /* Builder Panel */
+    .builder { background: #1e293b; border-radius: 10px; border: 1px solid #334155; padding: 1.25rem; }
+    .builder h3 { font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+    .field-count { font-size: 0.75rem; color: #64748b; font-weight: 400; }
+    .builder-empty { color: #64748b; font-size: 0.85rem; text-align: center; padding: 3rem 1rem; border: 2px dashed #334155; border-radius: 8px; }
+    .field-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .field-card { background: #0f172a; border-radius: 8px; padding: 0.75rem; border: 1px solid #334155; }
+    .field-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .field-type-badge { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.03em; padding: 0.15rem 0.5rem; border-radius: 99px; background: #1e293b; color: #38bdf8; border: 1px solid #1e3a5f; }
+    .field-remove { background: none; border: none; color: #64748b; cursor: pointer; font-size: 1rem; padding: 0 0.25rem; }
+    .field-remove:hover { color: #f43f5e; }
+    .field-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.4rem; }
+    .field-row label { font-size: 0.75rem; color: #94a3b8; width: 70px; flex-shrink: 0; }
+    .field-input { flex: 1; padding: 0.3rem 0.5rem; border: 1px solid #334155; border-radius: 4px; background: #1e293b; color: #e2e8f0; font-size: 0.8rem; }
+    .field-input:focus { outline: none; border-color: #38bdf8; }
+    .toggle-row { display: flex; align-items: center; gap: 0.5rem; }
+    .toggle { position: relative; width: 32px; height: 18px; cursor: pointer; }
+    .toggle input { display: none; }
+    .toggle-track { position: absolute; inset: 0; background: #334155; border-radius: 99px; transition: background 0.2s; }
+    .toggle input:checked + .toggle-track { background: #38bdf8; }
+    .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #e2e8f0; border-radius: 50%; transition: transform 0.2s; }
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(14px); }
+    .toggle-label { font-size: 0.75rem; color: #94a3b8; }
+
+    /* Preview Panel */
+    .preview { background: #1e293b; border-radius: 10px; border: 1px solid #334155; padding: 1.25rem; }
+    .preview h3 { font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+    .valid-badge { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 99px; font-weight: 600; }
+    .valid-badge.valid { background: #064e3b; color: #4ade80; }
+    .valid-badge.invalid { background: #4c0519; color: #f87171; }
+    .preview-empty { color: #64748b; font-size: 0.85rem; text-align: center; padding: 3rem 1rem; }
+    .preview-form { display: flex; flex-direction: column; gap: 1rem; }
+    .preview-field { display: flex; flex-direction: column; gap: 0.3rem; }
+    .preview-label { font-size: 0.8rem; font-weight: 600; }
+    .preview-label .req { color: #f43f5e; }
+    .preview-input { padding: 0.5rem 0.75rem; border: 1px solid #334155; border-radius: 6px; background: #0f172a; color: #e2e8f0; font-size: 0.85rem; }
+    .preview-input:focus { outline: none; border-color: #38bdf8; }
+    .preview-input.error { border-color: #f43f5e; }
+    .preview-select { padding: 0.5rem 0.75rem; border: 1px solid #334155; border-radius: 6px; background: #0f172a; color: #e2e8f0; font-size: 0.85rem; }
+    .preview-textarea { padding: 0.5rem 0.75rem; border: 1px solid #334155; border-radius: 6px; background: #0f172a; color: #e2e8f0; font-size: 0.85rem; resize: vertical; min-height: 60px; }
+    .preview-checkbox-row { display: flex; align-items: center; gap: 0.5rem; }
+    .preview-checkbox-row input[type="checkbox"] { accent-color: #38bdf8; }
+    .field-error { font-size: 0.7rem; color: #f87171; }
+    .error-summary { margin-top: 0.75rem; padding: 0.5rem 0.75rem; background: #4c0519; border-radius: 6px; font-size: 0.75rem; color: #f87171; }
+    .error-summary ul { list-style: none; padding: 0; }
+    .error-summary li::before { content: '! '; font-weight: 700; }
+
+    .actions-bar { display: flex; gap: 0.5rem; margin-top: 1rem; }
+    .action-btn { padding: 0.45rem 0.9rem; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #e2e8f0; cursor: pointer; font-size: 0.8rem; transition: background 0.2s; }
+    .action-btn:hover { background: #334155; }
+    .action-btn.primary { background: #38bdf8; color: #0f172a; border-color: #38bdf8; font-weight: 600; }
+    .action-btn.primary:hover { background: #7dd3fc; }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 100; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: #1e293b; border-radius: 12px; border: 1px solid #334155; padding: 1.5rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+    .modal h3 { font-size: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+    .modal-close { background: none; border: none; color: #64748b; cursor: pointer; font-size: 1.2rem; }
+    .modal-close:hover { color: #e2e8f0; }
+    .modal pre { font-size: 0.75rem; line-height: 1.5; }
+
+    .source { margin-top: 2rem; background: #1e293b; border-radius: 10px; padding: 1.5rem; border: 1px solid #334155; }
+    .source h3 { margin-bottom: 1rem; color: #94a3b8; font-size: 0.9rem; }
+    pre { background: #0f172a; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; color: #e2e8f0; }
+    code .kw { color: #c084fc; }
+    code .fn { color: #38bdf8; }
+    code .str { color: #4ade80; }
+    code .cm { color: #64748b; }
+    code .num { color: #fb923c; }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <span class="title">06 — Dynamic Form Builder</span>
+    <a href="index.html">&larr; Gallery</a>
+  </div>
+  <div class="container">
+    <h1>Dynamic Form Builder</h1>
+    <p class="subtitle">Complex signal graphs, real-time validation, computed form state, and JSON export</p>
+
+    <div class="layout">
+      <div class="palette">
+        <h3>Field Palette</h3>
+        <button class="palette-btn" data-type="text"><span class="palette-icon">Aa</span> Text Input</button>
+        <button class="palette-btn" data-type="email"><span class="palette-icon">@</span> Email</button>
+        <button class="palette-btn" data-type="number"><span class="palette-icon">#</span> Number</button>
+        <button class="palette-btn" data-type="select"><span class="palette-icon">&#9662;</span> Select</button>
+        <button class="palette-btn" data-type="checkbox"><span class="palette-icon">&#9745;</span> Checkbox</button>
+        <button class="palette-btn" data-type="textarea"><span class="palette-icon">&#9998;</span> Textarea</button>
+      </div>
+      <div class="builder" id="builder">
+        <h3>Form Fields <span class="field-count" id="field-count">0 fields</span></h3>
+        <div id="field-list"></div>
+      </div>
+      <div class="preview" id="preview">
+        <h3>Live Preview <span class="valid-badge" id="valid-badge"></span></h3>
+        <div id="preview-content"></div>
+        <div class="actions-bar" id="actions-bar" style="display:none;">
+          <button class="action-btn primary" id="export-btn">Export JSON</button>
+          <button class="action-btn" id="clear-fields-btn">Clear All</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal">
+        <h3>JSON Schema <button class="modal-close" id="modal-close">&times;</button></h3>
+        <pre id="modal-json"></pre>
+      </div>
+    </div>
+
+    <div class="source">
+      <h3>How it works — View Source</h3>
+      <pre><code><span class="cm">// Complex signal graph for form builder</span>
+<span class="kw">const</span> fields = <span class="fn">signal</span>([], <span class="str">'fields'</span>);
+<span class="kw">const</span> formValues = <span class="fn">signal</span>({}, <span class="str">'formValues'</span>);
+
+<span class="cm">// Each field's validity depends on its config + current value</span>
+<span class="kw">const</span> errors = <span class="fn">computed</span>(() => {
+  <span class="kw">return</span> fields.value
+    .<span class="fn">filter</span>(f => f.required)
+    .<span class="fn">flatMap</span>(f => <span class="fn">validate</span>(f, formValues.value[f.id]));
+});
+
+<span class="kw">const</span> isValid = <span class="fn">computed</span>(() => errors.value.length === <span class="num">0</span>);
+
+<span class="cm">// Signal dependency graph:</span>
+<span class="cm">//   fields ──┬──> errors ──> isValid</span>
+<span class="cm">//            │</span>
+<span class="cm">// formValues ┘</span>
+<span class="cm">//</span>
+<span class="cm">// Changing a field label re-validates.</span>
+<span class="cm">// Typing in preview re-validates.</span>
+<span class="cm">// Adding/removing fields re-validates.</span>
+
+<span class="cm">// Validate based on field type</span>
+<span class="kw">function</span> <span class="fn">validate</span>(field, value) {
+  <span class="kw">const</span> errs = [];
+  <span class="kw">if</span> (field.required && !value)
+    errs.<span class="fn">push</span>(<span class="str">`${field.label} is required`</span>);
+  <span class="kw">if</span> (field.type === <span class="str">'email'</span> && value && !value.<span class="fn">includes</span>(<span class="str">'@'</span>))
+    errs.<span class="fn">push</span>(<span class="str">`${field.label} must be a valid email`</span>);
+  <span class="kw">if</span> (field.type === <span class="str">'number'</span> && value && <span class="fn">isNaN</span>(value))
+    errs.<span class="fn">push</span>(<span class="str">`${field.label} must be a number`</span>);
+  <span class="kw">return</span> errs;
+}</code></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    // ── Inline tina4js primitives (for standalone demo) ──────────────
+    let currentSub = null;
+    const batchQueue = new Set();
+    let batching = false;
+
+    function signal(initial, label) {
+      let val = initial;
+      const subs = new Set();
+      const s = {
+        get value() { if (currentSub) subs.add(currentSub); return val; },
+        set value(v) {
+          if (Object.is(val, v)) return;
+          val = v;
+          if (batching) { for (const sub of subs) batchQueue.add(sub); }
+          else { for (const sub of [...subs]) sub(); }
+        },
+        _subscribe(fn) { subs.add(fn); return () => subs.delete(fn); },
+        peek() { return val; },
+        _label: label
+      };
+      return s;
+    }
+
+    function computed(fn) {
+      const s = signal(undefined);
+      effect(() => { s.value = fn(); });
+      return { get value() { return s.value; }, _subscribe: s._subscribe, peek: s.peek };
+    }
+
+    function effect(fn) {
+      const run = () => { const prev = currentSub; currentSub = run; try { fn(); } finally { currentSub = prev; } };
+      run();
+      return () => {};
+    }
+
+    function batch(fn) {
+      batching = true;
+      try { fn(); } finally {
+        batching = false;
+        const queued = [...batchQueue];
+        batchQueue.clear();
+        for (const s of queued) s();
+      }
+    }
+
+    // ── Form State ────────────────────────────────────────────────────
+    let nextId = 1;
+    const fields = signal([], 'fields');
+    const formValues = signal({}, 'formValues');
+
+    const fieldDefaults = {
+      text:     { label: 'Text Field',     placeholder: 'Enter text...' },
+      email:    { label: 'Email Address',   placeholder: 'user@example.com' },
+      number:   { label: 'Number',          placeholder: '0' },
+      select:   { label: 'Select Option',   placeholder: '' },
+      checkbox: { label: 'Agree to Terms',  placeholder: '' },
+      textarea: { label: 'Comments',        placeholder: 'Write here...' },
+    };
+
+    // ── Validation ────────────────────────────────────────────────────
+    function validateField(field, value) {
+      const errs = [];
+      if (field.required) {
+        if (field.type === 'checkbox') {
+          if (!value) errs.push(`${field.label} must be checked`);
+        } else if (!value || (typeof value === 'string' && value.trim() === '')) {
+          errs.push(`${field.label} is required`);
+        }
+      }
+      if (field.type === 'email' && value && typeof value === 'string' && value.trim() !== '') {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          errs.push(`${field.label} must be a valid email`);
+        }
+      }
+      if (field.type === 'number' && value !== undefined && value !== '' && isNaN(Number(value))) {
+        errs.push(`${field.label} must be a number`);
+      }
+      return errs;
+    }
+
+    const errors = computed(() => {
+      return fields.value.flatMap(f => validateField(f, formValues.value[f.id]));
+    });
+
+    const isValid = computed(() => {
+      return fields.value.length > 0 && errors.value.length === 0;
+    });
+
+    // Per-field errors for inline display
+    function getFieldErrors(field) {
+      return validateField(field, formValues.value[field.id]);
+    }
+
+    // ── Actions ───────────────────────────────────────────────────────
+    function addField(type) {
+      const def = fieldDefaults[type];
+      const id = 'field_' + nextId++;
+      const newField = {
+        id,
+        type,
+        label: def.label,
+        placeholder: def.placeholder,
+        required: false,
+      };
+      fields.value = [...fields.peek(), newField];
+      // Initialize value
+      const vals = { ...formValues.peek() };
+      vals[id] = type === 'checkbox' ? false : '';
+      formValues.value = vals;
+    }
+
+    function removeField(id) {
+      fields.value = fields.peek().filter(f => f.id !== id);
+      const vals = { ...formValues.peek() };
+      delete vals[id];
+      formValues.value = vals;
+    }
+
+    function updateField(id, prop, value) {
+      const updated = fields.peek().map(f =>
+        f.id === id ? { ...f, [prop]: value } : f
+      );
+      fields.value = updated;
+    }
+
+    function setFormValue(id, value) {
+      const vals = { ...formValues.peek() };
+      vals[id] = value;
+      formValues.value = vals;
+    }
+
+    function clearAll() {
+      batch(() => {
+        fields.value = [];
+        formValues.value = {};
+      });
+    }
+
+    function exportJSON() {
+      const schema = {
+        type: 'object',
+        properties: {},
+        required: [],
+      };
+      fields.peek().forEach(f => {
+        const prop = { type: f.type === 'checkbox' ? 'boolean' : f.type === 'number' ? 'number' : 'string' };
+        if (f.placeholder) prop.description = f.placeholder;
+        if (f.type === 'select') { prop.enum = ['Option A', 'Option B', 'Option C']; }
+        schema.properties[f.id] = { ...prop, title: f.label };
+        if (f.required) schema.required.push(f.id);
+      });
+      return schema;
+    }
+
+    // ── Palette Click Handlers ────────────────────────────────────────
+    document.querySelectorAll('.palette-btn').forEach(btn => {
+      btn.addEventListener('click', () => addField(btn.dataset.type));
+    });
+
+    // ── Render Builder Fields ─────────────────────────────────────────
+    const fieldListEl = document.getElementById('field-list');
+    const fieldCountEl = document.getElementById('field-count');
+
+    effect(() => {
+      const flds = fields.value;
+      fieldCountEl.textContent = flds.length + ' field' + (flds.length !== 1 ? 's' : '');
+
+      fieldListEl.innerHTML = '';
+
+      if (flds.length === 0) {
+        fieldListEl.innerHTML = '<div class="builder-empty">Click a field type on the left to add it here</div>';
+        return;
+      }
+
+      const container = document.createElement('div');
+      container.className = 'field-list';
+
+      flds.forEach(field => {
+        const card = document.createElement('div');
+        card.className = 'field-card';
+        card.innerHTML = `
+          <div class="field-header">
+            <span class="field-type-badge">${field.type}</span>
+            <button class="field-remove" data-id="${field.id}" title="Remove field">&times;</button>
+          </div>
+          <div class="field-row">
+            <label>Label</label>
+            <input class="field-input label-input" data-id="${field.id}" value="${escapeHtml(field.label)}">
+          </div>
+          <div class="field-row">
+            <label>Placeholder</label>
+            <input class="field-input placeholder-input" data-id="${field.id}" value="${escapeHtml(field.placeholder)}" ${field.type === 'checkbox' ? 'disabled' : ''}>
+          </div>
+          <div class="field-row">
+            <label>Required</label>
+            <label class="toggle">
+              <input type="checkbox" class="required-toggle" data-id="${field.id}" ${field.required ? 'checked' : ''}>
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+            <span class="toggle-label">${field.required ? 'Yes' : 'No'}</span>
+          </div>
+        `;
+        container.appendChild(card);
+
+        // Wire up events
+        card.querySelector('.field-remove').addEventListener('click', () => removeField(field.id));
+        card.querySelector('.label-input').addEventListener('input', (e) => updateField(field.id, 'label', e.target.value));
+        card.querySelector('.placeholder-input').addEventListener('input', (e) => updateField(field.id, 'placeholder', e.target.value));
+        const reqToggle = card.querySelector('.required-toggle');
+        const toggleLabel = card.querySelector('.toggle-label');
+        reqToggle.addEventListener('change', () => {
+          updateField(field.id, 'required', reqToggle.checked);
+          toggleLabel.textContent = reqToggle.checked ? 'Yes' : 'No';
+        });
+      });
+
+      fieldListEl.appendChild(container);
+    });
+
+    // ── Render Preview ────────────────────────────────────────────────
+    const previewContent = document.getElementById('preview-content');
+    const validBadge = document.getElementById('valid-badge');
+    const actionsBar = document.getElementById('actions-bar');
+
+    effect(() => {
+      const flds = fields.value;
+      // Force dependency on formValues too
+      const vals = formValues.value;
+
+      if (flds.length === 0) {
+        previewContent.innerHTML = '<div class="preview-empty">Add fields to see a live preview</div>';
+        actionsBar.style.display = 'none';
+        validBadge.textContent = '';
+        validBadge.className = 'valid-badge';
+        return;
+      }
+
+      actionsBar.style.display = 'flex';
+
+      // Validity badge
+      const valid = isValid.value;
+      const errList = errors.value;
+      validBadge.textContent = valid ? 'Valid' : errList.length + ' error' + (errList.length !== 1 ? 's' : '');
+      validBadge.className = 'valid-badge ' + (valid ? 'valid' : 'invalid');
+
+      // Build form
+      const form = document.createElement('div');
+      form.className = 'preview-form';
+
+      flds.forEach(field => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'preview-field';
+
+        const fieldErrs = getFieldErrors(field);
+        const hasError = fieldErrs.length > 0;
+        const currentVal = vals[field.id];
+
+        if (field.type === 'checkbox') {
+          wrapper.innerHTML = `
+            <div class="preview-checkbox-row">
+              <input type="checkbox" id="prev_${field.id}" ${currentVal ? 'checked' : ''}>
+              <label for="prev_${field.id}" class="preview-label">${escapeHtml(field.label)}${field.required ? ' <span class="req">*</span>' : ''}</label>
+            </div>
+            ${hasError ? '<div class="field-error">' + escapeHtml(fieldErrs[0]) + '</div>' : ''}
+          `;
+          form.appendChild(wrapper);
+          wrapper.querySelector('input[type="checkbox"]').addEventListener('change', (e) => {
+            setFormValue(field.id, e.target.checked);
+          });
+        } else if (field.type === 'select') {
+          wrapper.innerHTML = `
+            <label class="preview-label">${escapeHtml(field.label)}${field.required ? ' <span class="req">*</span>' : ''}</label>
+            <select class="preview-select" data-id="${field.id}">
+              <option value="">-- Select --</option>
+              <option value="Option A" ${currentVal === 'Option A' ? 'selected' : ''}>Option A</option>
+              <option value="Option B" ${currentVal === 'Option B' ? 'selected' : ''}>Option B</option>
+              <option value="Option C" ${currentVal === 'Option C' ? 'selected' : ''}>Option C</option>
+            </select>
+            ${hasError ? '<div class="field-error">' + escapeHtml(fieldErrs[0]) + '</div>' : ''}
+          `;
+          form.appendChild(wrapper);
+          wrapper.querySelector('select').addEventListener('change', (e) => {
+            setFormValue(field.id, e.target.value);
+          });
+        } else if (field.type === 'textarea') {
+          wrapper.innerHTML = `
+            <label class="preview-label">${escapeHtml(field.label)}${field.required ? ' <span class="req">*</span>' : ''}</label>
+            <textarea class="preview-textarea ${hasError ? 'error' : ''}" placeholder="${escapeAttr(field.placeholder)}" data-id="${field.id}">${escapeHtml(currentVal || '')}</textarea>
+            ${hasError ? '<div class="field-error">' + escapeHtml(fieldErrs[0]) + '</div>' : ''}
+          `;
+          form.appendChild(wrapper);
+          wrapper.querySelector('textarea').addEventListener('input', (e) => {
+            setFormValue(field.id, e.target.value);
+          });
+        } else {
+          const inputType = field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : 'text';
+          wrapper.innerHTML = `
+            <label class="preview-label">${escapeHtml(field.label)}${field.required ? ' <span class="req">*</span>' : ''}</label>
+            <input class="preview-input ${hasError ? 'error' : ''}" type="${inputType}" placeholder="${escapeAttr(field.placeholder)}" value="${escapeAttr(currentVal || '')}" data-id="${field.id}">
+            ${hasError ? '<div class="field-error">' + escapeHtml(fieldErrs[0]) + '</div>' : ''}
+          `;
+          form.appendChild(wrapper);
+          wrapper.querySelector('input').addEventListener('input', (e) => {
+            setFormValue(field.id, e.target.value);
+          });
+        }
+      });
+
+      // Error summary
+      if (errList.length > 0) {
+        const summary = document.createElement('div');
+        summary.className = 'error-summary';
+        summary.innerHTML = '<ul>' + errList.map(e => '<li>' + escapeHtml(e) + '</li>').join('') + '</ul>';
+        form.appendChild(summary);
+      }
+
+      previewContent.innerHTML = '';
+      previewContent.appendChild(form);
+    });
+
+    // ── Actions Bar ───────────────────────────────────────────────────
+    const exportBtn = document.getElementById('export-btn');
+    const clearFieldsBtn = document.getElementById('clear-fields-btn');
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalJson = document.getElementById('modal-json');
+    const modalClose = document.getElementById('modal-close');
+
+    exportBtn.addEventListener('click', () => {
+      const schema = exportJSON();
+      modalJson.textContent = JSON.stringify(schema, null, 2);
+      modalOverlay.classList.add('active');
+    });
+
+    clearFieldsBtn.addEventListener('click', clearAll);
+
+    modalClose.addEventListener('click', () => {
+      modalOverlay.classList.remove('active');
+    });
+
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) modalOverlay.classList.remove('active');
+    });
+
+    // ── Helpers ────────────────────────────────────────────────────────
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function escapeAttr(str) {
+      return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+  </script>
+</body>
+</html>

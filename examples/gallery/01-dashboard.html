@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — tina4js Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .nav { padding: 0.75rem 1.5rem; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .nav a { color: #38bdf8; text-decoration: none; font-size: 0.85rem; }
+    .nav .title { font-weight: 600; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .subtitle { color: #64748b; margin-bottom: 1.5rem; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .kpi { background: #1e293b; border-radius: 10px; padding: 1.25rem; border: 1px solid #334155; }
+    .kpi-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-value { font-size: 2rem; font-weight: 700; color: #38bdf8; margin: 0.25rem 0; }
+    .kpi-change { font-size: 0.8rem; }
+    .kpi-change.up { color: #4ade80; }
+    .kpi-change.down { color: #f87171; }
+    .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .panel { background: #1e293b; border-radius: 10px; padding: 1.25rem; border: 1px solid #334155; }
+    .panel h3 { font-size: 0.9rem; margin-bottom: 0.75rem; color: #94a3b8; }
+    .bar-chart { display: flex; flex-direction: column; gap: 0.5rem; }
+    .bar-row { display: flex; align-items: center; gap: 0.75rem; }
+    .bar-label { width: 60px; font-size: 0.8rem; color: #94a3b8; text-align: right; }
+    .bar-track { flex: 1; height: 20px; background: #0f172a; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; background: #38bdf8; border-radius: 4px; transition: width 0.5s ease; }
+    .feed { max-height: 250px; overflow-y: auto; }
+    .feed-item { padding: 0.5rem 0; border-bottom: 1px solid #0f172a; font-size: 0.85rem; display: flex; gap: 0.5rem; }
+    .feed-time { color: #64748b; white-space: nowrap; font-size: 0.75rem; }
+    .controls { margin-bottom: 1.5rem; display: flex; gap: 0.75rem; }
+    .controls button { padding: 0.4rem 1rem; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; cursor: pointer; font-size: 0.85rem; }
+    .controls button.active { background: #38bdf8; color: #0f172a; border-color: #38bdf8; }
+    .source { margin-top: 2rem; background: #1e293b; border-radius: 10px; padding: 1.5rem; border: 1px solid #334155; }
+    .source h3 { margin-bottom: 1rem; color: #94a3b8; font-size: 0.9rem; }
+    pre { background: #0f172a; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; color: #e2e8f0; }
+    code .kw { color: #c084fc; }
+    code .fn { color: #38bdf8; }
+    code .str { color: #4ade80; }
+    code .cm { color: #64748b; }
+    code .num { color: #fb923c; }
+    @media (max-width: 640px) { .panels { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <span class="title">01 — Admin Dashboard</span>
+    <a href="index.html">&larr; Gallery</a>
+  </div>
+  <div class="container">
+    <h1>Admin Dashboard</h1>
+    <p class="subtitle">Reactive KPIs, live chart, and notification feed — powered by signals</p>
+
+    <div class="controls" id="controls"></div>
+    <div class="kpi-grid" id="kpis"></div>
+    <div class="panels">
+      <div class="panel">
+        <h3>Traffic by Source</h3>
+        <div class="bar-chart" id="chart"></div>
+      </div>
+      <div class="panel">
+        <h3>Activity Feed</h3>
+        <div class="feed" id="feed"></div>
+      </div>
+    </div>
+
+    <div class="source">
+      <h3>How it works — View Source</h3>
+      <pre><code><span class="kw">import</span> { <span class="fn">signal</span>, <span class="fn">computed</span>, <span class="fn">effect</span>, <span class="fn">batch</span> } <span class="kw">from</span> <span class="str">'tina4js'</span>;
+
+<span class="cm">// Reactive state</span>
+<span class="kw">const</span> visitors  = <span class="fn">signal</span>(<span class="num">1247</span>);
+<span class="kw">const</span> orders    = <span class="fn">signal</span>(<span class="num">84</span>);
+<span class="kw">const</span> revenue   = <span class="fn">signal</span>(<span class="num">12580</span>);
+<span class="kw">const</span> errorRate = <span class="fn">signal</span>(<span class="num">0.3</span>);
+
+<span class="cm">// Derived KPI — updates automatically</span>
+<span class="kw">const</span> convRate = <span class="fn">computed</span>(() =>
+  ((orders.value / visitors.value) * <span class="num">100</span>).<span class="fn">toFixed</span>(<span class="num">1</span>)
+);
+
+<span class="cm">// Side effect — re-renders whenever dependencies change</span>
+<span class="fn">effect</span>(() => {
+  kpiEl.textContent = <span class="str">`${convRate.value}%`</span>;
+});
+
+<span class="cm">// Simulate live data (batch avoids intermediate renders)</span>
+setInterval(() => {
+  <span class="fn">batch</span>(() => {
+    visitors.value += Math.<span class="fn">floor</span>(Math.<span class="fn">random</span>() * <span class="num">20</span>);
+    orders.value   += Math.<span class="fn">random</span>() > <span class="num">0.6</span> ? <span class="num">1</span> : <span class="num">0</span>;
+  });
+}, <span class="num">3000</span>);</code></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    // ── Inline tina4js primitives (for standalone demo) ──────────────
+    // In a real app: import { signal, computed, effect, batch } from 'tina4js';
+    let currentSub = null;
+    const batchQueue = new Set();
+    let batching = false;
+
+    function signal(initial, label) {
+      let val = initial;
+      const subs = new Set();
+      const s = {
+        get value() { if (currentSub) subs.add(currentSub); return val; },
+        set value(v) {
+          if (Object.is(val, v)) return;
+          val = v;
+          if (batching) { for (const sub of subs) batchQueue.add(sub); }
+          else { for (const sub of [...subs]) sub(); }
+        },
+        _subscribe(fn) { subs.add(fn); return () => subs.delete(fn); },
+        peek() { return val; },
+        _label: label
+      };
+      return s;
+    }
+
+    function computed(fn) {
+      const s = signal(undefined);
+      effect(() => { s.value = fn(); });
+      return { get value() { return s.value; }, _subscribe: s._subscribe, peek: s.peek };
+    }
+
+    function effect(fn) {
+      const run = () => { const prev = currentSub; currentSub = run; try { fn(); } finally { currentSub = prev; } };
+      run();
+      return () => {};
+    }
+
+    function batch(fn) {
+      batching = true;
+      try { fn(); } finally {
+        batching = false;
+        const queued = [...batchQueue];
+        batchQueue.clear();
+        for (const s of queued) s();
+      }
+    }
+
+    // ── Dashboard State ──────────────────────────────────────────────
+    const visitors   = signal(1247, 'visitors');
+    const orders     = signal(84, 'orders');
+    const revenue    = signal(12580, 'revenue');
+    const errorRate  = signal(0.3, 'errorRate');
+    const paused     = signal(false, 'paused');
+
+    // Computed KPIs
+    const convRate = computed(() => ((orders.value / visitors.value) * 100).toFixed(1));
+    const avgOrder = computed(() => orders.value > 0 ? (revenue.value / orders.value).toFixed(0) : '0');
+
+    // Traffic sources
+    const sources = {
+      Direct:  signal(420),
+      Google:  signal(380),
+      Social:  signal(250),
+      Email:   signal(140),
+      Referral: signal(57),
+    };
+
+    // Activity feed
+    const feedItems = signal([
+      { time: '2 min ago', text: 'New order #1084 — $149.00' },
+      { time: '5 min ago', text: 'User signup: jane@example.com' },
+      { time: '8 min ago', text: 'Payment processed: $320.00' },
+      { time: '12 min ago', text: 'Support ticket #342 resolved' },
+    ]);
+
+    const feedMessages = [
+      'New order placed — $XX.XX',
+      'User signup: user@example.com',
+      'Payment processed: $XX.XX',
+      'Product view: Wireless Keyboard',
+      'Cart abandoned by visitor',
+      'Support ticket opened',
+      'Refund issued: $XX.XX',
+      'Inventory low: USB-C Adapter',
+      'Review posted: 5 stars',
+      'Coupon redeemed: SAVE20',
+    ];
+
+    // ── Render KPIs ──────────────────────────────────────────────────
+    const kpiDefs = [
+      { label: 'Visitors',   sig: visitors,  fmt: v => v.toLocaleString(), change: () => '+' + Math.floor(Math.random()*5+1) + '%', up: true },
+      { label: 'Orders',     sig: orders,    fmt: v => v.toString(), change: () => '+' + Math.floor(Math.random()*3+1) + '%', up: true },
+      { label: 'Revenue',    sig: revenue,   fmt: v => '$' + v.toLocaleString(), change: () => '+' + Math.floor(Math.random()*4+2) + '%', up: true },
+      { label: 'Conv. Rate', sig: { get value() { return convRate.value; } }, fmt: v => v + '%', change: () => convRate.value > 5 ? '+0.2%' : '-0.1%', up: true },
+      { label: 'Avg Order',  sig: { get value() { return avgOrder.value; } }, fmt: v => '$' + v, change: () => '+$' + Math.floor(Math.random()*5+1), up: true },
+      { label: 'Error Rate', sig: errorRate, fmt: v => v.toFixed(1) + '%', change: () => errorRate.value < 1 ? '-0.1%' : '+0.2%', up: false },
+    ];
+
+    const kpisEl = document.getElementById('kpis');
+    kpiDefs.forEach((kpi) => {
+      const el = document.createElement('div');
+      el.className = 'kpi';
+      el.innerHTML = `
+        <div class="kpi-label">${kpi.label}</div>
+        <div class="kpi-value"></div>
+        <div class="kpi-change ${kpi.up ? 'up' : 'down'}"></div>
+      `;
+      kpisEl.appendChild(el);
+      const valEl = el.querySelector('.kpi-value');
+      const changeEl = el.querySelector('.kpi-change');
+      effect(() => { valEl.textContent = kpi.fmt(kpi.sig.value); });
+      effect(() => { changeEl.textContent = kpi.change(); });
+    });
+
+    // ── Render Chart ─────────────────────────────────────────────────
+    const chartEl = document.getElementById('chart');
+    const maxTraffic = computed(() => Math.max(...Object.values(sources).map(s => s.value)));
+
+    Object.entries(sources).forEach(([name, sig]) => {
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `
+        <span class="bar-label">${name}</span>
+        <div class="bar-track"><div class="bar-fill"></div></div>
+        <span class="bar-val" style="width:40px;font-size:0.8rem;color:#94a3b8"></span>
+      `;
+      chartEl.appendChild(row);
+      const fill = row.querySelector('.bar-fill');
+      const valSpan = row.querySelector('.bar-val');
+      effect(() => {
+        const pct = (sig.value / maxTraffic.value) * 100;
+        fill.style.width = pct + '%';
+        valSpan.textContent = sig.value;
+      });
+    });
+
+    // ── Render Feed ──────────────────────────────────────────────────
+    const feedEl = document.getElementById('feed');
+    effect(() => {
+      feedEl.innerHTML = '';
+      feedItems.value.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'feed-item';
+        div.innerHTML = `<span class="feed-time">${item.time}</span><span>${item.text}</span>`;
+        feedEl.appendChild(div);
+      });
+    });
+
+    // ── Controls ─────────────────────────────────────────────────────
+    const controlsEl = document.getElementById('controls');
+    const pauseBtn = document.createElement('button');
+    const resetBtn = document.createElement('button');
+    pauseBtn.textContent = 'Pause';
+    resetBtn.textContent = 'Reset';
+    controlsEl.appendChild(pauseBtn);
+    controlsEl.appendChild(resetBtn);
+
+    effect(() => {
+      pauseBtn.textContent = paused.value ? 'Resume' : 'Pause';
+      pauseBtn.className = paused.value ? 'active' : '';
+    });
+
+    pauseBtn.addEventListener('click', () => { paused.value = !paused.value; });
+    resetBtn.addEventListener('click', () => {
+      batch(() => {
+        visitors.value = 1247;
+        orders.value = 84;
+        revenue.value = 12580;
+        errorRate.value = 0.3;
+        Object.values(sources).forEach((s, i) => { s.value = [420,380,250,140,57][i]; });
+      });
+    });
+
+    // ── Simulate Live Data ───────────────────────────────────────────
+    setInterval(() => {
+      if (paused.value) return;
+      batch(() => {
+        visitors.value += Math.floor(Math.random() * 20 + 1);
+        if (Math.random() > 0.5) orders.value += 1;
+        revenue.value += Math.floor(Math.random() * 200 + 10);
+        errorRate.value = Math.max(0, errorRate.value + (Math.random() - 0.55) * 0.2);
+
+        const keys = Object.keys(sources);
+        const key = keys[Math.floor(Math.random() * keys.length)];
+        sources[key].value += Math.floor(Math.random() * 10 + 1);
+      });
+    }, 3000);
+
+    // Feed updates
+    setInterval(() => {
+      if (paused.value) return;
+      const msg = feedMessages[Math.floor(Math.random() * feedMessages.length)]
+        .replace('XX.XX', (Math.random() * 300 + 20).toFixed(2));
+      const items = [{ time: 'just now', text: msg }, ...feedItems.peek().slice(0, 19)];
+      feedItems.value = items;
+    }, 5000);
+  </script>
+</body>
+</html>

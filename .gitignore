@@ -7,3 +7,4 @@ npm publish
 *.tsbuildinfo
 /.claude/launch.json
 /examples/todo-app/package-lock.json
+.npm-token

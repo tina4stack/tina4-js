@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopping Cart — tina4js Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .nav { padding: 0.75rem 1.5rem; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .nav a { color: #38bdf8; text-decoration: none; font-size: 0.85rem; }
+    .nav .title { font-weight: 600; }
+    .nav .cart-badge { position: relative; display: inline-flex; align-items: center; gap: 0.4rem; color: #e2e8f0; font-size: 0.9rem; cursor: pointer; }
+    .nav .badge { background: #f43f5e; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 99px; min-width: 18px; text-align: center; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .subtitle { color: #64748b; margin-bottom: 1.5rem; }
+
+    .layout { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; align-items: start; }
+    @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } }
+
+    /* Product Grid */
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+    .product-card { background: #1e293b; border-radius: 10px; border: 1px solid #334155; overflow: hidden; transition: border-color 0.2s; }
+    .product-card:hover { border-color: #475569; }
+    .product-img { height: 120px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
+    .product-info { padding: 0.75rem 1rem; }
+    .product-name { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .product-price { font-size: 1.1rem; color: #38bdf8; font-weight: 700; margin-bottom: 0.5rem; }
+    .add-btn { width: 100%; padding: 0.5rem; border: 1px solid #334155; border-radius: 6px; background: #0f172a; color: #e2e8f0; cursor: pointer; font-size: 0.8rem; transition: background 0.2s, border-color 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem; }
+    .add-btn:hover { background: #334155; border-color: #475569; }
+    .add-btn .qty-badge { background: #38bdf8; color: #0f172a; font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 99px; }
+
+    /* Cart Sidebar */
+    .cart-panel { background: #1e293b; border-radius: 10px; border: 1px solid #334155; padding: 1.25rem; position: sticky; top: 1.5rem; }
+    .cart-panel h2 { font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .cart-empty { color: #64748b; font-size: 0.85rem; text-align: center; padding: 2rem 0; }
+    .cart-items { display: flex; flex-direction: column; gap: 0.75rem; max-height: 320px; overflow-y: auto; margin-bottom: 1rem; }
+    .cart-item { display: flex; gap: 0.75rem; align-items: center; padding: 0.5rem; background: #0f172a; border-radius: 8px; }
+    .cart-item-color { width: 36px; height: 36px; border-radius: 6px; flex-shrink: 0; }
+    .cart-item-details { flex: 1; min-width: 0; }
+    .cart-item-name { font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cart-item-price { font-size: 0.75rem; color: #94a3b8; }
+    .qty-controls { display: flex; align-items: center; gap: 0.3rem; }
+    .qty-btn { width: 24px; height: 24px; border: 1px solid #334155; border-radius: 4px; background: #1e293b; color: #e2e8f0; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; }
+    .qty-btn:hover { background: #334155; }
+    .qty-val { font-size: 0.8rem; width: 20px; text-align: center; }
+    .remove-btn { background: none; border: none; color: #64748b; cursor: pointer; font-size: 0.9rem; padding: 0 0.25rem; }
+    .remove-btn:hover { color: #f43f5e; }
+
+    .cart-summary { border-top: 1px solid #334155; padding-top: 0.75rem; }
+    .summary-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem; }
+    .summary-row.total { font-size: 1rem; font-weight: 700; color: #38bdf8; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #334155; }
+    .clear-btn { width: 100%; padding: 0.5rem; border: 1px solid #334155; border-radius: 6px; background: #0f172a; color: #f87171; cursor: pointer; font-size: 0.8rem; margin-top: 0.75rem; transition: background 0.2s; }
+    .clear-btn:hover { background: #1c1117; border-color: #f87171; }
+
+    .source { margin-top: 2rem; background: #1e293b; border-radius: 10px; padding: 1.5rem; border: 1px solid #334155; }
+    .source h3 { margin-bottom: 1rem; color: #94a3b8; font-size: 0.9rem; }
+    pre { background: #0f172a; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; color: #e2e8f0; }
+    code .kw { color: #c084fc; }
+    code .fn { color: #38bdf8; }
+    code .str { color: #4ade80; }
+    code .cm { color: #64748b; }
+    code .num { color: #fb923c; }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <span class="title">05 — Shopping Cart</span>
+    <div style="display:flex;align-items:center;gap:1.5rem;">
+      <span class="cart-badge" id="nav-cart">&#128722; Cart <span class="badge" id="nav-badge">0</span></span>
+      <a href="index.html">&larr; Gallery</a>
+    </div>
+  </div>
+  <div class="container">
+    <h1>Shopping Cart</h1>
+    <p class="subtitle">Shared signals, computed totals, localStorage persistence, and batch updates</p>
+
+    <div class="layout">
+      <div>
+        <div class="product-grid" id="products"></div>
+      </div>
+      <div class="cart-panel" id="cart-panel">
+        <h2>&#128722; Your Cart</h2>
+        <div id="cart-content"></div>
+      </div>
+    </div>
+
+    <div class="source">
+      <h3>How it works — View Source</h3>
+      <pre><code><span class="cm">// store/cart.ts — shared across components</span>
+<span class="kw">export const</span> cartItems = <span class="fn">signal</span>([]);
+<span class="kw">export const</span> subtotal  = <span class="fn">computed</span>(() =>
+  cartItems.value.<span class="fn">reduce</span>((sum, i) => sum + i.price * i.qty, <span class="num">0</span>)
+);
+<span class="kw">export const</span> tax   = <span class="fn">computed</span>(() => subtotal.value * <span class="num">0.08</span>);
+<span class="kw">export const</span> total = <span class="fn">computed</span>(() => subtotal.value + tax.value);
+<span class="kw">export const</span> itemCount = <span class="fn">computed</span>(() =>
+  cartItems.value.<span class="fn">reduce</span>((n, i) => n + i.qty, <span class="num">0</span>)
+);
+
+<span class="cm">// Persist to localStorage</span>
+<span class="fn">effect</span>(() => {
+  localStorage.<span class="fn">setItem</span>(<span class="str">'cart'</span>, JSON.<span class="fn">stringify</span>(cartItems.value));
+});
+
+<span class="cm">// Restore on load</span>
+<span class="kw">const</span> saved = localStorage.<span class="fn">getItem</span>(<span class="str">'cart'</span>);
+<span class="kw">if</span> (saved) cartItems.value = JSON.<span class="fn">parse</span>(saved);
+
+<span class="cm">// Batch updates avoid intermediate re-renders</span>
+<span class="fn">batch</span>(() => {
+  addItem(product1);
+  addItem(product2);
+  addItem(product3);
+});</code></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    // ── Inline tina4js primitives (for standalone demo) ──────────────
+    let currentSub = null;
+    const batchQueue = new Set();
+    let batching = false;
+
+    function signal(initial, label) {
+      let val = initial;
+      const subs = new Set();
+      const s = {
+        get value() { if (currentSub) subs.add(currentSub); return val; },
+        set value(v) {
+          if (Object.is(val, v)) return;
+          val = v;
+          if (batching) { for (const sub of subs) batchQueue.add(sub); }
+          else { for (const sub of [...subs]) sub(); }
+        },
+        _subscribe(fn) { subs.add(fn); return () => subs.delete(fn); },
+        peek() { return val; },
+        _label: label
+      };
+      return s;
+    }
+
+    function computed(fn) {
+      const s = signal(undefined);
+      effect(() => { s.value = fn(); });
+      return { get value() { return s.value; }, _subscribe: s._subscribe, peek: s.peek };
+    }
+
+    function effect(fn) {
+      const run = () => { const prev = currentSub; currentSub = run; try { fn(); } finally { currentSub = prev; } };
+      run();
+      return () => {};
+    }
+
+    function batch(fn) {
+      batching = true;
+      try { fn(); } finally {
+        batching = false;
+        const queued = [...batchQueue];
+        batchQueue.clear();
+        for (const s of queued) s();
+      }
+    }
+
+    // ── Product Data ──────────────────────────────────────────────────
+    const products = [
+      { id: 1, name: 'Wireless Headphones', price: 79.99, color: '#6366f1', emoji: '🎧' },
+      { id: 2, name: 'Mechanical Keyboard', price: 129.99, color: '#f43f5e', emoji: '⌨️' },
+      { id: 3, name: 'USB-C Hub',          price: 49.99,  color: '#10b981', emoji: '🔌' },
+      { id: 4, name: 'Webcam HD',          price: 89.99,  color: '#f59e0b', emoji: '📷' },
+      { id: 5, name: 'Mouse Pad XL',       price: 24.99,  color: '#8b5cf6', emoji: '🖱️' },
+      { id: 6, name: 'Monitor Light Bar',  price: 59.99,  color: '#06b6d4', emoji: '💡' },
+    ];
+
+    // ── Cart State (shared signals) ───────────────────────────────────
+    const cartItems = signal([], 'cartItems');
+
+    // Restore from localStorage
+    try {
+      const saved = localStorage.getItem('tina4-cart');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          cartItems.value = parsed;
+        }
+      }
+    } catch (e) { /* ignore corrupt data */ }
+
+    // Computed values
+    const subtotal  = computed(() => cartItems.value.reduce((sum, i) => sum + i.price * i.qty, 0));
+    const tax       = computed(() => subtotal.value * 0.08);
+    const total     = computed(() => subtotal.value + tax.value);
+    const itemCount = computed(() => cartItems.value.reduce((n, i) => n + i.qty, 0));
+
+    // Persist to localStorage
+    effect(() => {
+      localStorage.setItem('tina4-cart', JSON.stringify(cartItems.value));
+    });
+
+    // ── Cart Actions ──────────────────────────────────────────────────
+    function addToCart(product) {
+      const items = [...cartItems.peek()];
+      const idx = items.findIndex(i => i.id === product.id);
+      if (idx >= 0) {
+        items[idx] = { ...items[idx], qty: items[idx].qty + 1 };
+      } else {
+        items.push({ id: product.id, name: product.name, price: product.price, color: product.color, qty: 1 });
+      }
+      cartItems.value = items;
+    }
+
+    function updateQty(productId, delta) {
+      const items = [...cartItems.peek()];
+      const idx = items.findIndex(i => i.id === productId);
+      if (idx < 0) return;
+      const newQty = items[idx].qty + delta;
+      if (newQty <= 0) {
+        items.splice(idx, 1);
+      } else {
+        items[idx] = { ...items[idx], qty: newQty };
+      }
+      cartItems.value = items;
+    }
+
+    function removeFromCart(productId) {
+      cartItems.value = cartItems.peek().filter(i => i.id !== productId);
+    }
+
+    function clearCart() {
+      cartItems.value = [];
+    }
+
+    function getQtyInCart(productId) {
+      const item = cartItems.value.find(i => i.id === productId);
+      return item ? item.qty : 0;
+    }
+
+    // ── Render Product Grid ───────────────────────────────────────────
+    const productsEl = document.getElementById('products');
+
+    products.forEach(product => {
+      const card = document.createElement('div');
+      card.className = 'product-card';
+      card.innerHTML = `
+        <div class="product-img" style="background:${product.color}22;">
+          <span>${product.emoji}</span>
+        </div>
+        <div class="product-info">
+          <div class="product-name">${product.name}</div>
+          <div class="product-price">$${product.price.toFixed(2)}</div>
+          <button class="add-btn" data-id="${product.id}">
+            Add to Cart <span class="qty-badge" style="display:none"></span>
+          </button>
+        </div>
+      `;
+      productsEl.appendChild(card);
+
+      const btn = card.querySelector('.add-btn');
+      const badge = btn.querySelector('.qty-badge');
+
+      btn.addEventListener('click', () => addToCart(product));
+
+      effect(() => {
+        const qty = getQtyInCart(product.id);
+        if (qty > 0) {
+          badge.style.display = 'inline';
+          badge.textContent = qty;
+        } else {
+          badge.style.display = 'none';
+        }
+      });
+    });
+
+    // ── Render Cart Panel ─────────────────────────────────────────────
+    const cartContent = document.getElementById('cart-content');
+    const navBadge = document.getElementById('nav-badge');
+
+    // Nav badge
+    effect(() => {
+      const count = itemCount.value;
+      navBadge.textContent = count;
+      navBadge.style.display = count > 0 ? 'inline' : 'none';
+    });
+
+    // Cart panel content
+    effect(() => {
+      const items = cartItems.value;
+      cartContent.innerHTML = '';
+
+      if (items.length === 0) {
+        cartContent.innerHTML = '<div class="cart-empty">Your cart is empty</div>';
+        return;
+      }
+
+      // Items list
+      const itemsDiv = document.createElement('div');
+      itemsDiv.className = 'cart-items';
+      items.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'cart-item';
+        el.innerHTML = `
+          <div class="cart-item-color" style="background:${item.color || '#334155'}"></div>
+          <div class="cart-item-details">
+            <div class="cart-item-name">${item.name}</div>
+            <div class="cart-item-price">$${item.price.toFixed(2)} each</div>
+          </div>
+          <div class="qty-controls">
+            <button class="qty-btn minus" data-id="${item.id}">-</button>
+            <span class="qty-val">${item.qty}</span>
+            <button class="qty-btn plus" data-id="${item.id}">+</button>
+          </div>
+          <button class="remove-btn" data-id="${item.id}" title="Remove">&times;</button>
+        `;
+        itemsDiv.appendChild(el);
+      });
+      cartContent.appendChild(itemsDiv);
+
+      // Event delegation for cart controls
+      itemsDiv.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-id]');
+        if (!btn) return;
+        const id = Number(btn.dataset.id);
+        if (btn.classList.contains('minus')) updateQty(id, -1);
+        else if (btn.classList.contains('plus')) updateQty(id, 1);
+        else if (btn.classList.contains('remove-btn')) removeFromCart(id);
+      });
+
+      // Summary
+      const summaryDiv = document.createElement('div');
+      summaryDiv.className = 'cart-summary';
+      summaryDiv.innerHTML = `
+        <div class="summary-row"><span>Subtotal</span><span>$${subtotal.value.toFixed(2)}</span></div>
+        <div class="summary-row"><span>Tax (8%)</span><span>$${tax.value.toFixed(2)}</span></div>
+        <div class="summary-row total"><span>Total</span><span>$${total.value.toFixed(2)}</span></div>
+      `;
+      cartContent.appendChild(summaryDiv);
+
+      // Clear button
+      const clearBtn = document.createElement('button');
+      clearBtn.className = 'clear-btn';
+      clearBtn.textContent = 'Clear Cart';
+      clearBtn.addEventListener('click', clearCart);
+      cartContent.appendChild(clearBtn);
+    });
+  </script>
+</body>
+</html>

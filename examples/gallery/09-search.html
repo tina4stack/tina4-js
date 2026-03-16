@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Search — tina4js Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .nav { padding: 0.75rem 1.5rem; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .nav a { color: #38bdf8; text-decoration: none; font-size: 0.85rem; }
+    .nav .title { font-weight: 600; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .subtitle { color: #64748b; margin-bottom: 1.5rem; }
+
+    /* Search input */
+    .search-wrap { position: relative; margin-bottom: 1rem; }
+    .search-wrap input {
+      width: 100%; padding: 1rem 1rem 1rem 3rem; font-size: 1.1rem;
+      background: #1e293b; border: 2px solid #334155; border-radius: 12px;
+      color: #e2e8f0; outline: none; transition: border-color 0.2s;
+    }
+    .search-wrap input:focus { border-color: #38bdf8; }
+    .search-wrap input::placeholder { color: #64748b; }
+    .search-icon {
+      position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
+      color: #64748b; font-size: 1.1rem; pointer-events: none;
+    }
+    .search-clear {
+      position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: #64748b; font-size: 1.2rem;
+      cursor: pointer; display: none; padding: 0.25rem;
+    }
+    .search-clear.visible { display: block; }
+
+    /* Recent searches */
+    .recent { margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .recent-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+    .recent-tag {
+      padding: 0.25rem 0.75rem; background: #1e293b; border: 1px solid #334155;
+      border-radius: 20px; font-size: 0.8rem; color: #94a3b8; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .recent-tag:hover { background: #334155; color: #e2e8f0; }
+
+    /* Category tabs */
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .tab {
+      padding: 0.4rem 1rem; border-radius: 6px; border: 1px solid #334155;
+      background: #1e293b; color: #e2e8f0; cursor: pointer; font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .tab.active { background: #38bdf8; color: #0f172a; border-color: #38bdf8; }
+    .tab .count { font-size: 0.75rem; opacity: 0.7; margin-left: 0.25rem; }
+
+    /* Results meta */
+    .results-meta { font-size: 0.85rem; color: #64748b; margin-bottom: 1rem; min-height: 1.25rem; }
+
+    /* Loading skeleton */
+    .skeleton-list { display: flex; flex-direction: column; gap: 1rem; }
+    .skeleton-card {
+      background: #1e293b; border-radius: 10px; padding: 1.25rem;
+      border: 1px solid #334155; animation: pulse 1.5s ease-in-out infinite;
+    }
+    .skeleton-line {
+      height: 0.75rem; background: #334155; border-radius: 4px; margin-bottom: 0.5rem;
+    }
+    .skeleton-line.title { width: 60%; height: 1rem; margin-bottom: 0.75rem; }
+    .skeleton-line.excerpt { width: 90%; }
+    .skeleton-line.excerpt2 { width: 75%; }
+    .skeleton-line.meta { width: 40%; margin-top: 0.5rem; margin-bottom: 0; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Result cards */
+    .results { display: flex; flex-direction: column; gap: 1rem; }
+    .result-card {
+      background: #1e293b; border-radius: 10px; padding: 1.25rem;
+      border: 1px solid #334155; cursor: pointer; transition: all 0.2s;
+    }
+    .result-card:hover, .result-card.selected { border-color: #38bdf8; background: #1e293b; }
+    .result-card.selected { box-shadow: 0 0 0 1px #38bdf8; }
+    .result-card h3 { font-size: 1rem; margin-bottom: 0.5rem; line-height: 1.4; }
+    .result-card h3 mark { background: #38bdf833; color: #38bdf8; padding: 0 2px; border-radius: 2px; font-weight: 700; }
+    .result-card .excerpt { font-size: 0.85rem; color: #94a3b8; line-height: 1.5; margin-bottom: 0.75rem; }
+    .result-card .excerpt mark { background: #38bdf833; color: #38bdf8; padding: 0 2px; border-radius: 2px; }
+    .result-card .card-meta { display: flex; gap: 1rem; font-size: 0.75rem; color: #64748b; }
+    .result-card .category-badge {
+      padding: 0.15rem 0.5rem; background: #334155; border-radius: 4px;
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em;
+    }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 3rem 1rem; }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; }
+    .empty-state p { color: #64748b; font-size: 0.9rem; }
+    .empty-state .hint { margin-top: 0.5rem; font-size: 0.8rem; }
+
+    /* Source section */
+    .source { margin-top: 2rem; background: #1e293b; border-radius: 10px; padding: 1.5rem; border: 1px solid #334155; }
+    .source h3 { margin-bottom: 1rem; color: #94a3b8; font-size: 0.9rem; }
+    pre { background: #0f172a; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; color: #e2e8f0; }
+    code .kw { color: #c084fc; }
+    code .fn { color: #38bdf8; }
+    code .str { color: #4ade80; }
+    code .cm { color: #64748b; }
+    code .num { color: #fb923c; }
+
+    /* Keyboard hint */
+    .keyboard-hint {
+      font-size: 0.75rem; color: #475569; text-align: center; margin-top: 0.5rem;
+    }
+    kbd {
+      padding: 0.1rem 0.4rem; background: #334155; border-radius: 3px;
+      font-size: 0.7rem; font-family: inherit; border: 1px solid #475569;
+    }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <span class="title">09 — Live Search</span>
+    <a href="index.html">&larr; Gallery</a>
+  </div>
+  <div class="container">
+    <h1>Live Search</h1>
+    <p class="subtitle">Debounced search with effect cleanup, category filters, keyboard navigation, and recent searches</p>
+
+    <div class="search-wrap">
+      <span class="search-icon">&#128269;</span>
+      <input type="text" id="search-input" placeholder="Search articles, tutorials, guides..." autocomplete="off" />
+      <button class="search-clear" id="search-clear">&times;</button>
+    </div>
+
+    <div id="recent-searches"></div>
+    <div id="tabs"></div>
+    <div id="results-meta" class="results-meta"></div>
+    <div id="results-area"></div>
+
+    <p class="keyboard-hint" id="keyboard-hint" style="display:none">
+      <kbd>&uarr;</kbd> <kbd>&darr;</kbd> navigate &middot; <kbd>Enter</kbd> open &middot; <kbd>Esc</kbd> clear
+    </p>
+
+    <div class="source">
+      <h3>How it works — View Source</h3>
+      <pre><code><span class="kw">import</span> { <span class="fn">signal</span>, <span class="fn">effect</span> } <span class="kw">from</span> <span class="str">'tina4js'</span>;
+<span class="kw">import</span> { <span class="fn">api</span> } <span class="kw">from</span> <span class="str">'tina4js/api'</span>;
+
+<span class="kw">const</span> query = <span class="fn">signal</span>(<span class="str">''</span>);
+<span class="kw">const</span> results = <span class="fn">signal</span>([]);
+<span class="kw">const</span> loading = <span class="fn">signal</span>(<span class="num">false</span>);
+
+<span class="cm">// Debounced search effect</span>
+<span class="fn">effect</span>(() => {
+  <span class="kw">const</span> q = query.value;
+  <span class="kw">if</span> (!q) { results.value = []; <span class="kw">return</span>; }
+  loading.value = <span class="num">true</span>;
+  <span class="kw">const</span> timer = <span class="fn">setTimeout</span>(<span class="kw">async</span> () => {
+    <span class="kw">const</span> data = <span class="kw">await</span> api.<span class="fn">get</span>(<span class="str">'/search'</span>, { params: { q } });
+    results.value = data;
+    loading.value = <span class="num">false</span>;
+  }, <span class="num">300</span>);
+  <span class="kw">return</span> () => <span class="fn">clearTimeout</span>(timer); <span class="cm">// cleanup on re-run</span>
+});</code></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    // ── Inline tina4js primitives (for standalone demo) ──────────────
+    let currentSub = null;
+    const batchQueue = new Set();
+    let batching = false;
+
+    function signal(initial, label) {
+      let val = initial;
+      const subs = new Set();
+      const s = {
+        get value() { if (currentSub) subs.add(currentSub); return val; },
+        set value(v) {
+          if (Object.is(val, v)) return;
+          val = v;
+          if (batching) { for (const sub of subs) batchQueue.add(sub); }
+          else { for (const sub of [...subs]) sub(); }
+        },
+        peek() { return val; },
+        _label: label
+      };
+      return s;
+    }
+
+    function computed(fn) {
+      const s = signal(undefined);
+      effect(() => { s.value = fn(); });
+      return { get value() { return s.value; }, peek: s.peek };
+    }
+
+    function effect(fn) {
+      let cleanup = null;
+      const run = () => {
+        if (typeof cleanup === 'function') cleanup();
+        const prev = currentSub;
+        currentSub = run;
+        try { cleanup = fn(); } finally { currentSub = prev; }
+      };
+      run();
+      return () => { if (typeof cleanup === 'function') cleanup(); };
+    }
+
+    function batch(fn) {
+      batching = true;
+      try { fn(); } finally {
+        batching = false;
+        const queued = [...batchQueue];
+        batchQueue.clear();
+        for (const s of queued) s();
+      }
+    }
+
+    // ── Sample Data: 100 articles ────────────────────────────────────
+    const articles = [
+      { id: 1, title: "Building Reactive UIs with Signals", excerpt: "Signals offer a fine-grained reactivity model that eliminates unnecessary re-renders and keeps your DOM updates surgical and efficient.", category: "Tech", date: "2026-03-14" },
+      { id: 2, title: "The Psychology of Color in Web Design", excerpt: "Color choices influence user behavior more than any other design element. Learn how to pick palettes that convert visitors into customers.", category: "Design", date: "2026-03-13" },
+      { id: 3, title: "Startup Funding Strategies for 2026", excerpt: "Venture capital is shifting. Bootstrapping and revenue-based financing are gaining ground as founders rethink equity dilution.", category: "Business", date: "2026-03-12" },
+      { id: 4, title: "Quantum Computing Reaches Error Correction Milestone", excerpt: "Researchers at MIT achieved a breakthrough in quantum error correction, bringing practical quantum computing one step closer to reality.", category: "Science", date: "2026-03-12" },
+      { id: 5, title: "CSS Container Queries in Production", excerpt: "Container queries let components respond to their parent size rather than viewport. Here is how to adopt them in existing codebases.", category: "Tech", date: "2026-03-11" },
+      { id: 6, title: "Designing for Accessibility Beyond Compliance", excerpt: "True accessible design goes far beyond meeting WCAG criteria. It creates inclusive experiences that benefit every single user.", category: "Design", date: "2026-03-11" },
+      { id: 7, title: "Remote Work Productivity Myths Debunked", excerpt: "Five years of remote work data shows that flexibility drives output, not rigid schedules. The real metrics tell a surprising story.", category: "Business", date: "2026-03-10" },
+      { id: 8, title: "CRISPR Gene Therapy Approved for Sickle Cell", excerpt: "The FDA approved the first CRISPR-based gene therapy for sickle cell disease, marking a new era in genetic medicine for patients.", category: "Science", date: "2026-03-10" },
+      { id: 9, title: "Web Components vs. Framework Components", excerpt: "A practical comparison of native web components and framework-specific component models for building reusable UI libraries.", category: "Tech", date: "2026-03-09" },
+      { id: 10, title: "Motion Design Principles for Developers", excerpt: "Smooth animations are not just eye candy. They guide attention, convey hierarchy, and make interfaces feel responsive and alive.", category: "Design", date: "2026-03-09" },
+      { id: 11, title: "TypeScript 6.0 Introduces Pattern Matching", excerpt: "The latest TypeScript release brings native pattern matching expressions, making complex type narrowing concise and readable.", category: "Tech", date: "2026-03-08" },
+      { id: 12, title: "Sustainable Business Models in the AI Era", excerpt: "Companies that embed sustainability into their AI strategy are outperforming competitors by building trust and reducing long-term costs.", category: "Business", date: "2026-03-08" },
+      { id: 13, title: "Dark Matter Map Reveals Cosmic Web Structure", excerpt: "Astronomers published the most detailed dark matter map yet, showing how galaxy clusters connect through vast filaments of invisible matter.", category: "Science", date: "2026-03-07" },
+      { id: 14, title: "Typography Trends Shaping Modern Interfaces", excerpt: "Variable fonts, fluid type scales, and kinetic typography are redefining how text communicates personality in digital products.", category: "Design", date: "2026-03-07" },
+      { id: 15, title: "Edge Computing with WebAssembly", excerpt: "Running Wasm at the edge enables sub-millisecond cold starts and near-zero latency for globally distributed serverless applications.", category: "Tech", date: "2026-03-06" },
+      { id: 16, title: "Negotiation Tactics for Developer Salaries", excerpt: "Engineers consistently leave money on the table. Learn the data-driven approach to negotiating compensation packages confidently.", category: "Business", date: "2026-03-06" },
+      { id: 17, title: "mRNA Vaccines Expand Beyond COVID Applications", excerpt: "Messenger RNA vaccine technology is being adapted to target influenza, malaria, and multiple types of cancer with promising trial results.", category: "Science", date: "2026-03-05" },
+      { id: 18, title: "Micro-Interactions That Delight Users", excerpt: "Small, purposeful animations on buttons, toggles, and form fields create moments of delight that make products memorable.", category: "Design", date: "2026-03-05" },
+      { id: 19, title: "HTTP/3 Adoption Reaches Critical Mass", excerpt: "Over sixty percent of the top one million websites now serve traffic over QUIC-based HTTP/3, reducing page load times globally.", category: "Tech", date: "2026-03-04" },
+      { id: 20, title: "Building a Second Brain for Knowledge Workers", excerpt: "Personal knowledge management systems help professionals capture, organize, and retrieve information to amplify creative output.", category: "Business", date: "2026-03-04" },
+      { id: 21, title: "Ocean Plastic Cleanup Technology Scales Up", excerpt: "New autonomous collection systems can now remove plastic waste from rivers before it reaches the ocean at an industrial scale.", category: "Science", date: "2026-03-03" },
+      { id: 22, title: "Signal-Based State Management Patterns", excerpt: "Signals provide a compelling alternative to Redux and Zustand. Learn patterns for complex state trees using computed signals.", category: "Tech", date: "2026-03-03" },
+      { id: 23, title: "Design Systems That Scale Across Teams", excerpt: "Maintaining consistency in large organizations requires more than a component library. Governance, tokens, and culture all play a role.", category: "Design", date: "2026-03-02" },
+      { id: 24, title: "The Four-Day Work Week Results Are In", excerpt: "A two-year global study confirms that four-day work weeks increase productivity by twelve percent while reducing burnout significantly.", category: "Business", date: "2026-03-02" },
+      { id: 25, title: "Fusion Energy Prototype Sustains Plasma for Record Duration", excerpt: "A Korean fusion reactor maintained stable plasma for over five minutes, smashing previous records and reviving optimism for clean energy.", category: "Science", date: "2026-03-01" },
+      { id: 26, title: "Server Components and the Future of Rendering", excerpt: "React Server Components blur the line between server and client rendering, enabling streaming HTML with rich interactivity.", category: "Tech", date: "2026-03-01" },
+      { id: 27, title: "Color Theory for Dark Mode Interfaces", excerpt: "Designing for dark backgrounds requires rethinking contrast ratios, saturation levels, and color relationships from the ground up.", category: "Design", date: "2026-02-28" },
+      { id: 28, title: "Pricing Psychology for SaaS Products", excerpt: "Anchor pricing, decoy effects, and value framing can dramatically influence conversion rates when applied ethically.", category: "Business", date: "2026-02-28" },
+      { id: 29, title: "Mars Soil Analysis Reveals Organic Compounds", excerpt: "The Perseverance rover discovered complex organic molecules in Jezero Crater sediment, strengthening the case for ancient microbial life.", category: "Science", date: "2026-02-27" },
+      { id: 30, title: "Progressive Enhancement in the Age of SPAs", excerpt: "Building applications that work without JavaScript first ensures resilience, accessibility, and faster perceived performance.", category: "Tech", date: "2026-02-27" },
+      { id: 31, title: "Figma to Code Workflows That Actually Work", excerpt: "Bridging the design-to-development gap requires shared tokens, auto-layout discipline, and a clear component API contract.", category: "Design", date: "2026-02-26" },
+      { id: 32, title: "How to Run Effective Asynchronous Standup Meetings", excerpt: "Replace synchronous standups with structured async updates to save time and give distributed teams more focused work hours.", category: "Business", date: "2026-02-26" },
+      { id: 33, title: "AI-Powered Protein Folding Accelerates Drug Discovery", excerpt: "Machine learning models now predict protein structures in minutes instead of months, transforming pharmaceutical research pipelines.", category: "Science", date: "2026-02-25" },
+      { id: 34, title: "Building Offline-First Applications with Service Workers", excerpt: "Service workers enable robust offline experiences by caching assets and API responses, making web apps work anywhere.", category: "Tech", date: "2026-02-25" },
+      { id: 35, title: "Spatial Design for Mixed Reality Interfaces", excerpt: "Designing for AR and VR requires thinking in three dimensions, considering depth, gaze tracking, and ambient interaction models.", category: "Design", date: "2026-02-24" },
+      { id: 36, title: "Customer Retention Through Data-Driven Onboarding", excerpt: "Companies that personalize their onboarding flow based on user behavior see a forty percent improvement in thirty-day retention.", category: "Business", date: "2026-02-24" },
+      { id: 37, title: "Graphene Batteries Promise Faster Charging", excerpt: "Samsung unveiled graphene-enhanced batteries that charge to eighty percent in twelve minutes while lasting twice as many charge cycles.", category: "Science", date: "2026-02-23" },
+      { id: 38, title: "Vite 7 Performance Benchmarks Deep Dive", excerpt: "The latest Vite release delivers fifty percent faster hot module replacement through improved dependency pre-bundling strategies.", category: "Tech", date: "2026-02-23" },
+      { id: 39, title: "Inclusive Design Beyond Screen Readers", excerpt: "Accessibility encompasses cognitive load, motor impairments, and situational disabilities. One-handed use testing reveals common failures.", category: "Design", date: "2026-02-22" },
+      { id: 40, title: "Unit Economics Every Founder Should Track", excerpt: "CAC, LTV, payback period, and gross margin are the four numbers that determine whether a business model can survive long-term.", category: "Business", date: "2026-02-22" },
+      { id: 41, title: "James Webb Telescope Discovers New Exoplanet Atmosphere", excerpt: "JWST detected water vapor and carbon dioxide in the atmosphere of a super-Earth orbiting a nearby red dwarf star.", category: "Science", date: "2026-02-21" },
+      { id: 42, title: "Declarative Shadow DOM for Server-Rendered Components", excerpt: "Declarative Shadow DOM enables server-side rendering of web components with encapsulated styles, no JavaScript hydration required.", category: "Tech", date: "2026-02-21" },
+      { id: 43, title: "Grid Layout Mastery: Subgrid and Beyond", excerpt: "CSS subgrid finally enables alignment across nested components. Learn practical patterns for card grids, forms, and dashboards.", category: "Tech", date: "2026-02-20" },
+      { id: 44, title: "Brand Voice Guidelines for Product Teams", excerpt: "A consistent brand voice builds trust. These frameworks help product, marketing, and support teams sound like one unified organization.", category: "Design", date: "2026-02-20" },
+      { id: 45, title: "Bootstrapping a Profitable Micro-SaaS", excerpt: "A step-by-step guide to building, launching, and growing a small software product to ten thousand dollars in monthly recurring revenue.", category: "Business", date: "2026-02-19" },
+      { id: 46, title: "Biodegradable Electronics Reduce E-Waste", excerpt: "Researchers developed circuit boards from cellulose substrates that decompose naturally in soil within six months after disposal.", category: "Science", date: "2026-02-19" },
+      { id: 47, title: "JavaScript Decorators Land in Browsers", excerpt: "Stage 3 decorators are shipping in Chrome and Firefox, enabling clean aspect-oriented patterns for logging, caching, and validation.", category: "Tech", date: "2026-02-18" },
+      { id: 48, title: "Designing Data-Dense Dashboards", excerpt: "Information density and clarity are not opposites. Sparklines, small multiples, and progressive disclosure tame complex datasets.", category: "Design", date: "2026-02-18" },
+      { id: 49, title: "OKR Frameworks That Drive Real Alignment", excerpt: "Objectives and key results work when teams write measurable outcomes instead of activity-based tasks. Most companies get this wrong.", category: "Business", date: "2026-02-17" },
+      { id: 50, title: "Coral Reef Restoration Using 3D-Printed Structures", excerpt: "Marine biologists are deploying calcium carbonate scaffolds that mimic natural reef geometry to accelerate coral regrowth in warming oceans.", category: "Science", date: "2026-02-17" },
+      { id: 51, title: "Streaming SSR with Suspense Boundaries", excerpt: "Streaming server-side rendering sends HTML in chunks, letting users see content instantly while heavier components load progressively.", category: "Tech", date: "2026-02-16" },
+      { id: 52, title: "White Space Is Not Empty Space", excerpt: "Strategic use of negative space improves readability, establishes visual hierarchy, and gives interfaces room to breathe gracefully.", category: "Design", date: "2026-02-16" },
+      { id: 53, title: "Building a Culture of Experimentation", excerpt: "Teams that run frequent small experiments innovate faster because they learn from data instead of relying on opinions alone.", category: "Business", date: "2026-02-15" },
+      { id: 54, title: "Room-Temperature Superconductor Claims Under Scrutiny", excerpt: "Independent labs are testing the latest superconductor claims with mixed results, highlighting the rigor needed in materials science.", category: "Science", date: "2026-02-15" },
+      { id: 55, title: "View Transitions API for Smooth Page Navigation", excerpt: "The View Transitions API lets you animate between page states with CSS, creating native-app-like transitions in multi-page sites.", category: "Tech", date: "2026-02-14" },
+      { id: 56, title: "Illustration Styles That Build Brand Recognition", excerpt: "Custom illustrations differentiate products in crowded markets. Flat, isometric, and hand-drawn styles each convey distinct brand personalities.", category: "Design", date: "2026-02-14" },
+      { id: 57, title: "How to Write a Compelling Investor Pitch Deck", excerpt: "Ten slides that tell a story: problem, solution, market, traction, team, and ask. Keep it focused and let the data speak loudly.", category: "Business", date: "2026-02-13" },
+      { id: 58, title: "Antarctic Ice Core Reveals 800,000-Year Climate Record", excerpt: "Analysis of a deep ice core extracted from East Antarctica provides an unbroken record of atmospheric composition spanning eight glacial cycles.", category: "Science", date: "2026-02-13" },
+      { id: 59, title: "Zero-Bundle-Size Components with Islands Architecture", excerpt: "Islands architecture sends JavaScript only for interactive components, keeping static content as pure HTML for maximum performance.", category: "Tech", date: "2026-02-12" },
+      { id: 60, title: "Responsive Typography with Fluid Clamp Functions", excerpt: "Using CSS clamp for font sizes creates smooth scaling between breakpoints without media queries or JavaScript calculations.", category: "Design", date: "2026-02-12" },
+      { id: 61, title: "Customer Discovery Interviews That Uncover Real Pain", excerpt: "The best product insights come from asking open-ended questions about workflows, not from pitching solutions to potential customers.", category: "Business", date: "2026-02-11" },
+      { id: 62, title: "Brain-Computer Interface Restores Speech in Paralyzed Patient", excerpt: "A neural implant translates brain signals directly into synthesized speech at a rate of sixty words per minute with high accuracy.", category: "Science", date: "2026-02-11" },
+      { id: 63, title: "Optimizing Core Web Vitals for E-Commerce Sites", excerpt: "Largest Contentful Paint, Interaction to Next Paint, and Cumulative Layout Shift directly impact conversion rates on shopping pages.", category: "Tech", date: "2026-02-10" },
+      { id: 64, title: "The Art of Error State Design", excerpt: "Well-designed error states reduce user frustration by explaining what went wrong and providing clear paths to recovery.", category: "Design", date: "2026-02-10" },
+      { id: 65, title: "Revenue Operations: Aligning Sales, Marketing, and CS", excerpt: "Revenue operations teams break down silos by unifying data, processes, and tooling across the entire customer lifecycle.", category: "Business", date: "2026-02-09" },
+      { id: 66, title: "Solar Paint Turns Any Surface Into an Energy Source", excerpt: "Perovskite-based photovoltaic coatings can be applied like paint to walls and rooftops, generating electricity at a fraction of panel costs.", category: "Science", date: "2026-02-09" },
+      { id: 67, title: "Understanding the Event Loop in Modern JavaScript", excerpt: "Microtasks, macrotasks, and rendering steps form the heartbeat of every browser. Mastering this loop prevents jank and race conditions.", category: "Tech", date: "2026-02-08" },
+      { id: 68, title: "Prototyping with Real Data Improves Design Decisions", excerpt: "Using realistic content during the design phase exposes edge cases in layout, truncation, and internationalization before code is written.", category: "Design", date: "2026-02-08" },
+      { id: 69, title: "Building Developer Tools as a Business", excerpt: "Developer tools require community-first go-to-market strategies where documentation, examples, and support drive adoption before sales.", category: "Business", date: "2026-02-07" },
+      { id: 70, title: "Microplastics Found in Human Blood at Alarming Levels", excerpt: "A large-scale study detected microplastic particles in the bloodstream of eighty percent of participants, raising urgent health questions.", category: "Science", date: "2026-02-07" },
+      { id: 71, title: "Bun Runtime Challenges Node.js Ecosystem Dominance", excerpt: "Bun offers an all-in-one JavaScript runtime with a bundler, test runner, and package manager that aims to replace multiple separate tools.", category: "Tech", date: "2026-02-06" },
+      { id: 72, title: "Designing Multi-Step Forms That Users Complete", excerpt: "Progress indicators, smart defaults, and conditional logic reduce form abandonment by making long forms feel manageable.", category: "Design", date: "2026-02-06" },
+      { id: 73, title: "Marketplace Dynamics: Solving the Chicken-and-Egg Problem", excerpt: "Two-sided marketplaces must carefully sequence supply and demand acquisition. Single-player mode provides value before network effects kick in.", category: "Business", date: "2026-02-05" },
+      { id: 74, title: "Lab-Grown Meat Receives Full Regulatory Approval", excerpt: "Cultured chicken and beef products cleared safety reviews in the EU, opening the door to commercial production across European markets.", category: "Science", date: "2026-02-05" },
+      { id: 75, title: "WebGPU Unlocks Native Graphics Performance in Browsers", excerpt: "WebGPU provides low-level GPU access for rendering and compute shaders, enabling console-quality 3D graphics in web applications.", category: "Tech", date: "2026-02-04" },
+      { id: 76, title: "Animation Timing Functions for Natural Movement", excerpt: "Cubic bezier curves and spring physics create animations that feel natural. Linear easing almost always looks mechanical and artificial.", category: "Design", date: "2026-02-04" },
+      { id: 77, title: "Technical Debt as a Strategic Investment", excerpt: "Not all technical debt is bad. Strategic shortcuts accelerate learning while reckless debt compounds maintenance costs exponentially.", category: "Business", date: "2026-02-03" },
+      { id: 78, title: "Vertical Farming Yields Surpass Traditional Agriculture", excerpt: "Indoor vertical farms now produce fifty times more food per square meter than conventional farming while using ninety percent less water.", category: "Science", date: "2026-02-03" },
+      { id: 79, title: "Deno 3 Embraces Node Compatibility Fully", excerpt: "Deno now runs virtually any npm package without configuration, removing the last major barrier to adoption for Node.js developers.", category: "Tech", date: "2026-02-02" },
+      { id: 80, title: "UI Audit Checklist for Shipping Polished Products", excerpt: "A thirty-point checklist covering alignment, spacing, focus states, loading states, and empty states that separates good UI from great UI.", category: "Design", date: "2026-02-02" },
+      { id: 81, title: "Freemium Conversion Optimization Techniques", excerpt: "The best freemium products give away enough to be genuinely useful while creating natural upgrade moments tied to growing user needs.", category: "Business", date: "2026-02-01" },
+      { id: 82, title: "Deep Sea Mining Controversy Intensifies", excerpt: "Nations debate whether polymetallic nodule extraction from the ocean floor can proceed responsibly without destroying fragile abyssal ecosystems.", category: "Science", date: "2026-02-01" },
+      { id: 83, title: "Partial Hydration Strategies for Faster Interactivity", excerpt: "Hydrating only interactive islands instead of the full page tree slashes time-to-interactive on content-heavy sites.", category: "Tech", date: "2026-01-31" },
+      { id: 84, title: "Micro-Copy That Converts: Button Labels and CTAs", excerpt: "Changing a button from Submit to Get My Free Report can double click-through rates. Every word in micro-copy carries outsized weight.", category: "Design", date: "2026-01-31" },
+      { id: 85, title: "Hiring Your First Ten Employees Wisely", excerpt: "Early hires define company culture. Prioritize adaptability and ownership over pedigree when building a founding team from scratch.", category: "Business", date: "2026-01-30" },
+      { id: 86, title: "Carbon Capture Plant Goes Online in Iceland", excerpt: "The world's largest direct air capture facility began operations in Reykjavik, removing four thousand tons of CO2 annually from the atmosphere.", category: "Science", date: "2026-01-30" },
+      { id: 87, title: "Effect Systems in JavaScript: Cleanup and Disposal", excerpt: "Effects that return cleanup functions enable elegant resource management for timers, event listeners, and subscriptions.", category: "Tech", date: "2026-01-29" },
+      { id: 88, title: "Designing Trust Signals for E-Commerce Checkouts", excerpt: "Security badges, testimonials, and transparent pricing reduce cart abandonment by addressing buyer anxiety at the moment of purchase.", category: "Design", date: "2026-01-29" },
+      { id: 89, title: "API Monetization Models That Scale", excerpt: "Usage-based pricing, tiered plans, and marketplace commissions each suit different API business models and developer audiences.", category: "Business", date: "2026-01-28" },
+      { id: 90, title: "Tardigrade Proteins Protect Human Cells from Radiation", excerpt: "Scientists engineered human cells with tardigrade damage-suppressor proteins, finding they withstand radiation doses lethal to normal cells.", category: "Science", date: "2026-01-28" },
+      { id: 91, title: "Import Maps Simplify Module Loading in Browsers", excerpt: "Import maps let you use bare specifiers in browser modules without a bundler, mapping package names to URLs natively.", category: "Tech", date: "2026-01-27" },
+      { id: 92, title: "Gestalt Principles Applied to Interface Design", excerpt: "Proximity, similarity, closure, and continuity are hardwired into human perception. Leveraging them creates instantly intuitive layouts.", category: "Design", date: "2026-01-27" },
+      { id: 93, title: "Product-Led Growth Playbook for B2B SaaS", excerpt: "Let the product sell itself through free trials, in-app education, and expansion revenue. Sales teams close deals that self-serve started.", category: "Business", date: "2026-01-26" },
+      { id: 94, title: "New Antibiotic Class Discovered in Soil Microbiome", excerpt: "A previously unknown family of antimicrobial compounds was isolated from soil bacteria, showing effectiveness against drug-resistant infections.", category: "Science", date: "2026-01-26" },
+      { id: 95, title: "Structuring Large-Scale JavaScript Monorepos", excerpt: "Workspace protocols, shared configs, and turborepo caching strategies keep monorepos fast and maintainable as teams and packages grow.", category: "Tech", date: "2026-01-25" },
+      { id: 96, title: "Dark Patterns to Avoid in UX Design", excerpt: "Trick questions, hidden costs, and forced continuity erode trust. Ethical design respects user intent and builds lasting relationships.", category: "Design", date: "2026-01-25" },
+      { id: 97, title: "Effective One-on-One Meetings for Engineering Managers", excerpt: "Skip status updates. Use one-on-ones for career development, obstacle removal, and building trust with direct reports.", category: "Business", date: "2026-01-24" },
+      { id: 98, title: "Quantum Internet Prototype Links Three Nodes", excerpt: "Physicists demonstrated a three-node quantum network that transmits entangled photons over fiber optic cable spanning fifteen kilometers.", category: "Science", date: "2026-01-24" },
+      { id: 99, title: "Custom Elements Lifecycle Deep Dive", excerpt: "ConnectedCallback, disconnectedCallback, adoptedCallback, and attributeChangedCallback form the four pillars of web component lifecycle management.", category: "Tech", date: "2026-01-23" },
+      { id: 100, title: "Information Architecture for Complex Applications", excerpt: "Card sorting, tree testing, and journey mapping reveal how users think about content structure, not how developers organize code.", category: "Design", date: "2026-01-23" },
+    ];
+
+    const categories = ['All', 'Tech', 'Design', 'Business', 'Science'];
+
+    // ── State ─────────────────────────────────────────────────────────
+    const query = signal('', 'query');
+    const activeCategory = signal('All', 'category');
+    const loading = signal(false, 'loading');
+    const results = signal([], 'results');
+    const recentSearches = signal([], 'recentSearches');
+    const selectedIndex = signal(-1, 'selectedIndex');
+
+    // ── DOM refs ──────────────────────────────────────────────────────
+    const searchInput = document.getElementById('search-input');
+    const clearBtn = document.getElementById('search-clear');
+    const recentEl = document.getElementById('recent-searches');
+    const tabsEl = document.getElementById('tabs');
+    const metaEl = document.getElementById('results-meta');
+    const resultsArea = document.getElementById('results-area');
+    const keyboardHint = document.getElementById('keyboard-hint');
+
+    // ── Helpers ───────────────────────────────────────────────────────
+    function highlightMatch(text, q) {
+      if (!q) return escapeHtml(text);
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(${escaped})`, 'gi');
+      return escapeHtml(text).replace(regex, '<mark>$1</mark>');
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function searchArticles(q, category) {
+      const lower = q.toLowerCase();
+      return articles.filter(a => {
+        const matchesCategory = category === 'All' || a.category === category;
+        const matchesQuery = a.title.toLowerCase().includes(lower) || a.excerpt.toLowerCase().includes(lower) || a.category.toLowerCase().includes(lower);
+        return matchesCategory && matchesQuery;
+      });
+    }
+
+    function addToRecent(q) {
+      const trimmed = q.trim();
+      if (!trimmed) return;
+      const current = recentSearches.peek().filter(s => s !== trimmed);
+      recentSearches.value = [trimmed, ...current].slice(0, 5);
+    }
+
+    function getCategoryCounts(q) {
+      const lower = q.toLowerCase();
+      const counts = { All: 0 };
+      categories.slice(1).forEach(c => { counts[c] = 0; });
+      articles.forEach(a => {
+        if (!q || a.title.toLowerCase().includes(lower) || a.excerpt.toLowerCase().includes(lower) || a.category.toLowerCase().includes(lower)) {
+          counts.All++;
+          counts[a.category]++;
+        }
+      });
+      return counts;
+    }
+
+    // ── Input handling ────────────────────────────────────────────────
+    searchInput.addEventListener('input', (e) => {
+      query.value = e.target.value;
+      selectedIndex.value = -1;
+    });
+
+    clearBtn.addEventListener('click', () => {
+      query.value = '';
+      searchInput.value = '';
+      searchInput.focus();
+      selectedIndex.value = -1;
+    });
+
+    // ── Keyboard navigation ──────────────────────────────────────────
+    searchInput.addEventListener('keydown', (e) => {
+      const res = results.peek();
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex.value = Math.min(selectedIndex.peek() + 1, res.length - 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex.value = Math.max(selectedIndex.peek() - 1, -1);
+      } else if (e.key === 'Enter' && selectedIndex.peek() >= 0) {
+        e.preventDefault();
+        const item = res[selectedIndex.peek()];
+        if (item) alert(`Opening: "${item.title}"`);
+      } else if (e.key === 'Escape') {
+        query.value = '';
+        searchInput.value = '';
+        selectedIndex.value = -1;
+      }
+    });
+
+    // ── Clear button visibility ──────────────────────────────────────
+    effect(() => {
+      clearBtn.classList.toggle('visible', query.value.length > 0);
+    });
+
+    // ── Debounced search effect (with cleanup) ───────────────────────
+    effect(() => {
+      const q = query.value;
+      const cat = activeCategory.value;
+
+      if (!q.trim()) {
+        results.value = [];
+        loading.value = false;
+        return;
+      }
+
+      loading.value = true;
+
+      const timer = setTimeout(() => {
+        const found = searchArticles(q, cat);
+        results.value = found;
+        loading.value = false;
+        addToRecent(q);
+      }, 300);
+
+      return () => clearTimeout(timer);
+    });
+
+    // ── Render category tabs ─────────────────────────────────────────
+    effect(() => {
+      const q = query.value;
+      const active = activeCategory.value;
+      const counts = getCategoryCounts(q);
+      tabsEl.innerHTML = '';
+      const wrap = document.createElement('div');
+      wrap.className = 'tabs';
+      categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'tab' + (cat === active ? ' active' : '');
+        btn.innerHTML = cat + (q ? `<span class="count">(${counts[cat]})</span>` : '');
+        btn.addEventListener('click', () => {
+          activeCategory.value = cat;
+          selectedIndex.value = -1;
+        });
+        wrap.appendChild(btn);
+      });
+      tabsEl.appendChild(wrap);
+    });
+
+    // ── Render recent searches ───────────────────────────────────────
+    effect(() => {
+      const recent = recentSearches.value;
+      recentEl.innerHTML = '';
+      if (recent.length === 0) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'recent';
+      const label = document.createElement('span');
+      label.className = 'recent-label';
+      label.textContent = 'Recent:';
+      wrap.appendChild(label);
+      recent.forEach(term => {
+        const tag = document.createElement('button');
+        tag.className = 'recent-tag';
+        tag.textContent = term;
+        tag.addEventListener('click', () => {
+          query.value = term;
+          searchInput.value = term;
+          searchInput.focus();
+          selectedIndex.value = -1;
+        });
+        wrap.appendChild(tag);
+      });
+      recentEl.appendChild(wrap);
+    });
+
+    // ── Render results ───────────────────────────────────────────────
+    effect(() => {
+      const q = query.value;
+      const res = results.value;
+      const isLoading = loading.value;
+      const selIdx = selectedIndex.value;
+
+      resultsArea.innerHTML = '';
+      keyboardHint.style.display = 'none';
+
+      // Loading state
+      if (isLoading && q.trim()) {
+        metaEl.textContent = 'Searching...';
+        const skeleton = document.createElement('div');
+        skeleton.className = 'skeleton-list';
+        for (let i = 0; i < 3; i++) {
+          skeleton.innerHTML += `
+            <div class="skeleton-card">
+              <div class="skeleton-line title"></div>
+              <div class="skeleton-line excerpt"></div>
+              <div class="skeleton-line excerpt2"></div>
+              <div class="skeleton-line meta"></div>
+            </div>`;
+        }
+        resultsArea.appendChild(skeleton);
+        return;
+      }
+
+      // No query
+      if (!q.trim()) {
+        metaEl.textContent = '';
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.innerHTML = `
+          <div class="icon">&#128270;</div>
+          <p>Start typing to search 100 articles</p>
+          <p class="hint">Try "signals", "design", "fusion", or "TypeScript"</p>
+        `;
+        resultsArea.appendChild(empty);
+        return;
+      }
+
+      // No results
+      if (res.length === 0) {
+        metaEl.textContent = 'No results';
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.innerHTML = `
+          <div class="icon">&#128533;</div>
+          <p>No articles found for "${escapeHtml(q)}"</p>
+          <p class="hint">Try a different search term or category</p>
+        `;
+        resultsArea.appendChild(empty);
+        return;
+      }
+
+      // Results
+      metaEl.textContent = `${res.length} result${res.length === 1 ? '' : 's'} found`;
+      keyboardHint.style.display = 'block';
+
+      const list = document.createElement('div');
+      list.className = 'results';
+
+      res.forEach((article, idx) => {
+        const card = document.createElement('div');
+        card.className = 'result-card' + (idx === selIdx ? ' selected' : '');
+        card.innerHTML = `
+          <h3>${highlightMatch(article.title, q)}</h3>
+          <div class="excerpt">${highlightMatch(article.excerpt, q)}</div>
+          <div class="card-meta">
+            <span class="category-badge">${escapeHtml(article.category)}</span>
+            <span>${article.date}</span>
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          alert(`Opening: "${article.title}"`);
+        });
+        list.appendChild(card);
+      });
+
+      resultsArea.appendChild(list);
+
+      // Scroll selected into view
+      if (selIdx >= 0) {
+        const selected = list.children[selIdx];
+        if (selected) selected.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    });
+  </script>
+</body>
+</html>
