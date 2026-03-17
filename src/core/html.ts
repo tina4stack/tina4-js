@@ -15,6 +15,35 @@ const MARKER = 't4:';
 
 // ── Public API ──────────────────────────────────────────────────────
 
+/**
+ * Tagged template literal renderer — builds real DOM nodes with surgical reactive updates.
+ *
+ * Interpolated values are bound as follows:
+ * - `${signal}`      → reactive text node, updates in place when the signal changes
+ * - `${() => expr}`  → reactive block, re-renders when any signal read inside changes
+ * - `${fragment}`    → inserts a DocumentFragment (nested `html\`\``)
+ * - `${array}`       → renders each item as nodes
+ * - `${value}`       → static text node (escaped — XSS-safe)
+ *
+ * Attribute binding syntax (in tag attributes):
+ * - `.innerHTML=${val}`  → sets DOM property (use for raw HTML / inline SVG)
+ * - `.value=${signal}`   → reactive DOM property binding
+ * - `?disabled=${sig}`   → boolean attribute — added/removed reactively
+ * - `@click=${fn}`       → event listener
+ *
+ * **Important:** `${svgString}` in content position renders as escaped text.
+ * To inject raw HTML or SVG, use: `<div .innerHTML=${svgString}></div>`
+ *
+ * @param strings - Template string parts (static, cached by identity).
+ * @param values  - Interpolated values.
+ * @returns A DocumentFragment ready to append to the DOM.
+ *
+ * @example
+ * const name = signal('World');
+ * const frag = html`<h1>Hello, ${name}!</h1>`;
+ * document.body.appendChild(frag);
+ * name.value = 'Tina4'; // DOM updates automatically
+ */
 export function html(strings: TemplateStringsArray, ...values: unknown[]): DocumentFragment {
   let template = templateCache.get(strings);
 

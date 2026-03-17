@@ -48,6 +48,26 @@ let routeVersion = 0;
 
 // ── Public API ──────────────────────────────────────────────────────
 
+/**
+ * Register a route. Pattern is ALWAYS the first argument.
+ *
+ * Patterns support `{param}` segments — extracted and passed to the handler.
+ * Use `'*'` to match any path (catch-all / 404 route).
+ *
+ * @param pattern        - URL pattern, e.g. `'/'`, `'/users/{id}'`, `'*'`
+ * @param handlerOrConfig - Handler function or `{ handler, guard }` config.
+ *
+ * @example
+ * route('/', () => html`<h1>Home</h1>`);
+ * route('/users/{id}', ({ id }) => html`<p>User: ${id}</p>`);
+ * route('*', () => html`<h1>404</h1>`);
+ *
+ * // With a guard:
+ * route('/admin', {
+ *   guard: () => isLoggedIn.value || '/login',
+ *   handler: () => html`<admin-panel></admin-panel>`,
+ * });
+ */
 export function route(pattern: string, handlerOrConfig: RouteHandler | RouteConfig): void {
   const paramNames: string[] = [];
 
@@ -77,6 +97,16 @@ export function route(pattern: string, handlerOrConfig: RouteHandler | RouteConf
   }
 }
 
+/**
+ * Programmatically navigate to a path.
+ *
+ * @param path - The path to navigate to.
+ * @param opts - `{ replace: true }` uses `history.replaceState` instead of `pushState`.
+ *
+ * @example
+ * navigate('/dashboard');
+ * navigate('/login', { replace: true }); // no back-button entry
+ */
 export function navigate(path: string, opts?: { replace?: boolean }): void {
   if (mode === 'hash') {
     if (opts?.replace) {

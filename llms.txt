@@ -1,0 +1,306 @@
+# tina4js — LLM Context
+
+Sub-3KB reactive JavaScript framework. Signals, web components, routing, API, PWA, WebSocket, debug overlay.
+Works standalone or inside tina4-php / tina4-python full-stack apps.
+Target: admin panels, dashboards, CRUD apps, monolithic server-rendered apps.
+NOT designed as a React/Vue replacement for large SPA teams.
+
+Install: `npm install tina4js`
+Version: 1.0.7
+Exports: `.` `./core` `./router` `./api` `./pwa` `./ws` `./debug`
+
+---
+
+## Signals (src/core/signal.ts)
+
+```ts
+import { signal, computed, effect, batch, isSignal } from 'tina4js';
+
+const count = signal(0);          // reactive value
+const count = signal(0, 'label'); // with debug label
+count.value;                      // read (tracks dependencies)
+count.value = 5;                  // write (notifies subscribers)
+count.peek();                     // read WITHOUT tracking
+
+const doubled = computed(() => count.value * 2); // read-only derived signal
+
+const stop = effect(() => {
+  console.log(count.value);       // runs immediately + on each change
+});
+stop();                           // dispose effect
+
+batch(() => {
+  a.value = 1;
+  b.value = 2;                    // subscribers notified once, not twice
+});
+```
+
+**Error isolation:** if one effect throws, sibling effects still run. First error re-thrown after all subscribers notified.
+
+---
+
+## HTML Templates (src/core/html.ts)
+
+```ts
+import { html } from 'tina4js';
+
+// Returns a DocumentFragment. Append to DOM.
+const frag = html`<h1>Hello, ${name}!</h1>`;
+
+// Signal interpolation → reactive text node (updates in place)
+const name = signal('World');
+html`<p>${name}</p>`;
+
+// Reactive block → re-renders when deps change
+html`<div>${() => items.value.map(i => html`<li>${i}</li>`)}</div>`;
+
+// Array of fragments
+html`<ul>${items.map(i => html`<li>${i}</li>`)}</ul>`;
+```
+
+### Attribute Binding Syntax
+
+| Syntax | Meaning |
+|---|---|
+| `${value}` | Escaped text node (XSS-safe) |
+| `${signal}` | Reactive text node |
+| `${() => expr}` | Reactive block |
+| `.innerHTML=${val}` | DOM property — raw HTML / SVG injection |
+| `.value=${signal}` | Any DOM property, reactive |
+| `?disabled=${signal}` | Boolean attribute — added/removed reactively |
+| `@click=${fn}` | Event listener |
+
+**CRITICAL:** `${svgString}` in content position is ALWAYS escaped as text.
+To inject raw HTML or SVG: `<div .innerHTML=${svgString}></div>`
+
+---
+
+## Router (src/router/router.ts)
+
+```ts
+import { route, navigate, router } from 'tina4js';
+
+// Pattern is ALWAYS the first argument
+route('/', () => html`<h1>Home</h1>`);
+route('/users/{id}', ({ id }) => html`<p>User ${id}</p>`);
+route('*', () => html`<h1>404</h1>`);
+
+// With guard (return false to block, return string to redirect)
+route('/admin', {
+  guard: () => isLoggedIn.value || '/login',
+  handler: () => html`<admin-panel></admin-panel>`,
+});
+
+// Async routes
+route('/data', async () => {
+  const data = await api.get('/data');
+  return html`<pre>${JSON.stringify(data)}</pre>`;
+});
+
+router.start({ target: '#app', mode: 'history' }); // or 'hash'
+
+navigate('/dashboard');
+navigate('/login', { replace: true }); // no back-button entry
+
+router.on('change', ({ path, params, durationMs }) => { ... });
+```
+
+---
+
+## API Client (src/api/fetch.ts)
+
+```ts
+import { api } from 'tina4js';
+
+// Configure once at startup
+api.configure({
+  baseUrl: 'https://api.example.com',
+  auth: true,                      // sends Authorization: Bearer <token>
+  tokenKey: 'tina4_token',        // localStorage key for the JWT
+  headers: { 'X-App': 'my-app' }, // default headers on every request
+});
+
+// Methods — options is ALWAYS { params, headers }, NOT path template params
+await api.get('/users');
+await api.get('/users', { params: { page: 2, limit: 20 } });
+await api.get('/users', { headers: { 'X-Custom': 'val' } });
+await api.post('/users', { name: 'Alice' });
+await api.put('/users/1', { name: 'Bob' });
+await api.patch('/users/1', { name: 'Carol' });
+await api.delete('/users/1');
+
+// Interceptors
+api.intercept('request', (config) => {
+  config.headers['X-Trace'] = crypto.randomUUID();
+});
+api.intercept('response', (res) => {
+  if (res.status === 401) navigate('/login');
+});
+```
+
+On non-2xx responses, the `ApiResponse` object is **thrown** (not returned).
+Catch it: `try { await api.get(...) } catch (e) { e.status, e.data }`
+
+Token rotation: if backend responds with `FreshToken` header, it's stored automatically.
+formToken is injected into POST/PUT/PATCH/DELETE bodies when `auth: true` (tina4-php/python CSRF).
+
+---
+
+## WebSocket (src/ws/ws.ts)
+
+```ts
+import { ws } from 'tina4js';
+
+const socket = ws.connect('wss://example.com/ws', {
+  reconnect: true,          // default: true
+  reconnectDelay: 1000,     // ms (default: 1000)
+  reconnectMaxDelay: 30000, // exponential backoff cap (default: 30000)
+  reconnectAttempts: 10,    // Infinity by default
+  protocols: ['json'],      // optional sub-protocols
+});
+
+// Reactive signals
+socket.status.value;       // 'connecting' | 'open' | 'closed' | 'reconnecting'
+socket.connected.value;    // boolean
+socket.lastMessage.value;  // last parsed message (JSON auto-parsed)
+socket.error.value;        // last Error event or null
+socket.reconnectCount.value;
+
+socket.send({ type: 'ping' }); // objects auto-JSON.stringify'd
+
+// Event handlers
+const unsub = socket.on('message', (data) => console.log(data));
+socket.on('open', () => console.log('connected'));
+socket.on('close', (code, reason) => { ... });
+socket.on('error', (event) => { ... });
+unsub(); // unsubscribe
+
+// Pipe messages into a signal via reducer
+const messages = signal([]);
+socket.pipe(messages, (msg, current) => [...current, msg]);
+
+socket.close(); // intentional close — stops reconnect
+```
+
+---
+
+## Web Components (src/core/component.ts)
+
+```ts
+import { Tina4Element, html, signal } from 'tina4js';
+
+class MyCounter extends Tina4Element {
+  static props = { label: String };         // declares reactive props
+  static styles = `:host { display: block; }`; // scoped CSS (Shadow DOM)
+  static shadow = true;                     // false = light DOM
+
+  count = signal(0);                        // internal reactive state
+
+  render() {
+    return html`
+      <span>${this.prop('label')}: ${this.count}</span>
+      <button @click=${() => this.count.value++}>+</button>
+    `;
+  }
+
+  onMount() { /* called after first render */ }
+  onUnmount() { /* called on disconnect */ }
+
+  someMethod() {
+    this.emit('activate', { detail: this.count.value }); // bubbles + composed
+  }
+}
+customElements.define('my-counter', MyCounter);
+```
+
+Usage: `<my-counter label="Clicks"></my-counter>`
+
+Prop types: `String`, `Number`, `Boolean`
+`this.prop('name')` returns a `Signal<T>` — interpolate directly in templates.
+
+---
+
+## PWA (src/pwa/pwa.ts)
+
+```ts
+import { pwa } from 'tina4js';
+
+pwa.register('/sw.js');           // register service worker
+pwa.manifest({ name: 'My App', short_name: 'App', theme_color: '#000' });
+```
+
+---
+
+## Debug Overlay (src/debug/index.ts)
+
+```ts
+import { initDebug } from 'tina4js/debug';
+
+initDebug(); // shows floating overlay with signals, components, routes, API panels
+```
+
+Only import in development. Tree-shaken in production if not imported.
+
+---
+
+## Common Patterns
+
+### Shared global state
+```ts
+// store.ts
+export const user = signal(null);
+export const cart = signal([]);
+// import in any component or route handler
+```
+
+### Uncontrolled inputs (avoid focus loss)
+```ts
+// DON'T bind input value to a signal on every keystroke — reactive re-render kills focus
+// DO: read value at submit time
+render() {
+  return html`
+    <input id="name" type="text" />
+    <button @click=${() => {
+      const val = (document.getElementById('name') as HTMLInputElement).value;
+      this.submit(val);
+    }}>Submit</button>
+  `;
+}
+```
+
+### 401 auto-redirect
+```ts
+api.intercept('response', (res) => {
+  if (res.status === 401) navigate('/login', { replace: true });
+});
+```
+
+### Guard with async check
+```ts
+route('/dashboard', {
+  guard: () => !!localStorage.getItem('tina4_token') || '/login',
+  handler: () => html`<dashboard-view></dashboard-view>`,
+});
+```
+
+---
+
+## Known Gotchas
+
+1. **`.innerHTML` is a property binding, not content interpolation.**
+   `${svgString}` → escaped text. `<div .innerHTML=${svgString}></div>` → raw HTML.
+
+2. **`route(pattern, handler)` — pattern is ALWAYS first.**
+   Wrong: `route(handler, '/path')`. Right: `route('/path', handler)`.
+
+3. **`api.get(path, options)` — options is `{ params, headers }`, NOT path params.**
+   Wrong: `api.get('/users/{id}', { id: 42 })`. Right: `api.get('/users', { params: { id: 42 } })`.
+
+4. **Reactive re-render destroys input focus.**
+   Use uncontrolled inputs; read values at submit time.
+
+5. **`effect()` runs immediately.** It is not lazy. Call `dispose()` to stop it.
+
+6. **`computed()` is read-only.** Writing throws an error.
+
+7. **Non-2xx responses are thrown**, not returned. Always wrap `api.*` calls in try/catch.

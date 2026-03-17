@@ -153,31 +153,92 @@ async function request<T = unknown>(method: string, path: string, body?: unknown
 
 // ── Public API ──────────────────────────────────────────────────────
 
+/**
+ * HTTP client pre-configured for tina4-php / tina4-python backends.
+ *
+ * Features:
+ * - Automatic `Authorization: Bearer <token>` header when `auth: true`
+ * - Token rotation via `FreshToken` response header
+ * - `formToken` injected into POST/PUT/PATCH/DELETE bodies for CSRF protection
+ * - Per-request `headers` and `params` via `RequestOptions`
+ * - Request/response interceptors
+ *
+ * @example
+ * api.configure({ baseUrl: 'https://api.example.com', auth: true });
+ *
+ * const users = await api.get('/users');
+ * const user  = await api.get('/users', { params: { id: 42 } });
+ * await api.post('/users', { name: 'Alice' });
+ * await api.delete('/users/1');
+ */
 export const api = {
+  /**
+   * Configure the API client. Call once at app startup.
+   *
+   * @example
+   * api.configure({
+   *   baseUrl: 'https://api.example.com',
+   *   auth: true,
+   *   tokenKey: 'my_token',   // localStorage key (default: 'tina4_token')
+   *   headers: { 'X-App': '1' }, // default headers on every request
+   * });
+   */
   configure(c: Partial<ApiConfig>): void {
     Object.assign(config, c);
   },
 
+  /**
+   * HTTP GET request.
+   * @param path    - API path relative to `baseUrl`.
+   * @param options - `{ params, headers }` — query string params and per-request headers.
+   * @example
+   * const data = await api.get('/products', { params: { page: 2, limit: 20 } });
+   */
   get<T = unknown>(path: string, options?: RequestOptions): Promise<T> {
     return request<T>('GET', path, undefined, options);
   },
 
+  /**
+   * HTTP POST request.
+   * @param path    - API path.
+   * @param body    - Request body (serialised as JSON).
+   * @param options - `{ params, headers }`.
+   * @example
+   * await api.post('/users', { name: 'Alice', role: 'admin' });
+   */
   post<T = unknown>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {
     return request<T>('POST', path, body, options);
   },
 
+  /** HTTP PUT — full replace. */
   put<T = unknown>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {
     return request<T>('PUT', path, body, options);
   },
 
+  /** HTTP PATCH — partial update. */
   patch<T = unknown>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {
     return request<T>('PATCH', path, body, options);
   },
 
+  /** HTTP DELETE. */
   delete<T = unknown>(path: string, options?: RequestOptions): Promise<T> {
     return request<T>('DELETE', path, undefined, options);
   },
 
+  /**
+   * Register a request or response interceptor.
+   *
+   * @example
+   * // Add a custom header to every request
+   * api.intercept('request', (config) => {
+   *   config.headers['X-Client'] = 'my-app';
+   * });
+   *
+   * // Redirect to login on 401
+   * api.intercept('response', (res) => {
+   *   if (res.status === 401) navigate('/login');
+   * });
+   */
   intercept(type: 'request' | 'response', fn: RequestInterceptor | ResponseInterceptor): void {
     if (type === 'request') {
       requestInterceptors.push(fn as RequestInterceptor);

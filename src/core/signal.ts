@@ -68,6 +68,20 @@ export interface ReadonlySignal<T> {
   peek(): T;
 }
 
+/**
+ * Create a reactive signal — a value that notifies subscribers when it changes.
+ *
+ * @param initial - The initial value.
+ * @param label   - Optional debug label shown in the debug overlay.
+ * @returns A signal whose `.value` getter/setter is reactive.
+ *
+ * @example
+ * const count = signal(0);
+ * count.value;      // read: 0
+ * count.value = 5;  // write: triggers all subscribers
+ *
+ * const name = signal('Alice', 'userName'); // labelled for debug overlay
+ */
 export function signal<T>(initial: T, label?: string): Signal<T> {
   let value = initial;
   const subs = new Set<() => void>();
@@ -124,6 +138,20 @@ export function signal<T>(initial: T, label?: string): Signal<T> {
 
 // ── Computed ─────────────────────────────────────────────────────────
 
+/**
+ * Create a derived signal that auto-tracks its dependencies.
+ * Re-computes whenever any signal read inside `fn` changes.
+ * The result is read-only — writing throws.
+ *
+ * @param fn - Pure function that reads signals and returns a derived value.
+ * @returns A read-only signal.
+ *
+ * @example
+ * const price = signal(10);
+ * const qty   = signal(3);
+ * const total = computed(() => price.value * qty.value);
+ * total.value; // 30 — updates automatically when price or qty change
+ */
 export function computed<T>(fn: () => T): ReadonlySignal<T> {
   const inner = signal<T>(undefined as T);
 
@@ -155,6 +183,23 @@ export function computed<T>(fn: () => T): ReadonlySignal<T> {
 
 // ── Effect ──────────────────────────────────────────────────────────
 
+/**
+ * Run a side-effect that auto-tracks signal dependencies.
+ * Runs immediately, then re-runs whenever a dependency changes.
+ * If the effect throws, sibling effects still run; the first error is re-thrown
+ * after all subscribers have been notified.
+ *
+ * @param fn - The side-effect function. Reads signals to establish tracking.
+ * @returns A `dispose` function — call it to stop the effect.
+ *
+ * @example
+ * const count = signal(0);
+ * const stop = effect(() => {
+ *   console.log('count is', count.value);
+ * });
+ * // logs immediately, then on every count change
+ * stop(); // unsubscribe
+ */
 export function effect(fn: () => void): () => void {
   let disposed = false;
   let cleanups: (() => void)[] = [];
@@ -191,6 +236,20 @@ export function effect(fn: () => void): () => void {
 
 // ── Batch ───────────────────────────────────────────────────────────
 
+/**
+ * Batch multiple signal updates into a single notification pass.
+ * Subscribers are notified once after `fn` completes, not after each write.
+ *
+ * @param fn - Function containing one or more signal writes.
+ *
+ * @example
+ * const a = signal(1);
+ * const b = signal(2);
+ * batch(() => {
+ *   a.value = 10;
+ *   b.value = 20;
+ * }); // effects run once, not twice
+ */
 export function batch(fn: () => void): void {
   batchDepth++;
   try {
