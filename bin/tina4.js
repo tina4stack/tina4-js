@@ -42,7 +42,7 @@ if (!command || command === '--help' || command === '-h') {
 
 switch (command) {
   case 'create':
-    createProject(args[1], args.includes('--pwa'));
+    createProject(args[1], args.includes('--pwa'), args.includes('--css'));
     break;
   case 'dev':
     runDev();
@@ -58,7 +58,7 @@ switch (command) {
 
 // ── Create ──────────────────────────────────────────────────────────
 
-function createProject(name, withPwa) {
+function createProject(name, withPwa, withCss) {
   if (!name) {
     console.error('Usage: tina4 create <project-name>');
     process.exit(1);
@@ -99,7 +99,8 @@ function createProject(name, withPwa) {
       test: 'vitest run',
     },
     dependencies: {
-      tina4js: '^1.0.0-alpha.1',
+      tina4js: '^1.0.7',
+      ...(withCss ? { 'tina4-css': '^2.0.0' } : {}),
     },
     devDependencies: {
       vite: '^5.4.0',
@@ -146,7 +147,9 @@ export default defineConfig({
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${projectName}</title>
-  <link rel="stylesheet" href="/src/public/css/default.css">
+  ${withCss
+    ? '<link rel="stylesheet" href="/node_modules/tina4-css/dist/tina4.min.css">'
+    : '<link rel="stylesheet" href="/src/public/css/default.css">'}
 </head>
 <body>
   <div id="root"></div>
@@ -337,9 +340,10 @@ dist/
   console.log(`  ${c.green('✓')} Home page with reactive counter`);
   console.log(`  ${c.green('✓')} Router with /, /about, 404`);
   console.log(`  ${c.green('✓')} AppHeader web component`);
-  console.log(`  ${c.green('✓')} Default CSS`);
+  console.log(`  ${c.green('✓')} ${withCss ? 'tina4-css (full CSS framework)' : 'Default CSS'}`);
   console.log(`  ${c.green('✓')} TINA4.md (AI context file)`);
   if (withPwa) console.log(`  ${c.green('✓')} PWA support (service worker + manifest)`);
+  if (withCss) console.log(`  ${c.green('✓')} tina4-css@2.0.0 — grid, buttons, forms, tables, cards`);
 
   console.log(`\n${c.bold('Next steps:')}\n`);
   console.log(`  cd ${projectName}`);
@@ -439,15 +443,18 @@ function printHelp() {
 ${c.bold('tina4')} — Sub-3KB reactive framework
 
 ${c.bold('Usage:')}
-  tina4 create <name>           Create a new project
-  tina4 create <name> --pwa     Create with PWA support
-  tina4 dev                     Start dev server
-  tina4 build                   Production build → dist/
-  tina4 build --target php      Build for tina4-php
-  tina4 build --target python   Build for tina4-python
+  tina4 create <name>               Create a new project
+  tina4 create <name> --pwa         Create with PWA support
+  tina4 create <name> --css         Create with tina4-css framework
+  tina4 create <name> --pwa --css   Create with both
+  tina4 dev                         Start dev server
+  tina4 build                       Production build → dist/
+  tina4 build --target php          Build for tina4-php
+  tina4 build --target python       Build for tina4-python
 
 ${c.bold('Examples:')}
   ${c.dim('$')} npx tina4 create my-app
+  ${c.dim('$')} npx tina4 create my-app --css
   ${c.dim('$')} cd my-app && npm install && npm run dev
 `);
 }
