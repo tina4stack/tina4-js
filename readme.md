@@ -1,8 +1,10 @@
 # Tina4-JS
 
-Sub-3KB reactive framework — signals, web components, routing, and PWA.
+Sub-3KB reactive framework — signals, web components, routing, PWA, WebSocket, and API client.
 
 Works standalone or embedded inside [tina4-php](https://github.com/tina4stack/tina4-php) / [tina4-python](https://github.com/tina4stack/tina4-python).
+
+**[Live Gallery — 9 real-world examples](https://tina4stack.github.io/tina4-js/examples/gallery/)** · dashboards, CRUD, chat, auth, cart, forms, PWA, data tables, and live search — all self-contained, no build step.
 
 ## Why?
 
@@ -193,6 +195,29 @@ pwa.register({
 });
 ```
 
+### WebSocket — Signal-driven real-time
+
+```ts
+import { ws } from 'tina4js/ws';
+
+const socket = ws.connect('wss://api.example.com/ws');
+
+// Reactive signals — use in html templates
+socket.status.value;     // 'connecting' | 'connected' | 'disconnected' | 'error'
+socket.connected.value;  // boolean
+socket.lastMessage.value;
+
+// Pipe messages into a signal
+const messages = signal([]);
+socket.pipe(messages, (msg, current) => [...current, msg]);
+
+// Send
+socket.send({ type: 'ping' }); // objects auto-JSON serialised
+
+// Auto-reconnects with exponential backoff by default
+socket.close(); // intentional close — no reconnect
+```
+
 ### Debug Overlay
 
 A built-in debug overlay that shows live signal values, component tree, route history, and API calls.
@@ -239,6 +264,21 @@ npm run dev       # dev server
 ```
 
 ## Changelog
+
+### 1.0.9
+- **Fix:** All `@event` handlers are now automatically wrapped in `batch()` — multiple signal writes inside a single handler produce exactly one re-render after the event finishes, preventing mid-event DOM rebuilds and duplicate handler calls on re-rendered elements
+
+### 1.0.8
+- Added `--css` flag to `tina4 create` — scaffolds with [tina4-css](https://www.npmjs.com/package/tina4-css) included
+- Added gallery of 9 real-world examples: [live demo](https://tina4stack.github.io/tina4-js/examples/gallery/)
+
+### 1.0.7
+- Added WebSocket module (`tina4js/ws`) with signal-driven status, auto-reconnect with exponential backoff, `pipe()` for streaming messages into signals, and JSON auto-parse/serialise
+- Fixed effect error isolation — a throwing effect no longer blocks sibling effects
+- Fixed API request/response correlation for concurrent requests
+- Fixed API tracker always showing empty URL in debug overlay
+- Added per-request `headers` and `params` to all API methods
+- 231 tests across 10 test files
 
 ### 1.0.5
 - **Fix:** Effects now properly unsubscribe from signals on dispose — prevents stale subscriptions accumulating in signal subscriber sets across navigations
