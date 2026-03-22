@@ -8,3 +8,5 @@ npm publish
 /.claude/launch.json
 /examples/todo-app/package-lock.json
 .npm-token
+coverage/
+.DS_Store
