@@ -5,7 +5,7 @@
  * When a signal is interpolated, the DOM updates surgically — no diffing.
  */
 
-import { effect, isSignal, _setEffectCollector, _getEffectCollector, type Signal } from './signal';
+import { effect, batch, isSignal, _setEffectCollector, _getEffectCollector, type Signal } from './signal';
 
 // Cache parsed templates by their static string parts identity
 const templateCache = new WeakMap<TemplateStringsArray, HTMLTemplateElement>();
@@ -196,7 +196,7 @@ function bindElementAttrs(el: Element, values: unknown[]): void {
       if (match) {
         const handler = values[parseInt(match[1], 10)];
         if (typeof handler === 'function') {
-          el.addEventListener(eventName, handler as EventListener);
+          el.addEventListener(eventName, (e) => batch(() => (handler as EventListener)(e)));
         }
       }
       attrsToRemove.push(name);

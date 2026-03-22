@@ -122,6 +122,55 @@ describe('html + events', () => {
     input.dispatchEvent(new Event('input'));
     expect(value).toBe('test');
   });
+
+  it('batches signal updates inside @click — only one re-render per click', () => {
+    const a = signal(0);
+    const b = signal(0);
+    let renderCount = 0;
+
+    // Read .value directly so the outer reactive block tracks both signals
+    const container = document.createElement('div');
+    const frag = html`
+      <div>
+        ${() => { renderCount++; return String(a.value + b.value); }}
+        <button @click=${() => {
+          a.value++;
+          b.value++;
+        }}>Go</button>
+      </div>`;
+    container.appendChild(frag);
+    document.body.appendChild(container);
+
+    const initialRenders = renderCount;
+    const btn = container.querySelector('button')!;
+    btn.click();
+
+    // Both signal writes should cause exactly ONE re-render, not two
+    expect(renderCount).toBe(initialRenders + 1);
+    expect(a.value).toBe(1);
+    expect(b.value).toBe(1);
+  });
+
+  it('reactive block does not re-render mid-click when signal updated in handler', () => {
+    const items = signal(['a', 'b']);
+    const clicked: string[] = [];
+
+    const frag = html`
+      <ul>${() => items.value.map(item => html`
+        <li @click=${() => {
+          clicked.push(item);
+          items.value = [...items.value, 'c'];
+        }}>${item}</li>
+      `)}</ul>`;
+    document.body.appendChild(frag);
+
+    const li = document.body.querySelector('li')!;
+    li.click();
+
+    // Handler should fire exactly once, not once per re-render
+    expect(clicked.length).toBe(1);
+    expect(clicked[0]).toBe('a');
+  });
 });
 
 describe('html + dynamic content (functions)', () => {
