@@ -101,6 +101,23 @@ describe('html + signals (reactive)', () => {
     disabled.value = false;
     expect(btn.disabled).toBe(false);
   });
+
+  it('handles boolean attributes with function wrapper', () => {
+    const show = signal(false);
+    const frag = html`<div ?hidden=${() => !show.value}>Content</div>`;
+    const div = frag.firstElementChild as HTMLElement;
+    document.body.appendChild(div);
+
+    // show=false → !show.value=true → hidden should be set
+    expect(div.hasAttribute('hidden')).toBe(true);
+
+    show.value = true;
+    // show=true → !show.value=false → hidden should be removed
+    expect(div.hasAttribute('hidden')).toBe(false);
+
+    show.value = false;
+    expect(div.hasAttribute('hidden')).toBe(true);
+  });
 });
 
 describe('html + events', () => {

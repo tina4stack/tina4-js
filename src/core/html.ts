@@ -218,6 +218,14 @@ function bindElementAttrs(el: Element, values: unknown[]): void {
               el.removeAttribute(attrName);
             }
           });
+        } else if (typeof val === 'function') {
+          effect(() => {
+            if ((val as () => unknown)()) {
+              el.setAttribute(attrName, '');
+            } else {
+              el.removeAttribute(attrName);
+            }
+          });
         } else {
           if (val) el.setAttribute(attrName, '');
         }
