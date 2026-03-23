@@ -335,6 +335,28 @@
       btn.addEventListener('click', () => addField(btn.dataset.type));
     });
 
+    // ── Focus preservation helpers ────────────────────────────────────
+    function saveFocus() {
+      const el = document.activeElement;
+      if (!el || !el.dataset.id) return null;
+      return {
+        id: el.dataset.id,
+        cls: el.classList[0],
+        start: el.selectionStart,
+        end: el.selectionEnd,
+      };
+    }
+
+    function restoreFocus(saved, container) {
+      if (!saved) return;
+      const el = container.querySelector(`[data-id="${saved.id}"].${saved.cls}`);
+      if (!el) return;
+      el.focus();
+      if (saved.start != null && el.setSelectionRange) {
+        try { el.setSelectionRange(saved.start, saved.end); } catch(_) {}
+      }
+    }
+
     // ── Render Builder Fields ─────────────────────────────────────────
     const fieldListEl = document.getElementById('field-list');
     const fieldCountEl = document.getElementById('field-count');
@@ -342,6 +364,8 @@
     effect(() => {
       const flds = fields.value;
       fieldCountEl.textContent = flds.length + ' field' + (flds.length !== 1 ? 's' : '');
+
+      const focused = saveFocus();
 
       fieldListEl.innerHTML = '';
 
@@ -381,7 +405,6 @@
         `;
         container.appendChild(card);
 
-        // Wire up events
         card.querySelector('.field-remove').addEventListener('click', () => removeField(field.id));
         card.querySelector('.label-input').addEventListener('input', (e) => updateField(field.id, 'label', e.target.value));
         card.querySelector('.placeholder-input').addEventListener('input', (e) => updateField(field.id, 'placeholder', e.target.value));
@@ -394,6 +417,7 @@
       });
 
       fieldListEl.appendChild(container);
+      restoreFocus(focused, fieldListEl);
     });
 
     // ── Render Preview ────────────────────────────────────────────────
@@ -406,6 +430,8 @@
       // Force dependency on formValues too
       const vals = formValues.value;
 
+      const focused = saveFocus();
+
       if (flds.length === 0) {
         previewContent.innerHTML = '<div class="preview-empty">Add fields to see a live preview</div>';
         actionsBar.style.display = 'none';
@@ -413,6 +439,7 @@
         validBadge.className = 'valid-badge';
         return;
       }
+
 
       actionsBar.style.display = 'flex';
 
@@ -493,8 +520,10 @@
         form.appendChild(summary);
       }
 
+      const focused = saveFocus();
       previewContent.innerHTML = '';
       previewContent.appendChild(form);
+      restoreFocus(focused, previewContent);
     });
 
     // ── Actions Bar ───────────────────────────────────────────────────
