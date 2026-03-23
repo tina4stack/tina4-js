@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://tina4.com/javascript">Documentation</a> &bull;
+  <a href="https://tina4.com/js">Documentation</a> &bull;
   <a href="#quick-start">Quick Start</a> &bull;
   <a href="#whats-included">What's Included</a> &bull;
   <a href="https://tina4stack.github.io/tina4-js/examples/gallery/">Live Gallery</a> &bull;
@@ -63,7 +63,7 @@ Every module is built from scratch -- no node_modules bloat, no third-party runt
 
 **238 tests across 10 test files. Zero dependencies. Under 3KB for the full core.**
 
-For full documentation visit **[tina4.com/javascript](https://tina4.com/javascript)**.
+For full documentation visit **[tina4.com/javascript](https://tina4.com/js)**.
 
 ---
 
