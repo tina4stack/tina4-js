@@ -203,9 +203,9 @@ import { ws } from 'tina4js/ws';
 const socket = ws.connect('wss://api.example.com/ws');
 
 // Reactive signals — use in html templates
-socket.status.value;     // 'connecting' | 'connected' | 'disconnected' | 'error'
-socket.connected.value;  // boolean
-socket.lastMessage.value;
+socket.status.value;     // 'connecting' | 'open' | 'closed' | 'reconnecting'
+socket.connected.value;  // boolean — true when status is 'open'
+socket.lastMessage.value; // last received message (JSON auto-parsed)
 
 // Pipe messages into a signal
 const messages = signal([]);
