@@ -54,6 +54,24 @@
     .clear-btn { width: 100%; padding: 0.5rem; border: 1px solid #334155; border-radius: 6px; background: #0f172a; color: #f87171; cursor: pointer; font-size: 0.8rem; margin-top: 0.75rem; transition: background 0.2s; }
     .clear-btn:hover { background: #1c1117; border-color: #f87171; }
 
+    /* Cart Dropdown */
+    .cart-dropdown-wrap { position: relative; }
+    .cart-dropdown { display: none; position: absolute; top: 100%; right: 0; margin-top: 0.5rem; width: 320px; background: #1e293b; border: 1px solid #334155; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); z-index: 200; overflow: hidden; }
+    .cart-dropdown.open { display: block; }
+    .cart-dropdown-header { padding: 0.75rem 1rem; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 600; }
+    .cart-dropdown-items { max-height: 240px; overflow-y: auto; padding: 0.5rem; }
+    .cart-dropdown-item { display: flex; gap: 0.6rem; align-items: center; padding: 0.5rem; border-radius: 6px; margin-bottom: 0.25rem; }
+    .cart-dropdown-item:hover { background: #0f172a; }
+    .cart-dropdown-item-color { width: 28px; height: 28px; border-radius: 5px; flex-shrink: 0; }
+    .cart-dropdown-item-name { font-size: 0.8rem; font-weight: 500; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cart-dropdown-item-qty { font-size: 0.7rem; color: #94a3b8; flex-shrink: 0; }
+    .cart-dropdown-item-price { font-size: 0.8rem; color: #38bdf8; font-weight: 600; flex-shrink: 0; width: 60px; text-align: right; }
+    .cart-dropdown-footer { padding: 0.75rem 1rem; border-top: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .cart-dropdown-total { font-size: 0.95rem; font-weight: 700; color: #38bdf8; }
+    .cart-dropdown-empty { padding: 2rem 1rem; text-align: center; color: #64748b; font-size: 0.85rem; }
+    .checkout-btn { padding: 0.4rem 0.9rem; border-radius: 6px; border: none; background: #38bdf8; color: #0f172a; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .checkout-btn:hover { background: #7dd3fc; }
+
     .source { margin-top: 2rem; background: #1e293b; border-radius: 10px; padding: 1.5rem; border: 1px solid #334155; }
     .source h3 { margin-bottom: 1rem; color: #94a3b8; font-size: 0.9rem; }
     pre { background: #0f172a; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; color: #e2e8f0; }
@@ -69,7 +87,20 @@
   <div class="nav">
     <span class="title">05 — Shopping Cart</span>
     <div style="display:flex;align-items:center;gap:1.5rem;">
-      <span class="cart-badge" id="nav-cart">&#128722; Cart <span class="badge" id="nav-badge">0</span></span>
+      <div class="cart-dropdown-wrap">
+        <span class="cart-badge" id="nav-cart">&#128722; Cart <span class="badge" id="nav-badge">0</span></span>
+        <div class="cart-dropdown" id="cart-dropdown">
+          <div class="cart-dropdown-header">
+            <span>Your Cart</span>
+            <span id="dropdown-count"></span>
+          </div>
+          <div id="dropdown-items"></div>
+          <div class="cart-dropdown-footer" id="dropdown-footer" style="display:none;">
+            <span class="cart-dropdown-total" id="dropdown-total"></span>
+            <button class="checkout-btn">Checkout</button>
+          </div>
+        </div>
+      </div>
       <a href="index.html">&larr; Gallery</a>
     </div>
   </div>
@@ -240,6 +271,58 @@
       const count = itemCount.value;
       navBadge.textContent = count;
       navBadge.style.display = count > 0 ? 'inline' : 'none';
+    });
+
+    // ── Cart Dropdown ─────────────────────────────────────────────────
+    const dropdown = document.getElementById('cart-dropdown');
+    const dropdownItems = document.getElementById('dropdown-items');
+    const dropdownCount = document.getElementById('dropdown-count');
+    const dropdownTotal = document.getElementById('dropdown-total');
+    const dropdownFooter = document.getElementById('dropdown-footer');
+    const navCart = document.getElementById('nav-cart');
+
+    navCart.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target) && !navCart.contains(e.target)) {
+        dropdown.classList.remove('open');
+      }
+    });
+
+    effect(() => {
+      const items = cartItems.value;
+      const count = itemCount.value;
+
+      dropdownCount.textContent = count + ' item' + (count !== 1 ? 's' : '');
+
+      if (items.length === 0) {
+        dropdownItems.innerHTML = '<div class="cart-dropdown-empty">Your cart is empty</div>';
+        dropdownFooter.style.display = 'none';
+        return;
+      }
+
+      dropdownFooter.style.display = 'flex';
+      dropdownTotal.textContent = '$' + total.value.toFixed(2);
+
+      dropdownItems.innerHTML = '';
+      const container = document.createElement('div');
+      container.className = 'cart-dropdown-items';
+      items.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'cart-dropdown-item';
+        el.innerHTML = `
+          <div class="cart-dropdown-item-color" style="background:${item.color || '#334155'}"></div>
+          <span class="cart-dropdown-item-name">${item.name}</span>
+          <span class="cart-dropdown-item-qty">&times;${item.qty}</span>
+          <span class="cart-dropdown-item-price">$${(item.price * item.qty).toFixed(2)}</span>
+        `;
+        container.appendChild(el);
+      });
+      dropdownItems.innerHTML = '';
+      dropdownItems.appendChild(container);
     });
 
     // Cart panel content
