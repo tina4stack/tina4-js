@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { html } from '../src/core/html';
-import { signal } from '../src/core/signal';
+import { signal, computed } from '../src/core/signal';
 
 afterEach(() => {
   document.body.innerHTML = '';
@@ -117,6 +117,126 @@ describe('html + signals (reactive)', () => {
 
     show.value = false;
     expect(div.hasAttribute('hidden')).toBe(true);
+  });
+
+  it('opposing ?hidden pair toggles correctly', () => {
+    const connected = signal(false);
+    const frag = html`
+      <div>
+        <div id="offline" ?hidden=${() => connected.value}>Connecting...</div>
+        <div id="online" ?hidden=${() => !connected.value}>Connected</div>
+      </div>
+    `;
+    const container = frag.firstElementChild!;
+    document.body.appendChild(container);
+
+    const offline = container.querySelector('#offline') as HTMLElement;
+    const online = container.querySelector('#online') as HTMLElement;
+
+    // Initially disconnected: offline visible, online hidden
+    expect(offline.hasAttribute('hidden')).toBe(false);
+    expect(online.hasAttribute('hidden')).toBe(true);
+
+    connected.value = true;
+    expect(offline.hasAttribute('hidden')).toBe(true);
+    expect(online.hasAttribute('hidden')).toBe(false);
+
+    connected.value = false;
+    expect(offline.hasAttribute('hidden')).toBe(false);
+    expect(online.hasAttribute('hidden')).toBe(true);
+  });
+
+  it('?hidden inside a reactive block re-evaluates on signal change', () => {
+    const items = signal(['a', 'b']);
+    const editing = signal('');
+
+    const container = document.createElement('div');
+    const frag = html`
+      <ul>${() => items.value.map(item => html`
+        <li>
+          <span class="display" ?hidden=${() => editing.value === item}>${item}</span>
+          <input class="editor" ?hidden=${() => editing.value !== item}>
+        </li>
+      `)}</ul>
+    `;
+    container.appendChild(frag);
+    document.body.appendChild(container);
+
+    const lis = container.querySelectorAll('li');
+
+    // Initially no editing — all displays visible, all editors hidden
+    expect(lis[0].querySelector('.display')!.hasAttribute('hidden')).toBe(false);
+    expect(lis[0].querySelector('.editor')!.hasAttribute('hidden')).toBe(true);
+    expect(lis[1].querySelector('.display')!.hasAttribute('hidden')).toBe(false);
+    expect(lis[1].querySelector('.editor')!.hasAttribute('hidden')).toBe(true);
+
+    // Start editing 'a'
+    editing.value = 'a';
+    // The reactive block re-renders because editing changed... but editing is NOT
+    // read by the outer ${() => items.value.map(...)} — only by the ?hidden functions.
+    // So the outer block should NOT re-render. The ?hidden effects should update in-place.
+    const lis2 = container.querySelectorAll('li');
+    expect(lis2[0].querySelector('.display')!.hasAttribute('hidden')).toBe(true);
+    expect(lis2[0].querySelector('.editor')!.hasAttribute('hidden')).toBe(false);
+    expect(lis2[1].querySelector('.display')!.hasAttribute('hidden')).toBe(false);
+    expect(lis2[1].querySelector('.editor')!.hasAttribute('hidden')).toBe(true);
+
+    // Stop editing
+    editing.value = '';
+    const lis3 = container.querySelectorAll('li');
+    expect(lis3[0].querySelector('.display')!.hasAttribute('hidden')).toBe(false);
+    expect(lis3[0].querySelector('.editor')!.hasAttribute('hidden')).toBe(true);
+  });
+
+  it('?hidden with computed signal', () => {
+    const count = signal(0);
+    const isEmpty = computed(() => count.value === 0);
+    const frag = html`
+      <div>
+        <p id="empty" ?hidden=${() => !isEmpty.value}>No items</p>
+        <p id="count" ?hidden=${isEmpty}>Items: ${count}</p>
+      </div>
+    `;
+    const container = frag.firstElementChild!;
+    document.body.appendChild(container);
+
+    const empty = container.querySelector('#empty') as HTMLElement;
+    const countEl = container.querySelector('#count') as HTMLElement;
+
+    // count=0 → isEmpty=true → empty visible, count hidden
+    expect(empty.hasAttribute('hidden')).toBe(false);
+    expect(countEl.hasAttribute('hidden')).toBe(true);
+
+    count.value = 5;
+    expect(empty.hasAttribute('hidden')).toBe(true);
+    expect(countEl.hasAttribute('hidden')).toBe(false);
+
+    count.value = 0;
+    expect(empty.hasAttribute('hidden')).toBe(false);
+    expect(countEl.hasAttribute('hidden')).toBe(true);
+  });
+
+  it('?disabled with function reacts to multiple signal changes', () => {
+    const loading = signal(false);
+    const valid = signal(false);
+    const frag = html`<button ?disabled=${() => loading.value || !valid.value}>Submit</button>`;
+    const btn = frag.firstElementChild as HTMLButtonElement;
+    document.body.appendChild(btn);
+
+    // loading=false, valid=false → disabled (not valid)
+    expect(btn.disabled).toBe(true);
+
+    valid.value = true;
+    // loading=false, valid=true → enabled
+    expect(btn.disabled).toBe(false);
+
+    loading.value = true;
+    // loading=true → disabled
+    expect(btn.disabled).toBe(true);
+
+    loading.value = false;
+    // back to enabled
+    expect(btn.disabled).toBe(false);
   });
 });
 
