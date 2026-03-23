@@ -129,37 +129,9 @@ effect(() => renderTable(paged.value));</code></pre>
     </div>
   </div>
 
+  <script src="tina4.bundle.js"></script>
   <script type="module">
-    // ── Signals (inline for standalone demo) ─────────────────────────
-    let currentSub = null;
-    const batchQueue = new Set();
-    let batching = false;
-
-    function signal(initial) {
-      let val = initial;
-      const subs = new Set();
-      return {
-        get value() { if (currentSub) subs.add(currentSub); return val; },
-        set value(v) { if (Object.is(val, v)) return; val = v; if (batching) { for (const s of subs) batchQueue.add(s); } else { for (const s of [...subs]) s(); } },
-        peek() { return val; }
-      };
-    }
-
-    function computed(fn) {
-      const s = signal(undefined);
-      effect(() => { s.value = fn(); });
-      return { get value() { return s.value; }, peek: s.peek };
-    }
-
-    function effect(fn) {
-      const run = () => { const prev = currentSub; currentSub = run; try { fn(); } finally { currentSub = prev; } };
-      run();
-    }
-
-    function batch(fn) {
-      batching = true;
-      try { fn(); } finally { batching = false; const q = [...batchQueue]; batchQueue.clear(); for (const s of q) s(); }
-    }
+    const { signal, computed, effect, batch } = window.tina4;
 
     // ── Sample Data ──────────────────────────────────────────────────
     let nextId = 11;

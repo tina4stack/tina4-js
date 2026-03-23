@@ -165,7 +165,7 @@ api.configure({
 });
 
 const users = await api.get('/users');
-const user  = await api.get('/users/{id}', { id: 42 });
+const user  = await api.get('/users/42');
 const result = await api.post('/users', { name: 'Andre' });
 
 // Interceptors

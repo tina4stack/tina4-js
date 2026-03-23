@@ -53,6 +53,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:size": "vitest run tests/size.test.ts",
+    "build:gallery": "vite build --config examples/gallery/vite.gallery.config.ts",
     "preview": "vite preview"
   },
   "devDependencies": {
