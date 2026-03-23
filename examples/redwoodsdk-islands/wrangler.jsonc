@@ -1,0 +1,19 @@
+{
+  "name": "redwoodsdk-tina4-islands",
+  "compatibility_date": "2024-01-01",
+  "main": "src/worker.tsx",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "SYNCED_STATE_SERVER",
+        "class_name": "SyncedStateServer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["SyncedStateServer"]
+    }
+  ]
+}
