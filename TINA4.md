@@ -311,13 +311,13 @@ if (import.meta.env.DEV) import('tina4js/debug');
 
 | Module | Gzipped |
 |--------|---------|
-| Core (signals + html + component) | ~1.5 KB |
+| Core (signals + html + component) | ~1.51 KB |
 | Router | ~0.12 KB |
-| API | ~0.97 KB |
+| API | ~1.49 KB |
 | WebSocket | ~0.91 KB |
 | PWA | ~1.16 KB |
-| Debug overlay | ~5.1 KB |
-| **Total (core modules)** | **~4.66 KB** |
+| Debug overlay | ~5.11 KB |
+| **Total (core modules)** | **~5.19 KB** |
 
 ## Architecture
 
