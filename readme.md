@@ -1,26 +1,71 @@
-# Tina4-JS
+<p align="center">
+  <img src="https://tina4.com/logo.svg" alt="Tina4" width="200">
+</p>
 
-Sub-3KB reactive framework — signals, web components, routing, PWA, WebSocket, and API client.
+<h1 align="center">tina4-js</h1>
+<h3 align="center">This is not a framework</h3>
 
-Works standalone or embedded inside [tina4-php](https://github.com/tina4stack/tina4-php) / [tina4-python](https://github.com/tina4stack/tina4-python).
+<p align="center">
+  Sub-3KB reactive frontend. Signals. Web Components. Zero dependencies.
+</p>
 
-**[Live Gallery — 9 real-world examples](https://tina4stack.github.io/tina4-js/examples/gallery/)** · dashboards, CRUD, chat, auth, cart, forms, PWA, data tables, and live search — all self-contained, no build step.
+<p align="center">
+  <a href="https://tina4.com/javascript">Documentation</a> &bull;
+  <a href="#quick-start">Quick Start</a> &bull;
+  <a href="#whats-included">What's Included</a> &bull;
+  <a href="https://tina4stack.github.io/tina4-js/examples/gallery/">Live Gallery</a> &bull;
+  <a href="https://tina4.com">tina4.com</a>
+</p>
 
-## Why?
+<p align="center">
+  <img src="https://img.shields.io/badge/version-1.0.12-blue" alt="Version 1.0.12">
+  <img src="https://img.shields.io/badge/tests-238%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/gzip-~1.5KB%20core-blue" alt="Core Size">
+  <img src="https://img.shields.io/badge/zero--dep-core-blue" alt="Zero Dependencies">
+  <img src="https://img.shields.io/badge/node-18%2B-blue" alt="Node 18+">
+  <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="MIT License">
+</p>
 
-| Feature               | React  | Preact | Vue    | **tina4-js** |
-|-----------------------|--------|--------|--------|--------------|
-| Size (gzip)           | 42KB   | 3KB    | 33KB   | **~2KB**     |
-| Virtual DOM           | Yes    | Yes    | Yes    | **No**       |
-| Components            | Custom | Custom | Custom | **Native Web Components** |
-| Reactivity            | Hooks  | Hooks  | Proxy  | **Signals**  |
-| Router included       | No     | No     | No     | **Yes**      |
-| HTTP client included  | No     | No     | No     | **Yes**      |
-| PWA support           | No     | No     | No     | **Yes**      |
-| Backend integration   | None   | None   | None   | **tina4-php/python** |
-| Works without build   | No     | No     | No     | **Yes** (ESM) |
+---
 
-No virtual DOM. Signals track exactly which DOM nodes need updating — O(1) updates.
+## Quick Start
+
+```bash
+# Create a project
+npx tina4 create my-app
+
+# With optional CSS framework
+npx tina4 create my-app --css
+
+# With PWA support
+npx tina4 create my-app --css --pwa
+
+# Run it
+cd my-app && npm install && npm run dev
+```
+
+Open http://localhost:3000 -- your app is running.
+
+---
+
+## What's Included
+
+Every module is built from scratch -- no node_modules bloat, no third-party runtime dependencies.
+
+| Module | Gzipped | What it does |
+|--------|---------|-------------|
+| **Core** | 1.51 KB | Signals, computed, effect, batch, html tagged templates, Tina4Element web components |
+| **Router** | 0.12 KB | Client-side SPA routing, path params (`{id}`), guards, history/hash mode |
+| **API** | 1.49 KB | Fetch client with auth (Bearer + formToken + FreshToken rotation), interceptors, per-request headers/params |
+| **WebSocket** | 0.91 KB | Signal-driven status, auto-reconnect with exponential backoff, pipe() to signal, JSON auto-parse |
+| **PWA** | 1.16 KB | Service worker + manifest generation, cache strategies (network-first, cache-first, stale-while-revalidate) |
+| **Debug** | 5.11 KB | Dev overlay (Ctrl+Shift+D) -- signals, components, routes, API panels |
+
+**238 tests across 10 test files. Zero dependencies. Under 3KB for the full core.**
+
+For full documentation visit **[tina4.com/javascript](https://tina4.com/javascript)**.
+
+---
 
 ## Install
 
@@ -32,84 +77,75 @@ Or use via CDN with zero build tools:
 
 ```html
 <script type="module">
-  import { signal, html } from 'https://cdn.jsdelivr.net/npm/tina4js/dist/tina4.esm.js';
+  import { signal, html } from 'https://cdn.jsdelivr.net/npm/tina4js/dist/tina4.es.js';
 </script>
-```
-
-## Quick Start
-
-```bash
-npm run dev    # dev server with HMR
-npm run build  # production build
-npm test       # run tests
 ```
 
 ---
 
-## API Reference
+## Getting Started
 
-### Signals — Reactive State
+### 1. Create a project
+
+```bash
+npx tina4 create my-app --css
+cd my-app && npm install
+```
+
+This creates:
+
+```
+my-app/
+  index.html              # Entry point
+  package.json            # Dependencies: tina4js, vite, typescript
+  src/
+    main.ts               # App entry -- imports routes, starts router
+    routes/
+      index.ts            # Route definitions
+    pages/
+      home.ts             # Home page handler
+    components/
+      app-header.ts       # Example web component
+    public/
+      css/
+        default.css       # Default styles
+```
+
+### 2. Create a signal
 
 ```ts
-import { signal, computed, effect, batch } from 'tina4js';
+import { signal, computed, html } from 'tina4js';
 
-// Create a reactive value
 const count = signal(0);
-count.value;       // read: 0
-count.value = 5;   // write: triggers subscribers
-
-// Derived value (auto-tracks dependencies)
 const doubled = computed(() => count.value * 2);
-doubled.value;     // 10 (read-only)
 
-// Side effect (auto-tracks dependencies)
-const dispose = effect(() => {
-  console.log(`Count is ${count.value}`);
-});
-// Runs immediately, then re-runs when count changes.
-// Call dispose() to stop.
+const view = html`
+  <button @click=${() => count.value--}>-</button>
+  <span>${count}</span>
+  <button @click=${() => count.value++}>+</button>
+  <p>Doubled: ${doubled}</p>
+`;
 
-// Batch multiple updates (one notification)
-batch(() => {
-  a.value = 1;
-  b.value = 2;
-}); // subscribers notified once
+document.body.append(view);
 ```
 
-### html`` — Tagged Template Renderer
+### 3. Create a route
 
 ```ts
-import { html, signal } from 'tina4js';
+import { route, router, html } from 'tina4js';
 
-const name = signal('World');
+route('/', () => html`<h1>Home</h1>`);
+route('/user/{id}', ({ id }) => html`<h1>User ${id}</h1>`);
+route('/admin', {
+  guard: () => isLoggedIn() || '/login',
+  handler: () => html`<h1>Admin</h1>`,
+});
+route('*', () => html`<h1>404</h1>`);
 
-// Creates real DOM nodes (not strings)
-const el = html`<h1>Hello ${name}!</h1>`;
-document.body.append(el);
-
-name.value = 'Tina4'; // DOM updates surgically — no diffing
-
-// Event handlers
-html`<button @click=${() => alert('clicked')}>Go</button>`;
-
-// Conditional rendering
-const show = signal(true);
-html`<div>${() => show.value ? html`<p>Visible</p>` : null}</div>`;
-
-// List rendering
-const items = signal(['a', 'b', 'c']);
-html`<ul>${() => items.value.map(i => html`<li>${i}</li>`)}</ul>`;
-
-// Reactive attributes
-const cls = signal('active');
-html`<div class=${cls}>Styled</div>`;
-
-// Boolean attributes
-const disabled = signal(false);
-html`<button ?disabled=${disabled}>Submit</button>`;
+router.start({ target: '#root', mode: 'history' });
 ```
 
-### Tina4Element — Web Components
+### 4. Create a component
 
 ```ts
 import { Tina4Element, html, signal } from 'tina4js';
@@ -135,52 +171,55 @@ customElements.define('my-counter', MyCounter);
 <my-counter label="Clicks"></my-counter>
 ```
 
-### Router — Client-Side Routing
-
-```ts
-import { route, router, navigate, html } from 'tina4js';
-
-route('/', () => html`<h1>Home</h1>`);
-route('/user/{id}', ({ id }) => html`<h1>User ${id}</h1>`);
-route('/admin', {
-  guard: () => isLoggedIn() || '/login',
-  handler: () => html`<h1>Admin</h1>`,
-});
-route('*', () => html`<h1>404</h1>`);
-
-router.start({ target: '#root', mode: 'history' });
-
-// Programmatic navigation
-navigate('/user/42');
-```
-
-### API — Fetch Client
+### 5. Talk to your backend
 
 ```ts
 import { api } from 'tina4js';
 
 api.configure({
   baseUrl: '/api',
-  auth: true,  // auto Bearer + formToken (tina4-php/python compatible)
+  auth: true,  // Bearer + formToken (tina4-php/python compatible)
 });
 
 const users = await api.get('/users');
 const user  = await api.get('/users/42');
 const result = await api.post('/users', { name: 'Andre' });
 
-// Interceptors
-api.intercept('request', (config) => {
-  config.headers['X-Custom'] = 'value';
-  return config;
+// Query params
+const admins = await api.get('/users', {
+  params: { role: 'admin', active: true },
 });
 
+// Per-request headers
+const data = await api.get('/data', {
+  headers: { 'X-API-Version': '2' },
+});
+
+// Interceptors
 api.intercept('response', (res) => {
   if (res.status === 401) navigate('/login');
   return res;
 });
 ```
 
-### PWA — Progressive Web App
+### 6. Real-time with WebSocket
+
+```ts
+import { ws, signal } from 'tina4js';
+
+const socket = ws.connect('wss://api.example.com/ws');
+const messages = signal([]);
+
+socket.pipe(messages, (msg, current) => [...current, msg]);
+
+// Reactive signals
+socket.status.value;     // 'connecting' | 'open' | 'closed' | 'reconnecting'
+socket.connected.value;  // boolean
+socket.send({ type: 'ping' }); // auto-JSON
+socket.close(); // intentional -- no reconnect
+```
+
+### 7. Make it a PWA
 
 ```ts
 import { pwa } from 'tina4js';
@@ -191,55 +230,17 @@ pwa.register({
   themeColor: '#1a1a2e',
   cacheStrategy: 'network-first',
   precache: ['/', '/css/default.css'],
-  offlineRoute: '/offline',
 });
 ```
 
-### WebSocket — Signal-driven real-time
+### 8. Debug everything
 
 ```ts
-import { ws } from 'tina4js/ws';
-
-const socket = ws.connect('wss://api.example.com/ws');
-
-// Reactive signals — use in html templates
-socket.status.value;     // 'connecting' | 'open' | 'closed' | 'reconnecting'
-socket.connected.value;  // boolean — true when status is 'open'
-socket.lastMessage.value; // last received message (JSON auto-parsed)
-
-// Pipe messages into a signal
-const messages = signal([]);
-socket.pipe(messages, (msg, current) => [...current, msg]);
-
-// Send
-socket.send({ type: 'ping' }); // objects auto-JSON serialised
-
-// Auto-reconnects with exponential backoff by default
-socket.close(); // intentional close — no reconnect
-```
-
-### Debug Overlay
-
-A built-in debug overlay that shows live signal values, component tree, route history, and API calls.
-
-```ts
-// Always-on (remove for production)
-import 'tina4js/debug';
-
-// Dev-only (recommended) — tree-shaken out of production builds
+// Dev-only — tree-shaken out of production builds
 if (import.meta.env.DEV) import('tina4js/debug');
 ```
 
-Once enabled, toggle the overlay with **Ctrl+Shift+D**.
-
-The overlay shows four tabs:
-
-| Tab | What it shows |
-|-----|---------------|
-| **Signals** | All signals with current value, subscriber count, and update count |
-| **Components** | Mounted `Tina4Element` web components |
-| **Routes** | Navigation history with timing |
-| **API** | Intercepted `api.*` requests and responses |
+Toggle with **Ctrl+Shift+D**. Shows live signal values, mounted components, route history, and API calls.
 
 ---
 
@@ -248,60 +249,67 @@ The overlay shows four tabs:
 | Mode | Description |
 |------|-------------|
 | **Standalone** | `npm run build` → deploy `dist/` to any static host |
-| **tina4-php** | `npm run build` → JS bundle into `src/public/js/`, uses `TINA4_APP_DOCUMENT_ROOT` |
-| **tina4-python** | `npm run build` → JS bundle into `src/public/js/`, with catch-all route |
+| **tina4-php** | `npm run build` → JS bundle into `src/public/js/` |
+| **tina4-python** | `npm run build` → JS bundle into `src/public/js/` |
 | **Islands** | No SPA — hydrate individual web components in server-rendered pages |
+
+---
+
+## Live Gallery
+
+**[9 real-world examples](https://tina4stack.github.io/tina4-js/examples/gallery/)** you can learn from, copy, and build on:
+
+1. Admin Dashboard -- reactive KPIs, polling, notification feed
+2. Contact Manager -- full CRUD with search/filter
+3. Real-time Chat -- WebSocket with typing indicators
+4. Auth Flow -- JWT login, protected routes, token refresh
+5. Shopping Cart -- shared signals, computed totals, localStorage
+6. Dynamic Form Builder -- drag fields, live preview, JSON export
+7. PWA Notes -- offline-capable, installable
+8. Data Table -- sort, search, pagination
+9. Live Search -- debounced API calls
 
 ---
 
 ## Development
 
 ```bash
-npm test          # run all tests
+npm test          # run all tests (238 passing)
 npm run test:watch # watch mode
 npm run build     # production build
-npm run dev       # dev server
+npm run build:types # TypeScript declarations
+npm run dev       # dev server with HMR
 ```
+
+---
 
 ## Changelog
 
+### 1.0.12
+- Added comprehensive boolean attribute tests (opposing pairs, inside reactive blocks, computed, multi-signal)
+
+### 1.0.11
+- **Fix:** `?attr=${() => expr}` now calls the function reactively instead of treating it as truthy
+
 ### 1.0.9
-- **Fix:** All `@event` handlers are now automatically wrapped in `batch()` — multiple signal writes inside a single handler produce exactly one re-render after the event finishes, preventing mid-event DOM rebuilds and duplicate handler calls on re-rendered elements
+- **Fix:** All `@event` handlers auto-wrapped in `batch()` -- one re-render per handler, no mid-event DOM rebuilds
 
 ### 1.0.8
-- Added `--css` flag to `tina4 create` — scaffolds with [tina4-css](https://www.npmjs.com/package/tina4-css) included
-- Added gallery of 9 real-world examples: [live demo](https://tina4stack.github.io/tina4-js/examples/gallery/)
+- Added `--css` flag to `tina4 create` for optional tina4-css integration
+- Added gallery of 9 real-world examples
 
 ### 1.0.7
-- Added WebSocket module (`tina4js/ws`) with signal-driven status, auto-reconnect with exponential backoff, `pipe()` for streaming messages into signals, and JSON auto-parse/serialise
-- Fixed effect error isolation — a throwing effect no longer blocks sibling effects
-- Fixed API request/response correlation for concurrent requests
-- Fixed API tracker always showing empty URL in debug overlay
-- Added per-request `headers` and `params` to all API methods
+- Added WebSocket module with signal-driven auto-reconnect and `pipe()`
+- Fixed effect error isolation, API tracker bugs, added per-request headers/params
 - 231 tests across 10 test files
 
 ### 1.0.5
-- **Fix:** Effects now properly unsubscribe from signals on dispose — prevents stale subscriptions accumulating in signal subscriber sets across navigations
-- **Fix:** Function bindings in `html` templates now dispose inner effects when re-evaluated — fixes duplicate DOM nodes from nested reactive lists and conditionals
-- Added 9 new tests covering effect subscription cleanup, inner effect disposal, and multi-navigation accumulation (116 total)
+- Fixed effect subscription cleanup and inner effect disposal on re-evaluation
 
-### 1.0.4
-- Added router reactive effect cleanup tests (navigate away/back, stale effects, async handlers, stale async discard)
-- Added debug overlay documentation to README and TINA4.md
-
-### 1.0.3
-- **Fix:** `renderContent` now uses `replaceChildren` instead of `appendChild`, preventing duplicate content when async route handlers resolve.
-
-### 1.0.2
-- **Fix:** Router now disposes reactive effects when navigating between routes. Previously, signal subscriptions created by `html` templates survived DOM removal via `innerHTML = ''`, causing duplicate renders when revisiting a page.
-- **Fix:** Stale async route handlers are discarded if navigation occurs before they resolve.
-
-### 1.0.1
-- Debug overlay module with signal, component, route, and API inspectors
-- Todo app example and exports map file extension fixes
-- CLI scaffolding tool and TINA4.md AI context file
-- Fetch, PWA, integration, and size tests (102 total)
+---
 
 ## License
 
 MIT
+
+*tina4-js — This is not a framework. [tina4.com](https://tina4.com)*
