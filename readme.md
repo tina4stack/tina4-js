@@ -25,15 +25,6 @@
   <a href="https://tina4.com">tina4.com</a>
 </p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.12-blue" alt="Version 1.0.12">
-  <img src="https://img.shields.io/badge/tests-238%20passing-brightgreen" alt="Tests">
-  <img src="https://img.shields.io/badge/gzip-~1.5KB%20core-blue" alt="Core Size">
-  <img src="https://img.shields.io/badge/zero--dep-core-blue" alt="Zero Dependencies">
-  <img src="https://img.shields.io/badge/node-18%2B-blue" alt="Node 18+">
-  <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="MIT License">
-</p>
-
 ---
 
 ## Quick Start
