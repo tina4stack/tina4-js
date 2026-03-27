@@ -66,6 +66,9 @@ html`<input @focus=${onFocus} @blur=${onBlur} @input=${onInput}>`
 
 ### Two-Way Input Binding
 
+Form builder focus issues have been resolved in v1.0.12 — inputs no longer lose focus during
+reactive updates.
+
 tina4-js does NOT have v-model or ngModel. Two-way binding is explicit:
 ```ts
 const value = signal('');
@@ -331,3 +334,15 @@ import 'tina4js/debug';                                                   // deb
 ```
 
 Import only what you need. `sideEffects: false` enables tree-shaking.
+
+### IIFE Bundle (no imports needed)
+
+When using the IIFE bundle (`dist/tina4js.min.js`, 13.6KB), all APIs are exposed globally:
+```html
+<script src="/js/tina4js.min.js"></script>
+<script>
+// All APIs available globally — no imports
+const count = signal(0);
+const app = html`<p>${count}</p>`;
+</script>
+```

@@ -1,19 +1,26 @@
 ---
 name: tina4-js
 description: >
-  Use whenever working with tina4-js — the sub-3KB reactive frontend framework. Trigger on any
-  mention of tina4-js, tina4 signals, Tina4Element, tina4 html tagged templates, tina4 routing,
-  tina4 WebSocket client, or tina4 API client. Also trigger when the user is building a client-rendered
-  frontend for a Tina4 backend, or when they're working with signals, Web Components, or reactive
-  templates in a tina4-js project. If the working directory contains tina4-js code (imports from
-  'tina4js'), use this skill for all frontend tasks.
+  Use whenever working with tina4-js — the lightweight reactive frontend framework (13.6KB bundled).
+  Trigger on any mention of tina4-js, tina4 signals, Tina4Element, tina4 html tagged templates,
+  tina4 routing, tina4 WebSocket client, or tina4 API client. Also trigger when the user is building
+  a client-rendered frontend for a Tina4 backend, or when they're working with signals, Web Components,
+  reactive templates, or islands architecture in a tina4-js project. If the working directory contains
+  tina4-js code (imports from 'tina4js'), use this skill for all frontend tasks.
 ---
 
-# tina4-js — Reactive Frontend Framework
+# tina4-js — Reactive Frontend Framework (v1.0.12)
 
-tina4-js is a sub-3KB reactive frontend framework. Zero dependencies, no virtual DOM, no build
-complexity. It uses signals for reactivity, tagged template literals for DOM, and Web Components
-for encapsulation.
+tina4-js is a lightweight reactive frontend framework (13.6KB bundled IIFE). Zero dependencies,
+no virtual DOM, no build complexity. It uses signals for reactivity, tagged template literals
+for DOM, and Web Components for encapsulation.
+
+**Distribution:** `dist/tina4js.min.js` is the official IIFE bundle. Usage:
+```html
+<script src="/js/tina4js.min.js"></script>
+```
+This exposes all APIs globally — no imports needed. The bundle is also shipped inside all four
+Tina4 backend framework repos (PHP, Python, Go, TypeScript).
 
 **This skill exists because AI agents consistently get tina4-js patterns wrong.** The syntax
 looks simple but has specific rules. Getting them wrong produces silent bugs — things render
@@ -88,7 +95,7 @@ html`<button ?disabled=${() => !isValid.value}>Submit</button>`
 The `?` prefix adds the attribute when truthy, removes it when falsy. Without `?`, you get
 `disabled="false"` which STILL DISABLES the button (any value = disabled in HTML).
 
-**All three forms work reactively (v1.0.11+):**
+**All three forms work reactively (v1.0.11+, boolean bug fixed in v1.0.12):**
 ```ts
 // Signal directly — reactive
 html`<button ?disabled=${loading}>Save</button>`
@@ -205,9 +212,10 @@ html`<ul>${() => items.value.map(item => html`<li>${item}</li>`)}</ul>`
 html`<ul>${['a', 'b', 'c'].map(i => html`<li>${i}</li>`)}</ul>`
 ```
 
-## Event Handler Batching (v1.0.9+)
+## Event Handler Batching (v1.0.9+, auto-batch fix in v1.0.12)
 
-All `@event` handlers are **automatically batched**. You do NOT need to:
+All `@event` handlers are **automatically batched**. `@click` handlers now auto-batch properly
+(fixed in v1.0.12). You do NOT need to:
 - Wrap signal writes in `batch()` inside event handlers
 - Use `setTimeout(() => signal.value = x, 0)` to defer updates
 - Call `e.stopPropagation()` to prevent mid-render bubble issues
@@ -344,6 +352,35 @@ html`
     </div>
 </div>`;
 ```
+
+## Islands Architecture
+
+tina4-js supports an "islands" pattern: use Tina4Element web components as self-contained
+interactive widgets within server-rendered pages. Each island auto-registers and hydrates
+independently.
+
+```html
+<!-- Server-rendered page (e.g. RedwoodSDK RSC, PHP template, Go template) -->
+<h1>Product Page</h1>
+<p>Server-rendered content here...</p>
+
+<!-- tina4-js island — self-contained, ~2.3KB per island vs 42KB for React -->
+<product-rating product-id="42"></product-rating>
+<add-to-cart product-id="42" price="29.99"></add-to-cart>
+
+<script src="/js/tina4js.min.js"></script>
+<script src="/js/islands/product-rating.js"></script>
+<script src="/js/islands/add-to-cart.js"></script>
+```
+
+Each island is a standard Tina4Element that calls `customElements.define()` at the bottom of
+its file. The IIFE bundle provides the framework globally; island scripts just use it.
+
+## Cloudflare Workers
+
+tina4-js runs on Cloudflare Workers with Durable Objects for WebSocket state. The IIFE bundle
+and all client-side code works as-is; the WebSocket client (`ws.connect()`) connects to Worker
+endpoints backed by Durable Objects for persistent state across connections.
 
 ## Reference Files
 
