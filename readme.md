@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/tina4-js"><img src="https://img.shields.io/npm/v/tina4-js?color=7b1fa2&label=npm" alt="npm"></a>
+  <a href="https://www.npmjs.com/package/tina4js"><img src="https://img.shields.io/npm/v/tina4js?color=7b1fa2&label=npm" alt="npm"></a>
   <img src="https://img.shields.io/badge/tests-238%20passing-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/size-%3C3KB-blue" alt="Size">
   <img src="https://img.shields.io/badge/dependencies-0-brightgreen" alt="Zero Deps">
@@ -31,13 +31,13 @@
 
 ```bash
 # Create a project
-npx tina4 create my-app
+npx tina4js create my-app
 
 # With optional CSS framework
-npx tina4 create my-app --css
+npx tina4js create my-app --css
 
 # With PWA support
-npx tina4 create my-app --css --pwa
+npx tina4js create my-app --css --pwa
 
 # Run it
 cd my-app && npm install && npm run dev
@@ -87,7 +87,7 @@ Or use via CDN with zero build tools:
 ### 1. Create a project
 
 ```bash
-npx tina4 create my-app --css
+npx tina4js create my-app --css
 cd my-app && npm install
 ```
 

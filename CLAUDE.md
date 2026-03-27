@@ -244,7 +244,7 @@ tina4 install tina4-js     # Downloads latest to src/public/js/
 
 ## Links
 
-- npm: https://www.npmjs.com/package/tina4-js
+- npm: https://www.npmjs.com/package/tina4js
 - GitHub: https://github.com/tina4stack/tina4-js
 - Website: https://tina4.com/js
 - Tests: 238 passing
