@@ -106,7 +106,7 @@ export class Tina4Debug extends HTMLElement {
         <style>${debugStyles}</style>
         <div class="t4-mini" id="t4-mini">
           <span class="t4-mini-dot"></span>
-          T4 Debug
+          Debug
         </div>
       `;
       this._shadow.getElementById('t4-mini')?.addEventListener('click', () => this.show());
@@ -124,8 +124,8 @@ export class Tina4Debug extends HTMLElement {
       <div class="t4-debug">
         <div class="t4-header">
           <div>
-            <span class="t4-logo">TINA4</span>
-            <span class="t4-badge">DEBUG</span>
+            <span class="t4-logo">Tina4js</span>
+            <span class="t4-badge">Debug</span>
           </div>
           <div class="t4-header-right">
             <button class="t4-close" id="t4-close" title="Close (Ctrl+Shift+D)">×</button>
