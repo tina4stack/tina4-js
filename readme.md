@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">tina4-js</h1>
-<h3 align="center">This is not a framework</h3>
+<h3 align="center">This Is Now A 4Framework</h3>
 
 <p align="center">
   Sub-3KB reactive frontend. Signals. Web Components. Zero dependencies.
