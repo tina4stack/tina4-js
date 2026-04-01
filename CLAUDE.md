@@ -1,6 +1,6 @@
 # tina4-js
 
-Version 1.0.12 — Sub-3KB reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, PWA, and debug overlay. Zero dependencies.
+Version 1.0.13 — Sub-3KB reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, PWA, and debug overlay. Zero dependencies.
 
 ## Build & Test
 
@@ -54,17 +54,17 @@ bin/
 import { signal, computed, effect, batch } from "tina4-js";
 
 const count = signal(0);              // Create reactive value
-const doubled = computed(() => count() * 2);  // Derived value
+const doubled = computed(() => count.value * 2);  // Derived value
 
-effect(() => console.log(count()));   // Side effect on change
+effect(() => console.log(count.value));   // Side effect on change
 
-count(5);                             // Set value → triggers effect
-console.log(doubled());              // 10
+count.value = 5;                      // Set value → triggers effect
+console.log(doubled.value);           // 10
 
 batch(() => {                         // Batch multiple updates
-    count(1);
-    count(2);
-    count(3);                         // Only triggers once
+    count.value = 1;
+    count.value = 2;
+    count.value = 3;                  // Only triggers once
 });
 ```
 
@@ -77,8 +77,8 @@ const name = signal("World");
 
 const template = html`
     <h1>Hello ${name}!</h1>
-    <input @input=${(e) => name(e.target.value)} .value=${name}>
-    <p>${() => name().toUpperCase()}</p>
+    <input @input=${(e) => { name.value = e.target.value; }} .value=${name}>
+    <p>${() => name.value.toUpperCase()}</p>
 `;
 
 document.body.appendChild(template);
@@ -112,8 +112,8 @@ class CounterButton extends Tina4Element {
 
     render() {
         return html`
-            <button @click=${() => this.count(this.count() + 1)}>
-                ${this.label}: ${this.count}
+            <button @click=${() => this.count.value++}>
+                ${this.prop('label')}: ${this.count}
             </button>
         `;
     }
@@ -144,32 +144,40 @@ Supports: history mode, hash mode, guards, wildcards, nested routes.
 ```javascript
 import { api } from "tina4-js";
 
-const client = api({ baseUrl: "/api", bearer: "token123" });
+// Configure once at startup
+api.configure({ baseUrl: "/api", auth: true });
 
-const users = await client.get("/users");
-const created = await client.post("/users", { name: "Alice" });
-await client.put("/users/1", { name: "Bob" });
-await client.delete("/users/1");
+const users = await api.get("/users");
+const created = await api.post("/users", { name: "Alice" });
+await api.put("/users/1", { name: "Bob" });
+await api.delete("/users/1");
+
+// Query params and per-request headers via options
+await api.get("/users", { params: { page: 2, limit: 20 } });
 ```
 
-Features: auth headers, interceptors, error handling, abort signals.
+Features: auth headers, token rotation, interceptors, formToken injection, error handling.
 
 ### WebSocket — Reactive Connection
 
 ```javascript
 import { ws } from "tina4-js";
 
-const socket = ws("ws://localhost:7145/ws/chat/room1");
+const socket = ws.connect("ws://localhost:7145/ws/chat/room1");
 
 // Reactive status signal
-effect(() => console.log("Status:", socket.status()));
+effect(() => console.log("Status:", socket.status.value));
 
 // Send messages
 socket.send("Hello!");
-socket.sendJson({ type: "message", text: "Hello!" });
+socket.send({ type: "message", text: "Hello!" }); // Objects auto-JSON.stringify'd
 
 // Receive messages
-socket.onMessage((data) => console.log("Received:", data));
+socket.on("message", (data) => console.log("Received:", data));
+
+// Pipe messages into a signal
+const messages = signal([]);
+socket.pipe(messages, (msg, current) => [...current, msg]);
 
 // Auto-reconnects on disconnect
 ```
@@ -218,8 +226,12 @@ Build: `npx esbuild src/index.ts --bundle --minify --format=iife --global-name=T
 
 ## Key Conventions
 
+- **Signal access: `.value` property** — `count.value` to read, `count.value = 5` to set. NEVER use function-call syntax `count()` or `count(5)` — that does NOT exist
+- In `html` templates: pass the signal itself `${count}` for reactive binding, NOT `${count.value}` (which evaluates once and freezes)
 - `route(pattern, handler)` — pattern is ALWAYS first arg
+- `api.configure(config)` then `api.get(path, options?)` — api is a singleton, NOT a constructor
 - `api.get(path, options?)` — options has `{ params, headers }`, NOT path template params
+- `ws.connect(url, options?)` — NOT `ws(url)`. Returns a ManagedSocket with reactive signals
 - Signal labels: `signal(value, 'label')` — second arg is optional debug label
 - TypeScript target: ES2021 (for WeakRef support)
 - Tests use happy-dom, NOT jsdom
@@ -247,6 +259,7 @@ tina4 install tina4-js     # Downloads latest to src/public/js/
 - npm: https://www.npmjs.com/package/tina4js
 - GitHub: https://github.com/tina4stack/tina4-js
 - Website: https://tina4.com/js
+- Version: 1.0.13
 - Tests: 238 passing
 
 ## Tina4-js Frontend Skill

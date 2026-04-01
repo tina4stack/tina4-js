@@ -1,0 +1,49 @@
+# tina4-js — Cursor Rules
+
+Sub-3KB reactive JavaScript framework. Signals, Web Components, routing, API, PWA, WebSocket. Zero dependencies.
+
+## Critical: Signal API Uses .value
+
+Signals use property access, NOT function calls:
+- Read: `count.value` (NOT `count()`)
+- Write: `count.value = 5` (NOT `count(5)`)
+- In templates: pass signal itself `${count}` for reactive binding (NOT `${count.value}`)
+
+## Three Rules That Fix 90% of Mistakes
+
+1. **Static vs Reactive in templates:**
+   - `${count}` — reactive (updates when signal changes)
+   - `${() => expr}` — reactive block (for conditionals, lists)
+   - `${count.value}` — WRONG: evaluates once, never updates
+
+2. **New references for arrays/objects:**
+   - `items.value = [...items.value, newItem]` — RIGHT
+   - `items.value.push(newItem)` — WRONG: no update triggered
+
+3. **Boolean attributes use ? prefix:**
+   - `?disabled=${loading}` — RIGHT: toggles attribute
+   - `disabled=${loading}` — WRONG: sets string "false" which still disables
+
+## APIs That Don't Exist (Don't Hallucinate)
+
+- `unsafeHTML()` — use `.innerHTML=${val}` property binding
+- `ref()` — use `signal()`
+- `useState()` — use `signal()`
+- `tina4.createApp()` — no app instance exists
+- `t-model`, `t-for`, `t-bind` — not Vue directives
+
+## Key Conventions
+
+- `route(pattern, handler)` — pattern ALWAYS first
+- `api.configure(config)` then `api.get()` — singleton, not constructor
+- `ws.connect(url)` — not `ws(url)`
+- `@click=${fn}` — not `onclick=${fn}`
+- Event handlers auto-batch signal writes (v1.0.12+)
+
+## Build & Test
+
+```bash
+npm install && npm run build && npm run build:types && npm test
+```
+
+See llms.txt for complete API reference.

@@ -6,7 +6,7 @@ Target: admin panels, dashboards, CRUD apps, monolithic server-rendered apps.
 NOT designed as a React/Vue replacement for large SPA teams.
 
 Install: `npm install tina4js`
-Version: 1.0.7
+Version: 1.0.13
 Exports: `.` `./core` `./router` `./api` `./pwa` `./ws` `./debug`
 
 ---
