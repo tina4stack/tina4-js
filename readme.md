@@ -294,7 +294,7 @@ npm run dev       # dev server with HMR
 - **Fix:** All `@event` handlers auto-wrapped in `batch()` -- one re-render per handler, no mid-event DOM rebuilds
 
 ### 1.0.8
-- Added `--css` flag to `tina4 create` for optional tina4-css integration
+- Added `--css` flag to `tina4js create` for optional tina4-css integration
 - Added gallery of 9 real-world examples
 
 ### 1.0.7

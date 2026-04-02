@@ -4,8 +4,8 @@
  * Tina4 CLI — Project scaffolding and build tooling.
  *
  * Usage:
- *   npx tina4 create <name>           Scaffold a new project
- *   npx tina4 create <name> --pwa     Include PWA support
+ *   npx tina4js create <name>           Scaffold a new project
+ *   npx tina4js create <name> --pwa     Include PWA support
  *   npx tina4 build                   Production build
  *   npx tina4 build --target php      Build for tina4-php embedding
  *   npx tina4 build --target python   Build for tina4-python embedding
@@ -443,21 +443,21 @@ async def spa_catchall(path, request, response):
 
 function printHelp() {
   console.log(`
-${c.bold('tina4')} — Sub-3KB reactive framework
+${c.bold('tina4js')} — Sub-3KB reactive framework
 
 ${c.bold('Usage:')}
-  tina4 create <name>               Create a new project
-  tina4 create <name> --pwa         Create with PWA support
-  tina4 create <name> --css         Create with tina4-css framework
-  tina4 create <name> --pwa --css   Create with both
-  tina4 dev                         Start dev server
-  tina4 build                       Production build → dist/
-  tina4 build --target php          Build for tina4-php
-  tina4 build --target python       Build for tina4-python
+  tina4js create <name>               Create a new project
+  tina4js create <name> --pwa         Create with PWA support
+  tina4js create <name> --css         Create with tina4-css framework
+  tina4js create <name> --pwa --css   Create with both
+  tina4js dev                         Start dev server
+  tina4js build                       Production build → dist/
+  tina4js build --target php          Build for tina4-php
+  tina4js build --target python       Build for tina4-python
 
 ${c.bold('Examples:')}
-  ${c.dim('$')} npx tina4 create my-app
-  ${c.dim('$')} npx tina4 create my-app --css
+  ${c.dim('$')} npx tina4js create my-app
+  ${c.dim('$')} npx tina4js create my-app --css
   ${c.dim('$')} cd my-app && npm install && npm run dev
 `);
 }

@@ -39,7 +39,7 @@
   },
   "sideEffects": false,
   "bin": {
-    "tina4": "./bin/tina4.js"
+    "tina4js": "./bin/tina4.js"
   },
   "files": [
     "dist/",
