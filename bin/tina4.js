@@ -201,7 +201,7 @@ route('/', homePage);
 route('/about', () => html\`
   <div class="page">
     <h1>About</h1>
-    <p>Built with <a href="https://github.com/tina4stack/tina4-js">tina4-js</a> — a sub-3KB reactive framework.</p>
+    <p>Built with <a href="https://github.com/tina4stack/tina4-js">tina4-js</a> — a sub-3KB core, reactive framework.</p>
     <a href="/">Back home</a>
   </div>
 \`);
@@ -443,7 +443,7 @@ async def spa_catchall(path, request, response):
 
 function printHelp() {
   console.log(`
-${c.bold('tina4js')} — Sub-3KB reactive framework
+${c.bold('tina4js')} — Sub-3KB core, reactive framework
 
 ${c.bold('Usage:')}
   tina4js create <name>               Create a new project

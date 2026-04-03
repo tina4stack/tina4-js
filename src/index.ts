@@ -1,5 +1,5 @@
 /**
- * tina4js — Sub-3KB reactive framework.
+ * tina4js — Sub-3KB core, reactive framework.
  *
  * Signals + tagged template rendering + web components + routing + API + PWA.
  */

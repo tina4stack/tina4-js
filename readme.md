@@ -6,7 +6,7 @@
 <h3 align="center">The Intelligent Native Application 4ramework</h3>
 
 <p align="center">
-  Sub-3KB reactive frontend. Signals. Web Components. Zero dependencies.
+  Sub-3KB core, reactive frontend. Signals. Web Components. Zero dependencies.
 </p>
 
 <p align="center">

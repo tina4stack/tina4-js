@@ -8,7 +8,7 @@ route('/', homePage);
 route('/about', () => html`
   <div class="page">
     <h1>About</h1>
-    <p>Built with <a href="https://github.com/tina4stack/tina4-js">tina4-js</a> — a sub-3KB reactive framework.</p>
+    <p>Built with <a href="https://github.com/tina4stack/tina4-js">tina4-js</a> — a sub-3KB core, reactive framework.</p>
     <a href="/">Back home</a>
   </div>
 `);

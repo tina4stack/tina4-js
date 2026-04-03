@@ -1,6 +1,6 @@
 # tina4-js — Cursor Rules
 
-Sub-3KB reactive JavaScript framework. Signals, Web Components, routing, API, PWA, WebSocket. Zero dependencies.
+Sub-3KB core, reactive JavaScript framework. Signals, Web Components, routing, API, PWA, WebSocket. Zero dependencies.
 
 ## Critical: Signal API Uses .value
 

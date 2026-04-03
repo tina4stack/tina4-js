@@ -1,6 +1,6 @@
 # tina4js — LLM Context
 
-Sub-3KB reactive JavaScript framework. Signals, web components, routing, API, PWA, WebSocket, debug overlay.
+Sub-3KB core, reactive JavaScript framework. Signals, web components, routing, API, PWA, WebSocket, debug overlay.
 Works standalone or inside tina4-php / tina4-python full-stack apps.
 Target: admin panels, dashboards, CRUD apps, monolithic server-rendered apps.
 NOT designed as a React/Vue replacement for large SPA teams.

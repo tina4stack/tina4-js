@@ -9,7 +9,7 @@ route('/', todoPage);
 route('/about', () => html`
   <div class="page about">
     <h1>About</h1>
-    <p>A todo app built with <strong>tina4-js</strong> — a sub-3KB reactive framework.</p>
+    <p>A todo app built with <strong>tina4-js</strong> — a sub-3KB core, reactive framework.</p>
     <ul>
       <li>Signals for state management</li>
       <li>Tagged template literals for rendering</li>

@@ -1,6 +1,6 @@
 # tina4-js Copilot Instructions
 
-Sub-3KB reactive JavaScript framework. Zero dependencies.
+Sub-3KB core, reactive JavaScript framework. Zero dependencies.
 
 ## Signal API — .value Property Access
 
