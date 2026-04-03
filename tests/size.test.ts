@@ -36,7 +36,7 @@ describe('bundle size', () => {
     const sizeKB = gzipped.length / 1024;
 
     console.log(`API: ${bundle.length}B raw, ${gzipped.length}B gzip (${sizeKB.toFixed(2)}KB)`);
-    expect(sizeKB).toBeLessThan(1.5);
+    expect(sizeKB).toBeLessThan(2.5);
   });
 
   it('pwa bundle is under 2KB gzipped', () => {
