@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">tina4-js</h1>
-<h3 align="center">This Is Now A 4Framework</h3>
+<h3 align="center">The Intelligent Native Application 4ramework</h3>
 
 <p align="center">
   Sub-3KB reactive frontend. Signals. Web Components. Zero dependencies.
@@ -311,4 +311,4 @@ npm run dev       # dev server with HMR
 
 MIT
 
-*tina4-js — This is not a framework. [tina4.com](https://tina4.com)*
+*tina4-js — The Intelligent Native Application 4ramework. [tina4.com](https://tina4.com)*

@@ -1,0 +1,49 @@
+/* Tina4 default styles */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #ffffff;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+p { margin-bottom: 1rem; }
+a { color: #2563eb; }
+code { background: #f3f4f6; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.9em; }
+
+.page { padding: 2rem 0; }
+.muted { color: #6b7280; font-size: 0.875rem; }
+
+.counter {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.counter button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.counter button:hover { background: #e5e7eb; }
+
+.counter span {
+  font-size: 2rem;
+  font-weight: bold;
+  min-width: 3rem;
+  text-align: center;
+}
+
+nav { margin: 1.5rem 0; display: flex; gap: 1rem; }
