@@ -226,6 +226,104 @@ export const api = {
   },
 
   /**
+   * Upload files via FormData (multipart/form-data).
+   *
+   * Unlike `post()`, this does NOT JSON-stringify the body or set
+   * Content-Type — the browser sets the multipart boundary automatically.
+   * Auth uses the Bearer token header (formToken cannot be injected into FormData).
+   *
+   * @param path     - API path relative to `baseUrl`.
+   * @param formData - A FormData instance containing files and fields.
+   * @param options  - `{ params, headers }` — query string params and per-request headers.
+   *
+   * @example
+   * const form = new FormData();
+   * form.append('avatar', fileInput.files[0]);
+   * form.append('name', 'Alice');
+   * const result = await api.upload('/users/avatar', form);
+   */
+  async upload<T = unknown>(path: string, formData: FormData, options?: RequestOptions): Promise<T> {
+    let reqConfig: RequestInit & { headers: Record<string, string>; _url?: string; _requestId?: number } = {
+      method: 'POST',
+      headers: {
+        ...config.headers,
+        // Do NOT set Content-Type — browser sets it with multipart boundary
+      },
+      body: formData,
+    };
+
+    // Remove Content-Type if inherited from config.headers — let browser set it
+    delete reqConfig.headers['Content-Type'];
+    delete reqConfig.headers['content-type'];
+
+    // Add auth header (Bearer token, not formToken)
+    if (config.auth) {
+      const token = getToken();
+      if (token) {
+        reqConfig.headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
+
+    // Merge per-request headers
+    if (options?.headers) {
+      Object.assign(reqConfig.headers, options.headers);
+    }
+
+    // Build query string
+    if (options?.params) {
+      const qs = Object.entries(options.params)
+        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+        .join('&');
+      path += (path.includes('?') ? '&' : '?') + qs;
+    }
+
+    const url = config.baseUrl + path;
+    reqConfig._url = url;
+    reqConfig._requestId = ++requestIdCounter;
+
+    // Run request interceptors
+    for (const fn of requestInterceptors) {
+      const result = fn(reqConfig);
+      if (result) reqConfig = result;
+    }
+
+    const response = await fetch(url, reqConfig);
+
+    // Token rotation
+    const freshToken = response.headers.get('FreshToken');
+    if (freshToken) setToken(freshToken);
+
+    // Parse response
+    const ct = response.headers.get('Content-Type') ?? '';
+    let data: unknown;
+    if (ct.includes('json')) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+
+    let result: ApiResponse = {
+      status: response.status,
+      data,
+      ok: response.ok,
+      headers: response.headers,
+      _requestId: reqConfig._requestId,
+    };
+
+    // Run response interceptors
+    for (const fn of responseInterceptors) {
+      const intercepted = fn(result);
+      if (intercepted) result = intercepted;
+    }
+
+    if (!response.ok) {
+      throw result;
+    }
+
+    return result.data as T;
+  },
+
+  /**
    * Register a request or response interceptor.
    *
    * @example

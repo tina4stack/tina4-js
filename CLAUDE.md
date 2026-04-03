@@ -154,9 +154,14 @@ await api.delete("/users/1");
 
 // Query params and per-request headers via options
 await api.get("/users", { params: { page: 2, limit: 20 } });
+
+// File upload — sends FormData (multipart/form-data), NOT JSON
+const form = new FormData();
+form.append("avatar", fileInput.files[0]);
+await api.upload("/users/avatar", form);
 ```
 
-Features: auth headers, token rotation, interceptors, formToken injection, error handling.
+Features: auth headers, token rotation, interceptors, formToken injection, error handling. `api.upload()` for multipart file uploads (uses Bearer token, not formToken).
 
 ### WebSocket — Reactive Connection
 
