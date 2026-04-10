@@ -50,6 +50,28 @@ describe('bundle size', () => {
     expect(sizeKB).toBeLessThan(2);
   });
 
+  it('ws bundle is under 1.5KB gzipped', () => {
+    const path = './dist/ws.es.js';
+    if (!existsSync(path)) return;
+    const bundle = readFileSync(path);
+    const gzipped = gzipSync(bundle);
+    const sizeKB = gzipped.length / 1024;
+
+    console.log(`WS: ${bundle.length}B raw, ${gzipped.length}B gzip (${sizeKB.toFixed(2)}KB)`);
+    expect(sizeKB).toBeLessThan(1.5);
+  });
+
+  it('sse bundle is under 1.5KB gzipped', () => {
+    const path = './dist/sse.es.js';
+    if (!existsSync(path)) return;
+    const bundle = readFileSync(path);
+    const gzipped = gzipSync(bundle);
+    const sizeKB = gzipped.length / 1024;
+
+    console.log(`SSE: ${bundle.length}B raw, ${gzipped.length}B gzip (${sizeKB.toFixed(2)}KB)`);
+    expect(sizeKB).toBeLessThan(1.5);
+  });
+
   it('full framework re-export is under 0.5KB gzipped', () => {
     const path = './dist/tina4.es.js';
     if (!existsSync(path)) return;

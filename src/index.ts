@@ -26,3 +26,7 @@ export type { PWAConfig } from './pwa/pwa';
 // WebSocket
 export { ws } from './ws/ws';
 export type { SocketStatus, SocketOptions, ManagedSocket } from './ws/ws';
+
+// SSE / NDJSON streaming
+export { sse } from './sse/sse';
+export type { StreamStatus, StreamOptions, ManagedStream } from './sse/sse';

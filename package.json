@@ -35,6 +35,10 @@
     "./ws": {
       "import": "./dist/ws.es.js",
       "types": "./dist/ws/index.d.ts"
+    },
+    "./sse": {
+      "import": "./dist/sse.es.js",
+      "types": "./dist/sse/index.d.ts"
     }
   },
   "sideEffects": false,
