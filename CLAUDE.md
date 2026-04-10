@@ -1,6 +1,6 @@
 # tina4-js
 
-Version 1.0.15 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, PWA, and debug overlay. Zero dependencies.
+Version 1.1.0 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, PWA, and debug overlay. Zero dependencies.
 
 ## Build & Test
 
@@ -8,7 +8,7 @@ Version 1.0.15 — 1.5KB core gzipped, reactive JavaScript framework. Signals, W
 npm install                # Install dev dependencies
 npm run build              # Vite build → dist/
 npm run build:types        # TypeScript declarations → dist/**/*.d.ts
-npm test                   # vitest run (238 tests)
+npm test                   # vitest run (265 tests)
 npm run test:watch         # vitest watch mode
 npm run test:size          # Bundle size validation
 ```
@@ -32,13 +32,15 @@ src/
     pwa.ts               # Service worker registration + manifest generator
   ws/
     ws.ts                # WebSocket client with signals + auto-reconnect
+  sse/
+    sse.ts               # SSE/NDJSON streaming with signals + auto-reconnect
   debug/
     overlay.ts           # Dev overlay panel
     panels/              # Signal, component, route, API debug panels
     trackers.ts          # Performance tracking
     styles.ts            # Overlay CSS
 
-tests/                   # 238 vitest tests (happy-dom environment)
+tests/                   # 265 vitest tests (happy-dom environment)
 examples/
   todo-app/              # Example todo application
   gallery/               # 9 real-world demos (dashboard, CRUD, chat, auth, cart, etc.)
@@ -187,6 +189,40 @@ socket.pipe(messages, (msg, current) => [...current, msg]);
 // Auto-reconnects on disconnect
 ```
 
+### SSE — Server-Sent Events / NDJSON Streaming
+
+```javascript
+import { sse, signal, effect } from "tina4-js";
+
+// EventSource mode (default) — standard SSE
+const stream = sse.connect("/api/events");
+
+// Fetch mode — NDJSON streaming (POST, custom headers, AI tokens)
+const stream = sse.connect("/api/chat", {
+    mode: "fetch",
+    method: "POST",
+    headers: { "Authorization": "Bearer token" },
+    body: { prompt: "Hello" },
+});
+
+// Reactive signals
+effect(() => console.log("Status:", stream.status.value));
+effect(() => console.log("Message:", stream.lastMessage.value));
+
+// Pipe tokens into a signal
+const tokens = signal([]);
+stream.pipe(tokens, (msg, current) => [...current, msg]);
+
+// Named events (EventSource mode)
+const feed = sse.connect("/api/feed", { events: ["update", "delete"] });
+feed.on("message", (data, event) => console.log(event, data));
+
+// Close
+stream.close();
+```
+
+Features: dual-mode (EventSource + fetch/NDJSON), named events, auto-reconnect with exponential backoff, JSON auto-parsing, pipe to signal. 1.30KB gzipped.
+
 ### PWA — Progressive Web App
 
 ```javascript
@@ -204,7 +240,7 @@ Auto-generates service worker and manifest.
 
 ## Package Exports
 
-7 entry points for tree-shaking:
+8 entry points for tree-shaking:
 
 | Import | What you get |
 |--------|-------------|
@@ -213,7 +249,8 @@ Auto-generates service worker and manifest.
 | `tina4-js/router` | route, navigate, router |
 | `tina4-js/api` | api |
 | `tina4-js/pwa` | pwa |
-| `tina4-js/ws` | ws |
+| `tina4-js/ws` | ws (WebSocket) |
+| `tina4-js/sse` | sse (SSE/NDJSON streaming) |
 | `tina4-js/debug` | Debug overlay |
 
 ## IIFE Bundle
@@ -223,7 +260,7 @@ For non-module usage (script tag):
 ```html
 <script src="/js/tina4js.min.js"></script>
 <script>
-    const { signal, html, route, api, ws } = Tina4;
+    const { signal, html, route, api, ws, sse } = Tina4;
 </script>
 ```
 
@@ -237,6 +274,7 @@ Build: `npx esbuild src/index.ts --bundle --minify --format=iife --global-name=T
 - `api.configure(config)` then `api.get(path, options?)` — api is a singleton, NOT a constructor
 - `api.get(path, options?)` — options has `{ params, headers }`, NOT path template params
 - `ws.connect(url, options?)` — NOT `ws(url)`. Returns a ManagedSocket with reactive signals
+- `sse.connect(url, options?)` — NOT `sse(url)`. Returns a ManagedStream with reactive signals. mode: 'eventsource' (default) or 'fetch' for NDJSON
 - Signal labels: `signal(value, 'label')` — second arg is optional debug label
 - TypeScript target: ES2021 (for WeakRef support)
 - Tests use happy-dom, NOT jsdom
@@ -264,8 +302,8 @@ tina4 install tina4-js     # Downloads latest to src/public/js/
 - npm: https://www.npmjs.com/package/tina4js
 - GitHub: https://github.com/tina4stack/tina4-js
 - Website: https://tina4.com/js
-- Version: 1.0.13
-- Tests: 238 passing
+- Version: 1.1.0
+- Tests: 265 passing
 
 ## Tina4-js Frontend Skill
 Always read and follow the instructions in .claude/skills/tina4-js/SKILL.md when working with tina4-js frontend code. Read its referenced files in .claude/skills/tina4-js/references/ as needed.
