@@ -63,6 +63,7 @@ export interface RequestOptions {
 async function request<T = unknown>(method: string, path: string, body?: unknown, options?: RequestOptions): Promise<T> {
   let reqConfig: RequestInit & { headers: Record<string, string>; _url?: string; _requestId?: number } = {
     method,
+    credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
       ...config.headers,
