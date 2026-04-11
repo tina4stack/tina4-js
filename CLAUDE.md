@@ -1,6 +1,6 @@
 # tina4-js
 
-Version 1.1.0 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, PWA, and debug overlay. Zero dependencies.
+Version 1.1.1 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, PWA, and debug overlay. Zero dependencies.
 
 ## Build & Test
 
@@ -165,6 +165,21 @@ await api.upload("/users/avatar", form);
 
 Features: auth headers, token rotation, interceptors, formToken injection, error handling. `api.upload()` for multipart file uploads (uses Bearer token, not formToken).
 
+#### GraphQL
+
+```javascript
+// Query
+const { data, errors } = await api.graphql("/api/graphql",
+    "{ products(limit: 10) { id name price } }"
+);
+
+// Query with variables
+const { data } = await api.graphql("/api/graphql",
+    "query ($term: String!) { search_products(term: $term) { id name } }",
+    { term: "widget" }
+);
+```
+
 ### WebSocket — Reactive Connection
 
 ```javascript
@@ -302,7 +317,7 @@ tina4 install tina4-js     # Downloads latest to src/public/js/
 - npm: https://www.npmjs.com/package/tina4js
 - GitHub: https://github.com/tina4stack/tina4-js
 - Website: https://tina4.com/js
-- Version: 1.1.0
+- Version: 1.1.1
 - Tests: 265 passing
 
 ## Tina4-js Frontend Skill

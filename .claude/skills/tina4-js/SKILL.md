@@ -9,9 +9,9 @@ description: >
   tina4-js code (imports from 'tina4js'), use this skill for all frontend tasks.
 ---
 
-# tina4-js — Reactive Frontend Framework (v1.0.12)
+# tina4-js — Reactive Frontend Framework (v1.1.1)
 
-tina4-js is a lightweight reactive frontend framework (13.6KB bundled IIFE). Zero dependencies,
+tina4-js is a lightweight reactive frontend framework (16.4KB bundled IIFE). Zero dependencies,
 no virtual DOM, no build complexity. It uses signals for reactivity, tagged template literals
 for DOM, and Web Components for encapsulation.
 
@@ -19,8 +19,24 @@ for DOM, and Web Components for encapsulation.
 ```html
 <script src="/js/tina4js.min.js"></script>
 ```
-This exposes all APIs globally — no imports needed. The bundle is also shipped inside all four
-Tina4 backend framework repos (PHP, Python, Go, TypeScript).
+This exposes all APIs globally — no imports needed. The IIFE bundle is also shipped inside
+tina4-css (`dist/tina4js.min.js`) so all Tina4 backend frameworks get it automatically.
+
+**Building the IIFE bundle:**
+```bash
+npm run build                 # Vite build → ES/CJS modules in dist/
+npm run build:types           # TypeScript declarations
+# IIFE for script-tag usage:
+npx esbuild src/index.ts --bundle --minify --format=iife --global-name=Tina4 --outfile=dist/tina4js.min.js --target=es2021
+```
+
+The IIFE wraps the library in a self-executing function and exposes everything on `window.Tina4`:
+```html
+<script src="/js/tina4js.min.js"></script>
+<script>
+    const { signal, computed, html, Tina4Element, api, ws, sse, pwa } = Tina4;
+</script>
+```
 
 **This skill exists because AI agents consistently get tina4-js patterns wrong.** The syntax
 looks simple but has specific rules. Getting them wrong produces silent bugs — things render
@@ -348,6 +364,55 @@ await fetch('/api/upload', {
 });
 ```
 
+### GraphQL Queries
+
+Use `api.graphql()` to send GraphQL queries and mutations. It sends a POST with `{ query, variables }`
+and returns `{ data, errors }`.
+
+```ts
+// Simple query
+const { data, errors } = await api.graphql('/api/graphql',
+    '{ products(limit: 10) { id name price } }'
+);
+
+// Query with variables
+const { data } = await api.graphql('/api/graphql',
+    'query ($term: String!) { search_products(term: $term) { id name slug price } }',
+    { term: searchInput.value }
+);
+
+// Mutation
+const { data } = await api.graphql('/api/graphql',
+    'mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }',
+    { input: { name: 'Widget', price: 29.99 } }
+);
+```
+
+**Reactive search example — debounced GraphQL search with live results:**
+```ts
+const term = signal('');
+const results = signal([]);
+
+let timer;
+effect(() => {
+    const q = term.value;
+    clearTimeout(timer);
+    if (q.length < 2) { results.value = []; return; }
+    timer = setTimeout(async () => {
+        const { data } = await api.graphql('/api/graphql',
+            '{ search_products(term: "' + q.replace(/"/g, '\\"') + '") { id name slug price } }'
+        );
+        results.value = data?.search_products || [];
+    }, 300);
+});
+
+html`
+<input .value=${term} @input=${(e) => { term.value = e.target.value; }} placeholder="Search...">
+<ul>${() => results.value.map(p => html`
+    <li><a href="/products/${p.slug}">${p.name} — $${p.price}</a></li>
+`)}</ul>`;
+```
+
 ### List with Add/Remove
 ```ts
 const items = signal<{ id: number; text: string }[]>([]);
@@ -522,6 +587,10 @@ pwa.register({
 // API interceptor signatures
 api.intercept('request', (config) => { /* config: RequestInit & { headers: Record<string, string> } */ });
 api.intercept('response', (resp) => { /* resp: { status, data, ok, headers } */ });
+
+// GraphQL queries and mutations
+const { data, errors } = await api.graphql('/api/graphql', '{ users { id name } }');
+const { data } = await api.graphql('/api/graphql', 'query($id: Int!) { user(id: $id) { name } }', { id: 42 });
 ```
 
 ## Reference Files

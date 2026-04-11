@@ -226,6 +226,32 @@ export const api = {
   },
 
   /**
+   * Execute a GraphQL query or mutation.
+   *
+   * Sends a POST request with `{ query, variables }` body to the given path.
+   * Returns `{ data, errors }` — throws if the HTTP request itself fails.
+   *
+   * @param path      - GraphQL endpoint path (e.g. `/api/graphql`).
+   * @param query     - GraphQL query or mutation string.
+   * @param variables - Optional variables object.
+   * @param options   - `{ params, headers }`.
+   *
+   * @example
+   * const { data, errors } = await api.graphql('/api/graphql',
+   *   '{ products(limit: 10) { id name price } }'
+   * );
+   *
+   * @example
+   * const { data } = await api.graphql('/api/graphql',
+   *   'query ($term: String!) { search_products(term: $term) { id name } }',
+   *   { term: "widget" }
+   * );
+   */
+  async graphql<T = unknown>(path: string, query: string, variables?: Record<string, unknown>, options?: RequestOptions): Promise<{ data: T | null; errors?: Array<{ message: string }> }> {
+    return request<{ data: T | null; errors?: Array<{ message: string }> }>('POST', path, { query, variables: variables || {} }, options);
+  },
+
+  /**
    * Upload files via FormData (multipart/form-data).
    *
    * Unlike `post()`, this does NOT JSON-stringify the body or set
