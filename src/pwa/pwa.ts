@@ -14,6 +14,8 @@ export interface PWAConfig {
   cacheStrategy?: 'cache-first' | 'network-first' | 'stale-while-revalidate';
   precache?: string[];
   offlineRoute?: string;
+  /** URL to a pre-built service worker file (e.g. "/sw.js"). When provided, blob: registration is skipped. */
+  swUrl?: string;
 }
 
 // ── Service Worker Template ─────────────────────────────────────────
@@ -117,12 +119,17 @@ export const pwa = {
 
     // 3. Register service worker
     if ('serviceWorker' in navigator) {
-      const swCode = generateSW(config);
-      const swBlob = new Blob([swCode], { type: 'text/javascript' });
-      const swUrl = URL.createObjectURL(swBlob);
-      navigator.serviceWorker.register(swUrl).catch((err) => {
-        console.warn('[tina4] Service worker registration failed:', err);
-      });
+      if (config.swUrl) {
+        // Use pre-built service worker file (recommended)
+        navigator.serviceWorker.register(config.swUrl).catch((err) => {
+          console.warn('[tina4] Service worker registration failed:', err);
+        });
+      } else {
+        // Try /sw.js as default path — frameworks can auto-generate this file
+        navigator.serviceWorker.register('/sw.js').catch(() => {
+          console.info('[tina4] No service worker at /sw.js. Use pwa.generateServiceWorker() to create one, or pass swUrl in config.');
+        });
+      }
     }
   },
 

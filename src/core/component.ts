@@ -5,7 +5,8 @@
  * optional Shadow DOM, and scoped styles.
  */
 
-import { signal, type Signal } from './signal';
+import { signal, effect, type Signal } from './signal';
+import { _setEffectCollector, _getEffectCollector } from './signal';
 
 // ── Debug Hooks (tree-shakeable — null unless debug module imported) ──
 
@@ -43,6 +44,12 @@ export abstract class Tina4Element extends HTMLElement {
   /** Track if we've rendered. */
   private _rendered = false;
 
+  /** Dispose function for the reactive render effect. */
+  private _disposeRender: (() => void) | null = null;
+
+  /** Disposers for inner effects created by html`` during render. */
+  private _innerDisposers: (() => void)[] = [];
+
   static get observedAttributes(): string[] {
     return Object.keys(this.props);
   }
@@ -65,23 +72,56 @@ export abstract class Tina4Element extends HTMLElement {
     const ctor = this.constructor as typeof Tina4Element;
 
     // Inject scoped styles into shadow root
+    let styleNode: Node | null = null;
     if (ctor.styles && ctor.shadow && this._root instanceof ShadowRoot) {
       const style = document.createElement('style');
       style.textContent = ctor.styles;
       this._root.appendChild(style);
+      styleNode = style;
     }
 
-    // Render content
-    const content = this.render();
-    if (content) {
-      this._root.appendChild(content);
-    }
+    // Reactive render — re-runs when any signal read inside render() changes
+    this._disposeRender = effect(() => {
+      // Dispose inner effects from previous render pass
+      for (const d of this._innerDisposers) d();
+      this._innerDisposers = [];
+
+      // Collect inner effects created by nested html`` templates
+      const localCollector: (() => void)[] = [];
+      const outerCollector = _getEffectCollector();
+      _setEffectCollector(localCollector);
+
+      const content = this.render();
+
+      _setEffectCollector(outerCollector);
+      this._innerDisposers = localCollector;
+
+      // Clear previous render content (preserve style node)
+      const children = Array.from(this._root.childNodes);
+      for (const child of children) {
+        if (child !== styleNode) {
+          this._root.removeChild(child);
+        }
+      }
+
+      if (content) {
+        this._root.appendChild(content);
+      }
+    });
 
     this.onMount();
     if (__debugComponentMount) __debugComponentMount(this);
   }
 
   disconnectedCallback(): void {
+    // Dispose the reactive render effect and all inner effects
+    if (this._disposeRender) {
+      this._disposeRender();
+      this._disposeRender = null;
+    }
+    for (const d of this._innerDisposers) d();
+    this._innerDisposers = [];
+
     this.onUnmount();
     if (__debugComponentUnmount) __debugComponentUnmount(this);
   }
