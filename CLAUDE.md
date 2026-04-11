@@ -1,6 +1,6 @@
 # tina4-js
 
-Version 1.2.0 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, PWA, and debug overlay. Zero dependencies.
+Version 1.2.1 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, PWA, and debug overlay. Zero dependencies.
 
 ## Build & Test
 
