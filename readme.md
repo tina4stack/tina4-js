@@ -6,13 +6,13 @@
 <h3 align="center">The Intelligent Native Application 4ramework</h3>
 
 <p align="center">
-  Sub-3KB core, reactive frontend. Signals. Web Components. Zero dependencies.
+  1.5KB core gzipped. Reactive frontend. Signals. Web Components. Zero dependencies.
 </p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/tina4js"><img src="https://img.shields.io/npm/v/tina4js?color=7b1fa2&label=npm" alt="npm"></a>
-  <img src="https://img.shields.io/badge/tests-238%20passing-brightgreen" alt="Tests">
-  <img src="https://img.shields.io/badge/size-%3C3KB-blue" alt="Size">
+  <img src="https://img.shields.io/badge/tests-265%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/core-1.5KB%20gzipped-blue" alt="Core size">
   <img src="https://img.shields.io/badge/dependencies-0-brightgreen" alt="Zero Deps">
   <a href="https://tina4.com/js"><img src="https://img.shields.io/badge/docs-tina4.com%2Fjs-7b1fa2" alt="Docs"></a>
 </p>
