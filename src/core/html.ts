@@ -241,7 +241,16 @@ function bindElementAttrs(el: Element, values: unknown[]): void {
       if (match) {
         const val = values[parseInt(match[1], 10)];
         if (isSignal(val)) {
+          // Reactive: track the signal's value through an effect.
           effect(() => { (el as any)[propName] = (val as Signal<unknown>).value; });
+        } else if (typeof val === 'function') {
+          // Reactive arrow form (`.value=${() => sig.value}`). Mirrors the
+          // function branch a few lines below for regular attributes — any
+          // signals the function reads inside the effect register as
+          // dependencies, so the property updates when they change.
+          // Without this, the function reference was assigned to the DOM
+          // property and the browser stringified it (issue #4).
+          effect(() => { (el as any)[propName] = (val as () => unknown)() ?? ''; });
         } else {
           (el as any)[propName] = val;
         }

@@ -240,6 +240,61 @@ describe('html + signals (reactive)', () => {
   });
 });
 
+describe('html + property bindings (.value, .innerHTML, etc.)', () => {
+  it('property binding with a signal updates reactively', () => {
+    const value = signal('hello');
+    const frag = html`<input .value=${value}>`;
+    const input = frag.firstElementChild as HTMLInputElement;
+    document.body.appendChild(input);
+    expect(input.value).toBe('hello');
+    value.value = 'world';
+    expect(input.value).toBe('world');
+  });
+
+  it('property binding with a static value sets the property once', () => {
+    const frag = html`<input .value=${'static'}>`;
+    const input = frag.firstElementChild as HTMLInputElement;
+    document.body.appendChild(input);
+    expect(input.value).toBe('static');
+  });
+
+  // Regression test for issue #4 — property bindings via .value=${() => fn()}
+  // were stringifying the arrow function source onto the input. The function
+  // branch must mirror the attribute-binding behaviour: call the function
+  // inside an effect so any signals it touches register as dependencies.
+  it('property binding with an arrow function calls it reactively (issue #4)', () => {
+    const draft = signal({ name: 'Alice' });
+    const frag = html`<input .value=${() => draft.value.name || ''}>`;
+    const input = frag.firstElementChild as HTMLInputElement;
+    document.body.appendChild(input);
+    expect(input.value).toBe('Alice');
+    // Mutating the signal re-runs the effect and updates the property.
+    draft.value = { name: 'Bob' };
+    expect(input.value).toBe('Bob');
+  });
+
+  it('property binding with arrow function falls back to empty string for null/undefined', () => {
+    const draft = signal<{ name: string | null }>({ name: null });
+    const frag = html`<input .value=${() => draft.value.name}>`;
+    const input = frag.firstElementChild as HTMLInputElement;
+    document.body.appendChild(input);
+    // null coalesces to '' via the ?? '' fallback.
+    expect(input.value).toBe('');
+    draft.value = { name: 'Alice' };
+    expect(input.value).toBe('Alice');
+  });
+
+  it('property binding with arrow function works for .checked on checkboxes', () => {
+    const checked = signal(true);
+    const frag = html`<input type="checkbox" .checked=${() => checked.value}>`;
+    const input = frag.firstElementChild as HTMLInputElement;
+    document.body.appendChild(input);
+    expect(input.checked).toBe(true);
+    checked.value = false;
+    expect(input.checked).toBe(false);
+  });
+});
+
 describe('html + events', () => {
   it('binds @click handlers', () => {
     let clicked = false;
