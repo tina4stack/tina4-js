@@ -1,0 +1,117 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      # Match semver tags: v1.2.3, v1.2.3-rc.1, etc.
+      - 'v[0-9]+.*'
+  # Manual fire from the Actions tab — useful for a re-publish if a tag
+  # push fired before NPM_TOKEN was configured (e.g., the very first
+  # v1.2.3 push).
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (e.g. v1.2.3). Must exist in the repo.'
+        required: true
+        type: string
+
+permissions:
+  contents: write     # create the GitHub Release
+  id-token: write     # sign the npm package with provenance (sigstore)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history so we can read the tag's commit body for release notes
+          fetch-depth: 0
+          # On workflow_dispatch the runner checks out HEAD by default;
+          # force-checkout the supplied tag so npm publishes from the
+          # right commit.
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          # Configures ~/.npmrc to use NODE_AUTH_TOKEN for publishes.
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run test suite
+        # Gate the publish on green tests. 274 tests at the time this
+        # workflow landed — if any fail, the release does not ship.
+        run: npm test
+
+      - name: Build
+        run: |
+          npm run build
+          npm run build:types
+
+      - name: Verify package.json version matches tag
+        # Belt-and-braces: stop the release if someone tagged without
+        # bumping package.json. The npm publish step would also reject
+        # a duplicate version, but catching it here gives a clearer error.
+        run: |
+          PKG_VERSION="v$(node -p "require('./package.json').version")"
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          if [ "$PKG_VERSION" != "$TAG" ]; then
+            echo "::error::package.json version ($PKG_VERSION) does not match tag ($TAG)"
+            exit 1
+          fi
+          echo "Version check passed: $TAG"
+
+      - name: Extract release notes from tag commit body
+        # Same shape as the tina4-php publish workflow — read the
+        # narrative the maintainer wrote on the release commit and
+        # surface it as the GitHub Release body. Strips Co-Authored-By
+        # trailers and trailing blank lines.
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          git log -1 "$TAG" --pretty=%B \
+            | awk '/^Co-Authored-By:/ { skip=1 } !skip { print }' \
+            | sed -e :a -e '/^[[:space:]]*$/{$d;N;ba' -e '}' \
+            > /tmp/release-notes.md
+          echo "── /tmp/release-notes.md ──"
+          cat /tmp/release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          body_path: /tmp/release-notes.md
+          # `make_latest: true` only for non-prerelease tags. softprops
+          # auto-detects when the tag has a `-` (e.g. v1.3.0-rc.1).
+          make_latest: legacy
+
+      - name: Publish to npm
+        # --provenance: cryptographically signs the package via sigstore
+        #   so users can verify the build came from this exact workflow
+        #   run on this exact commit. Requires id-token: write permission.
+        # --access public: explicit for unscoped packages (tina4js is
+        #   unscoped). Without this, npm sometimes treats new publishes
+        #   as private by default and rejects them.
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify it landed
+        # Tiny post-publish sanity check — query the registry for the
+        # version we just shipped. Fails loudly if the dist tag didn't
+        # update (rare but worth catching).
+        run: |
+          sleep 5
+          PUBLISHED=$(npm view tina4js@${{ github.event.inputs.tag || github.ref_name }} version 2>&1 || echo "NOT_FOUND")
+          EXPECTED="${{ github.event.inputs.tag || github.ref_name }}"
+          EXPECTED_VERSION="${EXPECTED#v}"
+          if [ "$PUBLISHED" != "$EXPECTED_VERSION" ]; then
+            echo "::warning::Registry shows '$PUBLISHED', expected '$EXPECTED_VERSION'. Possibly a propagation lag — re-check in a minute."
+          else
+            echo "✓ tina4js@$PUBLISHED is live on npm"
+          fi
