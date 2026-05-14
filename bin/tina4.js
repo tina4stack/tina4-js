@@ -163,7 +163,9 @@ export default defineConfig({
   let mainTs = `import { signal, computed, html, route, router, navigate, api } from 'tina4js';
 import './routes/index';
 
-// Debug overlay in dev mode (Ctrl+Shift+D to toggle, tree-shaken from production builds)
+// Debug overlay in dev mode (Ctrl+Shift+D to toggle, tree-shaken from
+// production builds). Signals created before this dynamic import resolves —
+// including module-level store signals — are buffered and still tracked.
 if (import.meta.env.DEV) import('tina4js/debug');
 `;
 

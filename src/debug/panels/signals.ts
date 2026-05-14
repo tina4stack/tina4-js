@@ -20,7 +20,7 @@ export function renderSignalsPanel(): string {
   const signals = signalTracker.getAll();
 
   if (signals.length === 0) {
-    return `<div class="t4-empty">No signals tracked yet.<br>Signals created after debug is enabled will appear here.</div>`;
+    return `<div class="t4-empty">No signals tracked yet.<br>Create a signal — it appears here, even ones made before the overlay loaded.</div>`;
   }
 
   let rows = '';

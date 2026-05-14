@@ -1,6 +1,6 @@
 # tina4-js
 
-Version 1.2.3 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, PWA, and debug overlay. Zero dependencies.
+Version 1.2.4 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, PWA, and debug overlay. Zero dependencies.
 
 ## Build & Test
 
@@ -8,7 +8,7 @@ Version 1.2.3 — 1.5KB core gzipped, reactive JavaScript framework. Signals, We
 npm install                # Install dev dependencies
 npm run build              # Vite build → dist/
 npm run build:types        # TypeScript declarations → dist/**/*.d.ts
-npm test                   # vitest run (265 tests)
+npm test                   # vitest run (275 tests)
 npm run test:watch         # vitest watch mode
 npm run test:size          # Bundle size validation
 ```
@@ -40,7 +40,7 @@ src/
     trackers.ts          # Performance tracking
     styles.ts            # Overlay CSS
 
-tests/                   # 265 vitest tests (happy-dom environment)
+tests/                   # 275 vitest tests (happy-dom environment)
 examples/
   todo-app/              # Example todo application
   gallery/               # 9 real-world demos (dashboard, CRUD, chat, auth, cart, etc.)
@@ -317,8 +317,8 @@ tina4 install tina4-js     # Downloads latest to src/public/js/
 - npm: https://www.npmjs.com/package/tina4js
 - GitHub: https://github.com/tina4stack/tina4-js
 - Website: https://tina4.com/js
-- Version: 1.2.3
-- Tests: 265 passing
+- Version: 1.2.4
+- Tests: 275 passing
 
 ## Tina4-js Frontend Skill
 Always read and follow the instructions in .claude/skills/tina4-js/SKILL.md when working with tina4-js frontend code. Read its referenced files in .claude/skills/tina4-js/references/ as needed.

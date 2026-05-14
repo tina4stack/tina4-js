@@ -32,13 +32,50 @@ export function _getEffectCollector(): (() => void)[] | null {
 export let __debugSignalCreate: ((s: Signal<unknown>, label?: string) => void) | null = null;
 /** @internal Called when a signal value changes. */
 export let __debugSignalUpdate: ((s: Signal<unknown>, oldVal: unknown, newVal: unknown) => void) | null = null;
-/** @internal Set the debug hooks. */
+
+/**
+ * @internal Signals created before the debug module wired its hooks.
+ *
+ * The overlay is normally pulled in via `import('tina4js/debug')` (dynamic)
+ * or sits later in the entry graph, so module-level signals — the store
+ * pattern especially — already exist by the time the hooks arrive. Without
+ * this buffer those signals would never show in the overlay. Bounded so
+ * production (where the hooks are never set) pays a fixed, tiny cost.
+ */
+interface PendingSignal {
+  ref: WeakRef<Signal<unknown>>;
+  label?: string;
+  createdAt: number;
+  subs: Set<() => void>;
+}
+const _pendingSignals: PendingSignal[] = [];
+/** Module-level/store signals are created early and few — 512 covers them. */
+const _PENDING_SIGNAL_CAP = 512;
+
+/** @internal Set the debug hooks, then replay signals created before now. */
 export function __setDebugSignalHooks(
   onCreate: typeof __debugSignalCreate,
   onUpdate: typeof __debugSignalUpdate,
 ) {
   __debugSignalCreate = onCreate;
   __debugSignalUpdate = onUpdate;
+  if (onCreate) {
+    // Retroactively register every signal created before the overlay loaded.
+    for (const p of _pendingSignals) {
+      const s = p.ref.deref();
+      if (!s) continue;
+      if (!(s as { _debugInfo?: unknown })._debugInfo) {
+        (s as { _debugInfo?: unknown })._debugInfo = {
+          label: p.label,
+          createdAt: p.createdAt,
+          updateCount: 0,
+          subs: p.subs,
+        };
+      }
+      onCreate(s, p.label);
+    }
+  }
+  _pendingSignals.length = 0;
 }
 
 /** Batch depth counter — notifications deferred while > 0. */
@@ -131,6 +168,15 @@ export function signal<T>(initial: T, label?: string): Signal<T> {
   if (__debugSignalCreate) {
     s._debugInfo = { label, createdAt: Date.now(), updateCount: 0, subs };
     __debugSignalCreate(s as Signal<unknown>, label);
+  } else if (_pendingSignals.length < _PENDING_SIGNAL_CAP) {
+    // Debug not loaded yet — buffer so a later `import('tina4js/debug')`
+    // can still discover this signal (see __setDebugSignalHooks).
+    _pendingSignals.push({
+      ref: new WeakRef(s as Signal<unknown>),
+      label,
+      createdAt: Date.now(),
+      subs,
+    });
   }
 
   return s;

@@ -737,6 +737,36 @@ describe('debug — trackers', () => {
       const found = all.find(e => e.label === 'subTest');
       expect(typeof found!.subscriberCount).toBe('number');
     });
+
+    it('retroactively registers signals created before debug hooks were wired', async () => {
+      // The store pattern: signals live at module scope and are created
+      // when their file is imported — usually before `import('tina4js/debug')`
+      // resolves. They must still surface in the overlay.
+      const { __setDebugSignalHooks } = await import('../src/core/signal');
+
+      const preDebug = signal(7, 'preDebugStore');
+      // Hooks not wired yet — the tracker has no record of it.
+      expect(signalTracker.getAll().find(e => e.label === 'preDebugStore')).toBeUndefined();
+
+      // Debug overlay loads and wires its hooks — this replays the buffer.
+      __setDebugSignalHooks(
+        (s, label) => signalTracker.add(s as any, label),
+        (s) => signalTracker.onUpdate(s as any),
+      );
+
+      const found = signalTracker.getAll().find(e => e.label === 'preDebugStore');
+      expect(found).toBeDefined();
+      expect(found!.value).toBe(7);
+
+      // And it stays live for updates that happen after wiring.
+      preDebug.value = 99;
+      const after = signalTracker.getAll().find(e => e.label === 'preDebugStore');
+      expect(after!.value).toBe(99);
+      expect(after!.updateCount).toBeGreaterThanOrEqual(1);
+
+      // Restore the null hooks so later tests start from a clean slate.
+      __setDebugSignalHooks(null, null);
+    });
   });
 
   describe('routeTracker', () => {
