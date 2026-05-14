@@ -1,5 +1,5 @@
 import { route, navigate, html, signal, computed } from 'tina4js';
-import { homePage } from '../pages/home';
+import { homePage } from '@/pages/home';
 
 // Home
 route('/', homePage);

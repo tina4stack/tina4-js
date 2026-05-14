@@ -1,6 +1,6 @@
 import { route, html, signal } from 'tina4js';
-import { todoPage } from '../pages/home';
-import { todos } from '../store';
+import { todoPage } from '@/pages/home';
+import { todos } from '@/store';
 
 // Main todo page
 route('/', todoPage);

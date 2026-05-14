@@ -3,7 +3,7 @@ import {
   todos, filter, filteredTodos, remaining, totalCount,
   addTodo, toggleAll, clearCompleted,
   type Filter,
-} from '../store';
+} from '@/store';
 
 export function todoPage() {
   return html`

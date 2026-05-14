@@ -1,5 +1,5 @@
 import { Tina4Element, html, signal } from 'tina4js';
-import { toggleTodo, removeTodo } from '../store';
+import { toggleTodo, removeTodo } from '@/store';
 
 class TodoItem extends Tina4Element {
   static props = { todoId: Number, text: String, done: Boolean };

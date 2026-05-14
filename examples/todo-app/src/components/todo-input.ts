@@ -1,5 +1,5 @@
 import { Tina4Element, html, signal } from 'tina4js';
-import { addTodo } from '../store';
+import { addTodo } from '@/store';
 
 class TodoInput extends Tina4Element {
   static shadow = false;
