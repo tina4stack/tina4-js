@@ -30,3 +30,7 @@ export type { SocketStatus, SocketOptions, ManagedSocket } from './ws/ws';
 // SSE / NDJSON streaming
 export { sse } from './sse/sse';
 export type { StreamStatus, StreamOptions, ManagedStream } from './sse/sse';
+
+// Persistent signal storage — see STORAGE.md for the must-never-store list
+export { persist, clearPersistedKeys } from './storage/persist';
+export type { PersistOptions, PersistSerializer, PersistedSignal } from './storage/persist';

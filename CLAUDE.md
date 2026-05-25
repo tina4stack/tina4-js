@@ -1,6 +1,6 @@
 # tina4-js
 
-Version 1.2.4 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, PWA, and debug overlay. Zero dependencies.
+Version 1.2.5 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, PWA, persistent signal storage, and debug overlay. Zero dependencies.
 
 ## Build & Test
 
@@ -8,7 +8,7 @@ Version 1.2.4 — 1.5KB core gzipped, reactive JavaScript framework. Signals, We
 npm install                # Install dev dependencies
 npm run build              # Vite build → dist/
 npm run build:types        # TypeScript declarations → dist/**/*.d.ts
-npm test                   # vitest run (275 tests)
+npm test                   # vitest run (295 tests)
 npm run test:watch         # vitest watch mode
 npm run test:size          # Bundle size validation
 ```
@@ -34,13 +34,15 @@ src/
     ws.ts                # WebSocket client with signals + auto-reconnect
   sse/
     sse.ts               # SSE/NDJSON streaming with signals + auto-reconnect
+  storage/
+    persist.ts           # persist() wrapper for signals, clearPersistedKeys()
   debug/
     overlay.ts           # Dev overlay panel
     panels/              # Signal, component, route, API debug panels
     trackers.ts          # Performance tracking
     styles.ts            # Overlay CSS
 
-tests/                   # 275 vitest tests (happy-dom environment)
+tests/                   # 295 vitest tests (happy-dom environment)
 examples/
   todo-app/              # Example todo application
   gallery/               # 9 real-world demos (dashboard, CRUD, chat, auth, cart, etc.)
@@ -253,9 +255,36 @@ pwa({
 
 Auto-generates service worker and manifest.
 
+### Persistent signal storage — `tina4-js/storage`
+
+Wrap a signal so its value survives a page refresh. Backed by localStorage
+or sessionStorage. Opt-in per signal. Read `STORAGE.md` for the full dangers
+list before using.
+
+```javascript
+import { signal } from "tina4js";
+import { persist, clearPersistedKeys } from "tina4js/storage";
+
+const theme = persist(signal("light"), { key: "theme" });
+theme.value = "dark";   // survives a refresh
+
+// On logout, wipe persisted user state
+clearPersistedKeys(["cart", "lastFilter"]);
+```
+
+Safety guarantees: SSR-safe (no-op without window/localStorage), logs and
+continues on QuotaExceededError, loud console warning on credential-shaped
+keys (`token`, `password`, `secret`, `apikey`, `auth`, `credential`, `jwt`,
+`bearer`, `otp`, `private_key`) or JWT-shaped values. Cross-tab sync via the
+`storage` event is opt-in (`syncTabs: true`). No encryption option — that
+would imply safety the framework cannot deliver.
+
+**Never store** auth tokens, passwords, personal data, payment details,
+permission flags, or anything authoritative. localStorage is XSS-readable.
+
 ## Package Exports
 
-8 entry points for tree-shaking:
+9 entry points for tree-shaking:
 
 | Import | What you get |
 |--------|-------------|
@@ -266,6 +295,7 @@ Auto-generates service worker and manifest.
 | `tina4-js/pwa` | pwa |
 | `tina4-js/ws` | ws (WebSocket) |
 | `tina4-js/sse` | sse (SSE/NDJSON streaming) |
+| `tina4-js/storage` | persist, clearPersistedKeys |
 | `tina4-js/debug` | Debug overlay |
 
 ## IIFE Bundle
@@ -317,8 +347,8 @@ tina4 install tina4-js     # Downloads latest to src/public/js/
 - npm: https://www.npmjs.com/package/tina4js
 - GitHub: https://github.com/tina4stack/tina4-js
 - Website: https://tina4.com/js
-- Version: 1.2.4
-- Tests: 275 passing
+- Version: 1.2.5
+- Tests: 295 passing
 
 ## Tina4-js Frontend Skill
 Always read and follow the instructions in .claude/skills/tina4-js/SKILL.md when working with tina4-js frontend code. Read its referenced files in .claude/skills/tina4-js/references/ as needed.

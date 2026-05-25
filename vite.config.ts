@@ -13,6 +13,7 @@ export default defineConfig({
         debug: resolve(__dirname, 'src/debug/index.ts'),
         ws: resolve(__dirname, 'src/ws/index.ts'),
         sse: resolve(__dirname, 'src/sse/index.ts'),
+        storage: resolve(__dirname, 'src/storage/index.ts'),
       },
       formats: ['es', 'cjs'],
     },
