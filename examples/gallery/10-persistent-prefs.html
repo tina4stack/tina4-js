@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Persistent Preferences — tina4js Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --primary: #38bdf8;
+      --danger: #f43f5e;
+      --warn: #f59e0b;
+      --success: #10b981;
+      --font-size: 16px;
+    }
+    body[data-theme="light"] {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      font-size: var(--font-size);
+      transition: background 0.2s, color 0.2s;
+      min-height: 100vh;
+    }
+    .nav { padding: 0.75rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .nav a { color: var(--primary); text-decoration: none; font-size: 0.85rem; }
+    .nav .title { font-weight: 600; }
+
+    .layout { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 49px); }
+    .layout[data-collapsed="true"] { grid-template-columns: 56px 1fr; }
+    @media (max-width: 720px) { .layout, .layout[data-collapsed="true"] { grid-template-columns: 1fr; } }
+
+    /* Sidebar */
+    .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 1rem; overflow: hidden; transition: padding 0.2s; }
+    .layout[data-collapsed="true"] .sidebar { padding: 1rem 0.5rem; }
+    .sidebar h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 0.75rem; white-space: nowrap; }
+    .layout[data-collapsed="true"] .sidebar h3 { display: none; }
+    .sidebar .filter-btn { display: block; width: 100%; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--text); cursor: pointer; font-size: 0.85rem; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar .filter-btn:hover { background: var(--bg); }
+    .sidebar .filter-btn.active { background: var(--primary); color: var(--bg); font-weight: 600; }
+    .layout[data-collapsed="true"] .sidebar .filter-btn { text-align: center; padding: 0.5rem 0; }
+
+    /* Main */
+    .main { padding: 1.5rem 2rem; max-width: 760px; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+    .panel h2 { font-size: 1rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+    .panel .desc { font-size: 0.85rem; color: var(--muted); margin-bottom: 1rem; }
+    .row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+    .row:last-child { margin-bottom: 0; }
+    label { font-size: 0.85rem; color: var(--muted); min-width: 120px; }
+
+    button { padding: 0.4rem 0.85rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-family: inherit; transition: background 0.15s, border-color 0.15s; }
+    button:hover { border-color: var(--primary); }
+    button.primary { background: var(--primary); color: var(--bg); border-color: var(--primary); font-weight: 600; }
+    button.primary:hover { opacity: 0.9; }
+    button.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+    button.danger:hover { background: var(--danger); color: #fff; }
+    button.warn { background: transparent; color: var(--warn); border-color: var(--warn); }
+    button.warn:hover { background: var(--warn); color: var(--bg); }
+
+    input, textarea, select { padding: 0.4rem 0.6rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; font-family: inherit; }
+    textarea { width: 100%; min-height: 80px; resize: vertical; }
+    input[type="range"] { padding: 0; }
+
+    .pill { display: inline-block; padding: 0.15rem 0.5rem; background: var(--bg); border: 1px solid var(--border); border-radius: 99px; font-size: 0.7rem; color: var(--muted); }
+    .pill.live { background: var(--success); color: #fff; border-color: var(--success); }
+
+    .status { font-size: 0.85rem; padding: 0.5rem 0.75rem; background: var(--bg); border-left: 3px solid var(--primary); border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin-top: 0.5rem; word-break: break-all; }
+
+    .tip { font-size: 0.8rem; color: var(--muted); padding: 0.75rem; background: var(--bg); border-radius: 6px; border-left: 3px solid var(--warn); margin-top: 0.75rem; }
+    .tip strong { color: var(--warn); }
+
+    .nav-collapse-btn { background: transparent; border: none; color: var(--text); cursor: pointer; font-size: 1.1rem; padding: 0.25rem 0.5rem; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <span><a href="index.html">← Gallery</a> &nbsp; <span class="title">Persistent Preferences</span></span>
+    <span id="theme-pill" class="pill">persists across refresh</span>
+  </nav>
+
+  <div id="app" class="layout">
+    <!-- mounted by tina4 below -->
+  </div>
+
+  <script src="tina4.bundle.js"></script>
+  <script type="module">
+    const { signal, computed, effect, html, persist, clearPersistedKeys } = tina4;
+
+    // ── Persisted signals ─────────────────────────────────────────────
+    //
+    // Each one wraps signal(...) in persist(). The value reads from
+    // localStorage on creation, writes back on every change. Survives
+    // a page refresh and (with syncTabs) reaches other open tabs.
+
+    const theme       = persist(signal('dark'),    { key: 'demo.theme' });
+    const fontSize    = persist(signal(16),        { key: 'demo.fontSize' });
+    const sidebarOpen = persist(signal(true),      { key: 'demo.sidebarOpen' });
+    const filter      = persist(signal('all'),     { key: 'demo.filter' });
+    const draft       = persist(signal(''),        { key: 'demo.draft' });
+    const cart        = persist(signal([]),        { key: 'demo.cart', syncTabs: true });
+
+    // ── Side effects that turn signal values into DOM/style state ────
+
+    effect(() => { document.body.dataset.theme = theme.value; });
+    effect(() => { document.documentElement.style.setProperty('--font-size', `${fontSize.value}px`); });
+
+    // ── A computed: how many items in the cart ────────────────────────
+
+    const cartCount = computed(() => cart.value.length);
+
+    // ── Filter list (the value shown depends on filter signal) ───────
+
+    const filters = [
+      { key: 'all',      label: 'All items' },
+      { key: 'starred',  label: 'Starred' },
+      { key: 'archived', label: 'Archived' },
+      { key: 'shared',   label: 'Shared with me' },
+    ];
+
+    // ── Build the layout reactively ──────────────────────────────────
+
+    const view = html`
+      <aside class="sidebar">
+        <h3>Filters</h3>
+        ${filters.map(f => html`
+          <button
+            class=${() => `filter-btn ${filter.value === f.key ? 'active' : ''}`}
+            @click=${() => { filter.value = f.key; }}
+          >${f.label}</button>
+        `)}
+      </aside>
+      <main class="main">
+        <h1>Persistent Preferences</h1>
+        <p class="subtitle">
+          Six signals, each wrapped with <code>persist()</code>. Change something,
+          refresh the page, and watch the state survive.
+        </p>
+
+        <div class="panel">
+          <h2>🎨 Theme &amp; Display</h2>
+          <p class="desc">Two persisted signals: the theme and the font size. Both come back after a refresh.</p>
+          <div class="row">
+            <label>Theme</label>
+            <button class="primary" @click=${() => { theme.value = theme.value === 'dark' ? 'light' : 'dark'; }}>
+              Toggle (current: ${theme})
+            </button>
+          </div>
+          <div class="row">
+            <label>Font size</label>
+            <input type="range" min="12" max="22" .value=${() => String(fontSize.value)} @input=${(e) => { fontSize.value = Number(e.target.value); }}>
+            <span class="pill">${fontSize}px</span>
+          </div>
+          <div class="row">
+            <label>Sidebar</label>
+            <button @click=${() => { sidebarOpen.value = !sidebarOpen.value; document.getElementById('app').dataset.collapsed = String(!sidebarOpen.value); }}>
+              ${() => sidebarOpen.value ? 'Collapse' : 'Expand'}
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>🔍 Last-Used Filter</h2>
+          <p class="desc">The sidebar selection writes to <code>demo.filter</code>. Refresh and the same filter is still highlighted.</p>
+          <div class="status">Active filter: ${filter}</div>
+        </div>
+
+        <div class="panel">
+          <h2>📝 Draft Text</h2>
+          <p class="desc">Typing fills <code>demo.draft</code>. Close the tab, reopen, and your half-written message is still there.</p>
+          <textarea @input=${(e) => { draft.value = e.target.value; }} .value=${draft} placeholder="Type something, then refresh..."></textarea>
+        </div>
+
+        <div class="panel">
+          <h2>🛒 Cross-Tab Cart  <span class="pill live">syncTabs: true</span></h2>
+          <p class="desc">
+            Open this page in a second tab. Add an item here, watch it appear in the other tab
+            without a refresh. <code>{ syncTabs: true }</code> wires the storage event.
+          </p>
+          <div class="row">
+            <button class="primary" @click=${() => { cart.value = [...cart.value, { id: Date.now(), name: `Item ${cart.value.length + 1}` }]; }}>
+              Add an item
+            </button>
+            <button @click=${() => { cart.value = cart.value.slice(0, -1); }}>Remove last</button>
+            <span class="pill">${cartCount} items</span>
+          </div>
+          <div class="status">${() => JSON.stringify(cart.value)}</div>
+        </div>
+
+        <div class="panel">
+          <h2>🚨 Credential Warning Demo</h2>
+          <p class="desc">
+            The framework warns the first time you try to persist a credential-shaped key
+            or value. Open the browser console, then click the button. You will see a loud
+            <code>console.warn</code>.
+          </p>
+          <div class="row">
+            <button class="warn" @click=${() => {
+              // Deliberately attempt the wrong thing — the framework warns.
+              persist(signal('eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.abcdef123456_FAKE'), { key: 'demo.authToken' });
+              const note = document.getElementById('warn-note');
+              if (note) note.textContent = '✓ Warning fired — check the browser console.';
+            }}>
+              Try to persist a (fake) JWT
+            </button>
+            <span id="warn-note" class="pill"></span>
+          </div>
+          <div class="tip">
+            <strong>Never do this for real.</strong> localStorage is XSS-readable. Auth tokens,
+            passwords, personal data, and payment details belong in <code>httpOnly</code> cookies
+            or on the server, never in a persisted signal. See <code>STORAGE.md</code> in the
+            tina4-js repo for the full dangers list.
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>🧹 Wipe on Logout</h2>
+          <p class="desc">
+            <code>clearPersistedKeys()</code> removes a list of keys at once. Wire it to your
+            logout handler so persisted state does not leak to the next user on the device.
+          </p>
+          <div class="row">
+            <button class="danger" @click=${() => {
+              clearPersistedKeys([
+                'demo.cart', 'demo.filter', 'demo.draft',
+                'demo.theme', 'demo.fontSize', 'demo.sidebarOpen', 'demo.authToken',
+              ]);
+              const status = document.getElementById('wipe-note');
+              if (status) status.textContent = '✓ Keys removed. Refresh to see defaults.';
+            }}>
+              Sign out (wipe demo keys)
+            </button>
+            <span id="wipe-note" class="pill"></span>
+          </div>
+        </div>
+      </main>
+    `;
+
+    const app = document.getElementById('app');
+    app.dataset.collapsed = String(!sidebarOpen.value);
+    app.appendChild(view);
+
+    // Console hint so devs notice the credential warning when it fires
+    console.info('%c[persistent-prefs demo] Watch this console for the credential warning when you click "Try to persist a (fake) JWT".', 'color: #38bdf8');
+  </script>
+</body>
+</html>

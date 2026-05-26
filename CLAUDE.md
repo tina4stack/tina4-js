@@ -8,7 +8,7 @@ Version 1.2.6 — 1.5KB core gzipped, reactive JavaScript framework. Signals, We
 npm install                # Install dev dependencies
 npm run build              # Vite build → dist/
 npm run build:types        # TypeScript declarations → dist/**/*.d.ts
-npm test                   # vitest run (295 tests)
+npm test                   # vitest run (303 tests)
 npm run test:watch         # vitest watch mode
 npm run test:size          # Bundle size validation
 ```
@@ -42,7 +42,7 @@ src/
     trackers.ts          # Performance tracking
     styles.ts            # Overlay CSS
 
-tests/                   # 295 vitest tests (happy-dom environment)
+tests/                   # 303 vitest tests (happy-dom environment)
 examples/
   todo-app/              # Example todo application
   gallery/               # 9 real-world demos (dashboard, CRUD, chat, auth, cart, etc.)
@@ -348,7 +348,7 @@ tina4 install tina4-js     # Downloads latest to src/public/js/
 - GitHub: https://github.com/tina4stack/tina4-js
 - Website: https://tina4.com/js
 - Version: 1.2.6
-- Tests: 295 passing
+- Tests: 303 passing
 
 ## Tina4-js Frontend Skill
 Always read and follow the instructions in .claude/skills/tina4-js/SKILL.md when working with tina4-js frontend code. Read its referenced files in .claude/skills/tina4-js/references/ as needed.

@@ -4,7 +4,7 @@ import { resolve } from 'path';
 export default defineConfig({
   build: {
     lib: {
-      entry: resolve(__dirname, '../../src/core/index.ts'),
+      entry: resolve(__dirname, '_entry.ts'),
       name: 'tina4',
       formats: ['iife'],
       fileName: () => 'tina4.bundle.js',

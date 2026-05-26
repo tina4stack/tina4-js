@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/tina4js"><img src="https://img.shields.io/npm/v/tina4js?color=7b1fa2&label=npm" alt="npm"></a>
-  <img src="https://img.shields.io/badge/tests-295%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-303%20passing-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/core-1.5KB%20gzipped-blue" alt="Core size">
   <img src="https://img.shields.io/badge/dependencies-0-brightgreen" alt="Zero Deps">
   <a href="https://tina4.com/js"><img src="https://img.shields.io/badge/docs-tina4.com%2Fjs-7b1fa2" alt="Docs"></a>
@@ -62,7 +62,7 @@ Every module is built from scratch -- no node_modules bloat, no third-party runt
 | **Storage** | 1.67 KB | `persist()` wrapper for signals — survives a page refresh, opt-in per signal, SSR-safe, with loud warnings on credential-shaped keys |
 | **Debug** | 5.11 KB | Dev overlay (Ctrl+Shift+D) -- signals, components, routes, API panels |
 
-**295 tests across 13 test files. Zero dependencies. Under 3KB for the full core.**
+**303 tests across 14 test files. Zero dependencies. Under 3KB for the full core.**
 
 For full documentation visit **[tina4.com/javascript](https://tina4.com/js)**.
 
