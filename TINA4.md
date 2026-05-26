@@ -16,6 +16,7 @@
 | API | `await api.get('/path')`, `.post`, `.put`, `.patch`, `.delete` |
 | PWA | `pwa.register({ name, themeColor, cacheStrategy })` |
 | WebSocket | `ws.connect('wss://...', { reconnect: true })` — signals for status/messages |
+| Storage | `persist(signal('light'), { key: 'theme' })` from `tina4js/storage` — survives a refresh |
 | Debug | `import 'tina4js/debug'` — toggle with Ctrl+Shift+D |
 
 ## File Conventions
@@ -40,6 +41,8 @@
 10. Use `static shadow = false` for light DOM components
 11. `route(pattern, handler)` — pattern is ALWAYS the first argument, handler/config is second
 12. `api.configure()` must be called before any API calls if you need auth or a base URL
+13. `persist()` is for user preferences only — never tokens, passwords, personal data, or any
+    credentials. localStorage is XSS-readable. See `STORAGE.md` for the full dangers list.
 
 ## Signal Patterns
 

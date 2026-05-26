@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/tina4js"><img src="https://img.shields.io/npm/v/tina4js?color=7b1fa2&label=npm" alt="npm"></a>
-  <img src="https://img.shields.io/badge/tests-265%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-295%20passing-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/core-1.5KB%20gzipped-blue" alt="Core size">
   <img src="https://img.shields.io/badge/dependencies-0-brightgreen" alt="Zero Deps">
   <a href="https://tina4.com/js"><img src="https://img.shields.io/badge/docs-tina4.com%2Fjs-7b1fa2" alt="Docs"></a>
@@ -58,9 +58,11 @@ Every module is built from scratch -- no node_modules bloat, no third-party runt
 | **API** | 1.49 KB | Fetch client with auth (Bearer + formToken + FreshToken rotation), interceptors, per-request headers/params |
 | **WebSocket** | 0.91 KB | Signal-driven status, auto-reconnect with exponential backoff, pipe() to signal, JSON auto-parse |
 | **PWA** | 1.16 KB | Service worker + manifest generation, cache strategies (network-first, cache-first, stale-while-revalidate) |
+| **SSE** | 1.33 KB | Server-Sent Events and NDJSON streaming, dual-mode (EventSource + fetch), reactive status signal |
+| **Storage** | 1.67 KB | `persist()` wrapper for signals — survives a page refresh, opt-in per signal, SSR-safe, with loud warnings on credential-shaped keys |
 | **Debug** | 5.11 KB | Dev overlay (Ctrl+Shift+D) -- signals, components, routes, API panels |
 
-**238 tests across 10 test files. Zero dependencies. Under 3KB for the full core.**
+**295 tests across 13 test files. Zero dependencies. Under 3KB for the full core.**
 
 For full documentation visit **[tina4.com/javascript](https://tina4.com/js)**.
 
