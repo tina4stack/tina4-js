@@ -79,25 +79,28 @@ describe('persist()', () => {
   // ── 4. Quota fallback ────────────────────────────────────────────
 
   it('logs and continues when setItem throws (quota exceeded)', () => {
+    // Use vi.spyOn so the mock survives across Node versions and happy-dom
+    // builds — direct assignment to localStorage.setItem fails to override
+    // when the method lives on the Storage prototype (#CI Node 22).
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const original = localStorage.setItem.bind(localStorage);
-    let calls = 0;
-    localStorage.setItem = vi.fn((k: string, v: string) => {
-      calls++;
-      if (calls > 1) throw new DOMException('quota exceeded', 'QuotaExceededError');
-      original(k, v);
-    }) as typeof localStorage.setItem;
+    const setItemSpy = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota exceeded', 'QuotaExceededError');
+    });
     try {
-      const big = persist(signal('a'), { key: 'big' });
-      // Initial write succeeds; second one throws and is logged.
-      big.value = 'b';
+      // Creation tries the initial seed write, which throws → warns.
+      const big = persist(signal('initial'), { key: 'big' });
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining('failed to write key "big"'),
         expect.anything(),
       );
-      expect(big.value).toBe('b');   // signal still updated in memory
+      // The signal still updates in memory; the next write also throws
+      // and is logged, but the value lives on.
+      big.value = 'updated';
+      expect(big.value).toBe('updated');
+      // The setter was invoked at least twice (initial seed + the update).
+      expect(setItemSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
     } finally {
-      localStorage.setItem = original;
+      setItemSpy.mockRestore();
       warn.mockRestore();
     }
   });
