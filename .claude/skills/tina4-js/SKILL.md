@@ -662,8 +662,11 @@ const theme = persist(signal('light'), { key: 'theme' });
 
 ## Reference Files
 
-- **`references/signals-and-reactivity.md`** — Full signal, computed, effect, batch, isSignal,
-  and persist API with edge cases and gotchas. Read for any reactive state work, including
-  persistence.
+- **`references/signals-and-reactivity.md`** — Full signal, computed, effect, batch, isSignal
+  API with edge cases and gotchas. Read for any reactive state work.
 - **`references/html-and-components.md`** — html template bindings, Tina4Element Web Components,
   lifecycle, routing, API client, WebSocket. Read for any UI/component work.
+- **`references/persistence.md`** — `persist()` and `clearPersistedKeys()` from
+  `tina4js/storage`. Full options table, the dangers list (what must NEVER be persisted),
+  patterns, and the credential-shape warnings. Read when the user wants a signal value
+  to survive a refresh.
