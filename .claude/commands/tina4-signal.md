@@ -12,7 +12,7 @@ Set up reactive state with signals for `$ARGUMENTS` (or ask the user for the fea
 ## Template
 
 ```javascript
-import { signal, computed, effect, batch } from "tina4-js";
+import { signal, computed, effect, batch } from "tina4js";
 
 // Reactive state
 const items = signal([]);

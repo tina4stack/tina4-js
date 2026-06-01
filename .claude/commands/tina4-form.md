@@ -12,7 +12,7 @@ Create a reactive form for `$ARGUMENTS` (or ask the user for the form purpose).
 ## Template
 
 ```javascript
-import { signal, computed, html, api } from "tina4-js";
+import { signal, computed, html, api } from "tina4js";
 
 // Form state
 const name = signal("");

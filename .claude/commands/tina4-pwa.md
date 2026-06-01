@@ -10,7 +10,7 @@ Make the app a Progressive Web App.
 ## Template
 
 ```javascript
-import { pwa } from "tina4-js";
+import { pwa } from "tina4js";
 
 pwa({
     name: "My App",

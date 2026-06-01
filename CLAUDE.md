@@ -8,7 +8,7 @@ Version 1.2.6 — 1.5KB core gzipped, reactive JavaScript framework. Signals, We
 npm install                # Install dev dependencies
 npm run build              # Vite build → dist/
 npm run build:types        # TypeScript declarations → dist/**/*.d.ts
-npm test                   # vitest run (303 tests)
+npm test                   # vitest run (see npm test --silent for live count)
 npm run test:watch         # vitest watch mode
 npm run test:size          # Bundle size validation
 ```
@@ -45,7 +45,7 @@ src/
 tests/                   # 303 vitest tests (happy-dom environment)
 examples/
   todo-app/              # Example todo application
-  gallery/               # 9 real-world demos (dashboard, CRUD, chat, auth, cart, etc.)
+  gallery/               # 10 real-world demos (dashboard, CRUD, chat, auth, cart, persistent prefs, etc.)
 bin/
   tina4.js               # CLI scaffolding tool
 ```
@@ -55,7 +55,7 @@ bin/
 ### Signals — Reactive State
 
 ```javascript
-import { signal, computed, effect, batch } from "tina4-js";
+import { signal, computed, effect, batch } from "tina4js";
 
 const count = signal(0);              // Create reactive value
 const doubled = computed(() => count.value * 2);  // Derived value
@@ -75,7 +75,7 @@ batch(() => {                         // Batch multiple updates
 ### html`` — Tagged Template Rendering
 
 ```javascript
-import { html, signal } from "tina4-js";
+import { html, signal } from "tina4js";
 
 const name = signal("World");
 
@@ -105,13 +105,13 @@ document.body.appendChild(template);
 ### Tina4Element — Web Components
 
 ```javascript
-import { Tina4Element, signal, html } from "tina4-js";
+import { Tina4Element, signal, html } from "tina4js";
 
 class CounterButton extends Tina4Element {
     count = signal(0);
 
     static props = {
-        label: { type: String, default: "Click me" }
+        label: String
     };
 
     render() {
@@ -131,7 +131,7 @@ Usage: `<counter-button label="Clicks"></counter-button>`
 ### Router — Client-Side SPA
 
 ```javascript
-import { route, navigate } from "tina4-js";
+import { route, navigate } from "tina4js";
 
 route("/", () => html`<h1>Home</h1>`);
 route("/users/{id}", ({ id }) => html`<h1>User ${id}</h1>`);
@@ -141,12 +141,12 @@ route("/about", () => html`<h1>About</h1>`);
 navigate("/users/42");
 ```
 
-Supports: history mode, hash mode, guards, wildcards, nested routes.
+Supports: history mode, hash mode, guards, wildcards.
 
 ### API — HTTP Client
 
 ```javascript
-import { api } from "tina4-js";
+import { api } from "tina4js";
 
 // Configure once at startup
 api.configure({ baseUrl: "/api", auth: true });
@@ -185,7 +185,7 @@ const { data } = await api.graphql("/api/graphql",
 ### WebSocket — Reactive Connection
 
 ```javascript
-import { ws } from "tina4-js";
+import { ws } from "tina4js";
 
 const socket = ws.connect("ws://localhost:7145/ws/chat/room1");
 
@@ -209,7 +209,7 @@ socket.pipe(messages, (msg, current) => [...current, msg]);
 ### SSE — Server-Sent Events / NDJSON Streaming
 
 ```javascript
-import { sse, signal, effect } from "tina4-js";
+import { sse, signal, effect } from "tina4js";
 
 // EventSource mode (default) — standard SSE
 const stream = sse.connect("/api/events");
@@ -243,19 +243,21 @@ Features: dual-mode (EventSource + fetch/NDJSON), named events, auto-reconnect w
 ### PWA — Progressive Web App
 
 ```javascript
-import { pwa } from "tina4-js";
+import { pwa } from "tina4js";
 
-pwa({
+pwa.register({
     name: "My App",
     shortName: "App",
     themeColor: "#7b1fa2",
-    icons: ["/icon-192.png", "/icon-512.png"]
+    icon: "/icon.png"
 });
 ```
 
-Auto-generates service worker and manifest.
+`pwa` is an object — call `pwa.register(config)` to opt in. `icon` is a
+single string path; the framework synthesises both 192×192 and 512×512
+manifest entries from it. Auto-generates service worker and manifest.
 
-### Persistent signal storage — `tina4-js/storage`
+### Persistent signal storage — `tina4js/storage`
 
 Wrap a signal so its value survives a page refresh. Backed by localStorage
 or sessionStorage. Opt-in per signal. Read `STORAGE.md` for the full dangers
@@ -288,15 +290,15 @@ permission flags, or anything authoritative. localStorage is XSS-readable.
 
 | Import | What you get |
 |--------|-------------|
-| `tina4-js` | Everything |
-| `tina4-js/core` | signal, computed, effect, batch, html, Tina4Element |
-| `tina4-js/router` | route, navigate, router |
-| `tina4-js/api` | api |
-| `tina4-js/pwa` | pwa |
-| `tina4-js/ws` | ws (WebSocket) |
-| `tina4-js/sse` | sse (SSE/NDJSON streaming) |
-| `tina4-js/storage` | persist, clearPersistedKeys |
-| `tina4-js/debug` | Debug overlay |
+| `tina4js` | Everything |
+| `tina4js/core` | signal, computed, effect, batch, html, Tina4Element |
+| `tina4js/router` | route, navigate, router |
+| `tina4js/api` | api |
+| `tina4js/pwa` | pwa |
+| `tina4js/ws` | ws (WebSocket) |
+| `tina4js/sse` | sse (SSE/NDJSON streaming) |
+| `tina4js/storage` | persist, clearPersistedKeys |
+| `tina4js/debug` | Debug overlay |
 
 ## IIFE Bundle
 

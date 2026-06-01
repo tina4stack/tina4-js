@@ -12,7 +12,7 @@ Create a WebSocket connection for `$ARGUMENTS` (or ask the user for the WebSocke
 ## Template
 
 ```javascript
-import { signal, html, ws, effect } from "tina4-js";
+import { signal, html, ws, effect } from "tina4js";
 
 // Connect
 const socket = ws.connect("ws://localhost:7145/ws/chat/room1", {

@@ -13,7 +13,7 @@ Create a new Tina4Element web component. Follow these rules exactly.
 ## Template
 
 ```javascript
-import { Tina4Element, signal, html } from "tina4-js";
+import { Tina4Element, signal, html } from "tina4js";
 
 class MyComponent extends Tina4Element {
     count = signal(0);

@@ -11,7 +11,7 @@ Configure the API client for `$ARGUMENTS` (or ask the user for the API base URL)
 ## Template
 
 ```javascript
-import { signal, html, api } from "tina4-js";
+import { signal, html, api } from "tina4js";
 
 // Configure once at startup
 api.configure({

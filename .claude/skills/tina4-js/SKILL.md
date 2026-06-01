@@ -517,7 +517,7 @@ its file. The IIFE bundle provides the framework globally; island scripts just u
 tina4-js uses **curly brace** syntax for route parameters — NOT Express-style colons.
 
 ```ts
-import { route, router } from 'tina4js';
+import { route, navigate, router } from 'tina4js';
 
 // Static route
 route('/', () => html`<h1>Home</h1>`);
@@ -551,8 +551,8 @@ router.on('change', ({ path, params, pattern, durationMs }) => {
   console.log(`Navigated to ${path} in ${durationMs}ms`);
 });
 
-// Navigate programmatically
-router.navigate('/users/42');
+// Navigate programmatically — `navigate` is a top-level export, not a method on `router`
+navigate('/users/42');
 ```
 
 **Common mistake:** Using Express-style `:id` instead of `{id}`. The route will never match.

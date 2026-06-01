@@ -12,7 +12,7 @@ Create a new SPA page with routing for `$ARGUMENTS` (or ask the user for the pag
 ## Template
 
 ```javascript
-import { signal, html, route, api } from "tina4-js";
+import { signal, html, route, api } from "tina4js";
 
 // Page state
 const items = signal([]);
