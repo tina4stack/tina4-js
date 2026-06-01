@@ -1,6 +1,6 @@
 # tina4-js
 
-Version 1.2.6 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, PWA, persistent signal storage, and debug overlay. Zero dependencies.
+Version 1.2.7 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, PWA, persistent signal storage, and debug overlay. Zero dependencies.
 
 ## Build & Test
 
@@ -349,7 +349,7 @@ tina4 install tina4-js     # Downloads latest to src/public/js/
 - npm: https://www.npmjs.com/package/tina4js
 - GitHub: https://github.com/tina4stack/tina4-js
 - Website: https://tina4.com/js
-- Version: 1.2.6
+- Version: 1.2.7
 - Tests: 303 passing
 
 ## Tina4-js Frontend Skill
