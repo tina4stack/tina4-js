@@ -68,51 +68,14 @@ export interface RequestOptions {
   params?: Record<string, string | number | boolean>;
 }
 
-async function request<T = unknown>(method: string, path: string, body?: unknown, options?: RequestOptions): Promise<T> {
-  let reqConfig: RequestInit & { headers: Record<string, string>; _url?: string; _requestId?: number } = {
-    method,
-    credentials: 'same-origin',
-    headers: {
-      'Content-Type': 'application/json',
-      ...config.headers,
-    },
-  };
+type ReqConfig = RequestInit & { headers: Record<string, string>; _url?: string; _requestId?: number };
 
-  // Add auth header
-  if (config.auth) {
-    const token = getToken();
-    if (token) {
-      reqConfig.headers['Authorization'] = `Bearer ${token}`;
-    }
-  }
-
-  // Add body for non-GET requests
-  if (body !== undefined && method !== 'GET') {
-    let payload = typeof body === 'object' && body !== null ? { ...body as object } : body;
-
-    // Add formToken for write operations (tina4-php/python compatibility)
-    if (config.auth && typeof payload === 'object' && payload !== null) {
-      const token = getToken();
-      if (token) {
-        (payload as Record<string, unknown>).formToken = token;
-      }
-    }
-
-    reqConfig.body = JSON.stringify(payload);
-  }
-
-  // Merge per-request headers
-  if (options?.headers) {
-    Object.assign(reqConfig.headers, options.headers);
-  }
-
-  // Build query string from options.params
-  if (options?.params) {
-    path = buildQueryString(path, options.params);
-  }
-
-  // Set URL and request ID so interceptors (e.g. debug tracker) can read them
-  const url = config.baseUrl + path;
+/**
+ * Shared response tail for request() and upload(): set url + request id,
+ * run request interceptors, fetch, rotate FreshToken, sniff content type,
+ * build the ApiResponse, run response interceptors, throw on !ok.
+ */
+async function finalize<T>(reqConfig: ReqConfig, url: string): Promise<T> {
   reqConfig._url = url;
   reqConfig._requestId = ++requestIdCounter;
 
@@ -155,6 +118,52 @@ async function request<T = unknown>(method: string, path: string, body?: unknown
   }
 
   return result.data as T;
+}
+
+async function request<T = unknown>(method: string, path: string, body?: unknown, options?: RequestOptions): Promise<T> {
+  const reqConfig: ReqConfig = {
+    method,
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      ...config.headers,
+    },
+  };
+
+  // Add auth header
+  if (config.auth) {
+    const token = getToken();
+    if (token) {
+      reqConfig.headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
+  // Add body for non-GET requests
+  if (body !== undefined && method !== 'GET') {
+    let payload = typeof body === 'object' && body !== null ? { ...body as object } : body;
+
+    // Add formToken for write operations (tina4-php/python compatibility)
+    if (config.auth && typeof payload === 'object' && payload !== null) {
+      const token = getToken();
+      if (token) {
+        (payload as Record<string, unknown>).formToken = token;
+      }
+    }
+
+    reqConfig.body = JSON.stringify(payload);
+  }
+
+  // Merge per-request headers
+  if (options?.headers) {
+    Object.assign(reqConfig.headers, options.headers);
+  }
+
+  // Build query string from options.params
+  if (options?.params) {
+    path = buildQueryString(path, options.params);
+  }
+
+  return finalize<T>(reqConfig, config.baseUrl + path);
 }
 
 // ── Public API ──────────────────────────────────────────────────────
@@ -275,7 +284,7 @@ export const api = {
    * const result = await api.upload('/users/avatar', form);
    */
   async upload<T = unknown>(path: string, formData: FormData, options?: RequestOptions): Promise<T> {
-    let reqConfig: RequestInit & { headers: Record<string, string>; _url?: string; _requestId?: number } = {
+    const reqConfig: ReqConfig = {
       method: 'POST',
       headers: {
         ...config.headers,
@@ -306,50 +315,7 @@ export const api = {
       path = buildQueryString(path, options.params);
     }
 
-    const url = config.baseUrl + path;
-    reqConfig._url = url;
-    reqConfig._requestId = ++requestIdCounter;
-
-    // Run request interceptors
-    for (const fn of requestInterceptors) {
-      const result = fn(reqConfig);
-      if (result) reqConfig = result;
-    }
-
-    const response = await fetch(url, reqConfig);
-
-    // Token rotation
-    const freshToken = response.headers.get('FreshToken');
-    if (freshToken) setToken(freshToken);
-
-    // Parse response
-    const ct = response.headers.get('Content-Type') ?? '';
-    let data: unknown;
-    if (ct.includes('json')) {
-      data = await response.json();
-    } else {
-      data = await response.text();
-    }
-
-    let result: ApiResponse = {
-      status: response.status,
-      data,
-      ok: response.ok,
-      headers: response.headers,
-      _requestId: reqConfig._requestId,
-    };
-
-    // Run response interceptors
-    for (const fn of responseInterceptors) {
-      const intercepted = fn(result);
-      if (intercepted) result = intercepted;
-    }
-
-    if (!response.ok) {
-      throw result;
-    }
-
-    return result.data as T;
+    return finalize<T>(reqConfig, config.baseUrl + path);
   },
 
   /**
