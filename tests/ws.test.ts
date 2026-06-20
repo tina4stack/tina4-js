@@ -102,6 +102,34 @@ describe('ws — connection', () => {
     socket.close();
   });
 
+  it('sends a token as the bearer sub-protocol', () => {
+    const socket = ws.connect('wss://example.com/ws', { token: 'jwt.abc.def' });
+    expect(MockWebSocket.latest.protocols).toEqual(['bearer', 'jwt.abc.def']);
+    socket.close();
+  });
+
+  it('prepends the bearer pair ahead of caller protocols', () => {
+    const socket = ws.connect('wss://example.com/ws', { token: 'tok', protocols: ['v1'] });
+    expect(MockWebSocket.latest.protocols).toEqual(['bearer', 'tok', 'v1']);
+    socket.close();
+  });
+
+  it('re-sends the token on reconnect', () => {
+    const socket = ws.connect('wss://example.com/ws', { token: 'tok', reconnectDelay: 1 });
+    MockWebSocket.latest.simulateOpen();
+    MockWebSocket.latest.simulateClose(1006, 'dropped'); // unclean → triggers reconnect
+    vi.advanceTimersByTime(5);
+    expect(MockWebSocket._instances.length).toBe(2);
+    expect(MockWebSocket.latest.protocols).toEqual(['bearer', 'tok']);
+    socket.close();
+  });
+
+  it('omits sub-protocols entirely when no token or protocols given', () => {
+    const socket = ws.connect('wss://example.com/ws');
+    expect(MockWebSocket.latest.protocols).toEqual([]);
+    socket.close();
+  });
+
   it('status signal starts as connecting', () => {
     const socket = ws.connect('wss://example.com/ws');
     expect(socket.status.value).toBe('connecting');

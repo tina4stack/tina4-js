@@ -189,6 +189,12 @@ import { ws } from "tina4js";
 
 const socket = ws.connect("ws://localhost:7145/ws/chat/room1");
 
+// Secured (@secured) WebSocket route — pass a JWT. A browser's new WebSocket()
+// can't set headers, so the token rides as the `bearer` sub-protocol
+// (Sec-WebSocket-Protocol: bearer, <jwt>) — the transport the Tina4 server reads.
+// Re-sent automatically on every reconnect.
+const secured = ws.connect("wss://host/ws/admin", { token: jwt });
+
 // Reactive status signal
 effect(() => console.log("Status:", socket.status.value));
 
