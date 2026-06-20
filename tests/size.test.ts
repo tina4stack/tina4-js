@@ -28,7 +28,7 @@ describe('bundle size', () => {
     expect(sizeKB).toBeLessThan(2);
   });
 
-  it('api bundle is under 1.5KB gzipped', () => {
+  it('api bundle is under 2.5KB gzipped', () => {
     const path = './dist/api.es.js';
     if (!existsSync(path)) return;
     const bundle = readFileSync(path);

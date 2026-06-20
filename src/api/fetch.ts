@@ -55,6 +55,14 @@ function setToken(token: string): void {
   } catch { /* localStorage unavailable */ }
 }
 
+/** Append `options.params` to a path as a query string. */
+function buildQueryString(path: string, params: Record<string, string | number | boolean>): string {
+  const qs = Object.entries(params)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join('&');
+  return path + (path.includes('?') ? '&' : '?') + qs;
+}
+
 export interface RequestOptions {
   headers?: Record<string, string>;
   params?: Record<string, string | number | boolean>;
@@ -100,10 +108,7 @@ async function request<T = unknown>(method: string, path: string, body?: unknown
 
   // Build query string from options.params
   if (options?.params) {
-    const qs = Object.entries(options.params)
-      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-      .join('&');
-    path += (path.includes('?') ? '&' : '?') + qs;
+    path = buildQueryString(path, options.params);
   }
 
   // Set URL and request ID so interceptors (e.g. debug tracker) can read them
@@ -298,10 +303,7 @@ export const api = {
 
     // Build query string
     if (options?.params) {
-      const qs = Object.entries(options.params)
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-        .join('&');
-      path += (path.includes('?') ? '&' : '?') + qs;
+      path = buildQueryString(path, options.params);
     }
 
     const url = config.baseUrl + path;

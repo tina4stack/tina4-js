@@ -155,6 +155,8 @@ export function persist<T>(source: Signal<T>, options: PersistOptions<T>): Persi
     throw new Error('[tina4 persist] options.key is required and must be a string');
   }
 
+  const isDefault = serializer === (DEFAULT_SERIALIZER as PersistSerializer<T>);
+
   const store = getStorage(kind);
 
   // No storage means SSR or private-mode lockdown. Hand back the signal
@@ -180,13 +182,11 @@ export function persist<T>(source: Signal<T>, options: PersistOptions<T>): Persi
         }
       } catch {
         // Stored value is not JSON at all — try the custom serializer
-        storedPayload = serializer === (DEFAULT_SERIALIZER as PersistSerializer<T>)
-          ? raw
-          : serializer.read(raw);
+        storedPayload = isDefault ? raw : serializer.read(raw);
       }
 
       if (storedVersion === version || storedVersion === undefined) {
-        const value = serializer === (DEFAULT_SERIALIZER as PersistSerializer<T>)
+        const value = isDefault
           ? (storedPayload as T)
           : serializer.read(typeof storedPayload === 'string' ? storedPayload : JSON.stringify(storedPayload));
         source.value = value;
@@ -225,7 +225,7 @@ export function persist<T>(source: Signal<T>, options: PersistOptions<T>): Persi
     }
     try {
       const envelope: Envelope = { v: version, value };
-      const serialized = serializer === (DEFAULT_SERIALIZER as PersistSerializer<T>)
+      const serialized = isDefault
         ? JSON.stringify(envelope)
         : JSON.stringify({ v: version, value: serializer.write(value) });
       store.setItem(key, serialized);
@@ -251,7 +251,7 @@ export function persist<T>(source: Signal<T>, options: PersistOptions<T>): Persi
         if (newV !== undefined && newV !== version && migrate) {
           source.value = migrate(newPayload, newV);
         } else if (newV === version || newV === undefined) {
-          source.value = serializer === (DEFAULT_SERIALIZER as PersistSerializer<T>)
+          source.value = isDefault
             ? (newPayload as T)
             : serializer.read(typeof newPayload === 'string' ? newPayload : JSON.stringify(newPayload));
         }

@@ -83,8 +83,7 @@ export abstract class Tina4Element extends HTMLElement {
     // Reactive render — re-runs when any signal read inside render() changes
     this._disposeRender = effect(() => {
       // Dispose inner effects from previous render pass
-      for (const d of this._innerDisposers) d();
-      this._innerDisposers = [];
+      this._innerDisposers.splice(0).forEach(d => d());
 
       // Collect inner effects created by nested html`` templates
       const localCollector: (() => void)[] = [];
@@ -119,8 +118,7 @@ export abstract class Tina4Element extends HTMLElement {
       this._disposeRender();
       this._disposeRender = null;
     }
-    for (const d of this._innerDisposers) d();
-    this._innerDisposers = [];
+    this._innerDisposers.splice(0).forEach(d => d());
 
     this.onUnmount();
     if (__debugComponentUnmount) __debugComponentUnmount(this);
