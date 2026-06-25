@@ -59,7 +59,7 @@ Every module is built from scratch -- no node_modules bloat, no third-party runt
 | **WebSocket** | 0.91 KB | Signal-driven status, auto-reconnect with exponential backoff, pipe() to signal, JSON auto-parse |
 | **PWA** | 1.16 KB | Service worker + manifest generation, cache strategies (network-first, cache-first, stale-while-revalidate) |
 | **SSE** | 1.33 KB | Server-Sent Events and NDJSON streaming, dual-mode (EventSource + fetch), reactive status signal |
-| **Storage** | 1.67 KB | `persist()` wrapper for signals — survives a page refresh, opt-in per signal, SSR-safe, with loud warnings on credential-shaped keys |
+| **Storage** | 1.67 KB | `persist()` wrapper for signals: survives a page refresh, opt-in per signal, SSR-safe, with loud warnings on credential-shaped keys |
 | **Debug** | 5.11 KB | Dev overlay (Ctrl+Shift+D) -- signals, components, routes, API panels |
 
 **303 tests across 14 test files. Zero dependencies. Under 3KB for the full core.**
@@ -237,7 +237,7 @@ pwa.register({
 ### 8. Debug everything
 
 ```ts
-// Dev-only — tree-shaken out of production builds
+// Dev-only - tree-shaken out of production builds
 if (import.meta.env.DEV) import('tina4js/debug');
 ```
 
@@ -252,7 +252,7 @@ Toggle with **Ctrl+Shift+D**. Shows live signal values, mounted components, rout
 | **Standalone** | `npm run build` → deploy `dist/` to any static host |
 | **tina4-php** | `npm run build` → JS bundle into `src/public/js/` |
 | **tina4-python** | `npm run build` → JS bundle into `src/public/js/` |
-| **Islands** | No SPA — hydrate individual web components in server-rendered pages |
+| **Islands** | No SPA; hydrate individual web components in server-rendered pages |
 
 ---
 
@@ -313,4 +313,4 @@ npm run dev       # dev server with HMR
 
 MIT
 
-*tina4-js — The Intelligent Native Application 4ramework. [tina4.com](https://tina4.com)*
+*tina4-js: The Intelligent Native Application 4ramework. [tina4.com](https://tina4.com)*

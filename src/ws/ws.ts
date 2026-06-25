@@ -29,6 +29,14 @@ export interface SocketOptions {
   reconnectAttempts?: number;
   /** WebSocket sub-protocols. */
   protocols?: string | string[];
+  /**
+   * JWT for a secured (@secured) Tina4 WebSocket route. A browser's
+   * `new WebSocket()` cannot set an Authorization header, so the token is sent
+   * as the `bearer` sub-protocol (`Sec-WebSocket-Protocol: bearer, <jwt>`) — the
+   * transport Tina4's server reads (it echoes `bearer` back on accept). Re-sent
+   * automatically on every reconnect. Leave unset for public routes.
+   */
+  token?: string;
 }
 
 export type MessageHandler = (data: unknown) => void;
@@ -76,7 +84,20 @@ const DEFAULTS: Required<SocketOptions> = {
   reconnectMaxDelay: 30000,
   reconnectAttempts: Infinity,
   protocols: [],
+  token: '',
 };
+
+/**
+ * Resolve the effective sub-protocol list for `new WebSocket()`. When a `token`
+ * is supplied it is prepended as the `bearer, <jwt>` pair the Tina4 server reads
+ * for a secured route, ahead of any caller-supplied sub-protocols.
+ */
+function resolveProtocols(opts: Required<SocketOptions>): string | string[] {
+  const base = Array.isArray(opts.protocols)
+    ? opts.protocols
+    : (opts.protocols ? [opts.protocols] : []);
+  return opts.token ? ['bearer', opts.token, ...base] : opts.protocols;
+}
 
 // ── Implementation ───────────────────────────────────────────────────
 
@@ -114,7 +135,7 @@ function createSocket(url: string, options: SocketOptions = {}): ManagedSocket {
     status.value = attempts > 0 ? 'reconnecting' : 'connecting';
 
     try {
-      socket = new WebSocket(url, opts.protocols);
+      socket = new WebSocket(url, resolveProtocols(opts));
     } catch (e) {
       status.value = 'closed';
       connected.value = false;

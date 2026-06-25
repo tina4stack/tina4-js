@@ -157,8 +157,7 @@ function resolve(): void {
     }
 
     // Dispose effects from previous route
-    for (const dispose of activeDisposers) dispose();
-    activeDisposers = [];
+    activeDisposers.splice(0).forEach(d => d());
 
     // Render to target
     targetEl.innerHTML = '';
@@ -263,8 +262,7 @@ export function _getRoutes(): ReadonlyArray<{ pattern: string; hasGuard: boolean
 
 /** @internal Reset router state (for tests only). */
 export function _resetRouter(): void {
-  for (const dispose of activeDisposers) dispose();
-  activeDisposers = [];
+  activeDisposers.splice(0).forEach(d => d());
   routeVersion = 0;
   routes = [];
   targetEl = null;
