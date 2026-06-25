@@ -13,6 +13,16 @@ let currentEffect: (() => void) | null = null;
 /** Cleanup functions for the currently executing effect's signal subscriptions. */
 let currentCleanups: (() => void)[] | null = null;
 
+/**
+ * Dispose functions of effects created WHILE the current effect is running.
+ * The running effect OWNS those child effects: it disposes them on its next
+ * run (before re-executing) and when it is itself disposed. Without this, a
+ * bare effect() created inside another effect (or inside a reactive template
+ * hole) kept its signal subscriptions after the parent/subtree unmounted and
+ * re-fired forever (issue #6).
+ */
+let currentChildren: (() => void)[] | null = null;
+
 /** @internal When set, effect() pushes its dispose function here. */
 let _effectCollector: (() => void)[] | null = null;
 
@@ -249,22 +259,35 @@ export function computed<T>(fn: () => T): ReadonlySignal<T> {
 export function effect(fn: () => void): () => void {
   let disposed = false;
   let cleanups: (() => void)[] = [];
+  // Effects created during this effect's body — this effect owns them (#6).
+  let childDisposers: (() => void)[] = [];
+
+  const disposeChildren = () => {
+    for (const d of childDisposers) d();
+    childDisposers = [];
+  };
 
   const execute = () => {
     if (disposed) return;
-    // Remove previous signal subscriptions before re-running
+    // Remove previous signal subscriptions before re-running...
     for (const c of cleanups) c();
     cleanups = [];
+    // ...and dispose any child effects spawned by the PREVIOUS run, so a
+    // re-render does not stack duplicate inner effects (#6).
+    disposeChildren();
 
     const prev = currentEffect;
     const prevCleanups = currentCleanups;
+    const prevChildren = currentChildren;
     currentEffect = execute;
     currentCleanups = cleanups;
+    currentChildren = childDisposers;
     try {
       fn();
     } finally {
       currentEffect = prev;
       currentCleanups = prevCleanups;
+      currentChildren = prevChildren;
     }
   };
 
@@ -272,10 +295,17 @@ export function effect(fn: () => void): () => void {
 
   const dispose = () => {
     disposed = true;
-    // Remove from all signals' subscriber sets
+    // Remove from all signals' subscriber sets...
     for (const c of cleanups) c();
     cleanups = [];
+    // ...and dispose every effect we own, so an effect created inside this one
+    // (or inside a reactive template hole rendered by it) does not survive the
+    // subtree unmount and keep firing on later signal changes (#6).
+    disposeChildren();
   };
+  // If created while a parent effect is running, that parent OWNS us: it will
+  // dispose us on its next run or when it is itself disposed.
+  if (currentChildren) currentChildren.push(dispose);
   if (_effectCollector) _effectCollector.push(dispose);
   return dispose;
 }
