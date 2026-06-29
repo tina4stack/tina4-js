@@ -34,3 +34,9 @@ export type { StreamStatus, StreamOptions, ManagedStream } from './sse/sse';
 // Persistent signal storage — see STORAGE.md for the must-never-store list
 export { persist, clearPersistedKeys } from './storage/persist';
 export type { PersistOptions, PersistSerializer, PersistedSignal } from './storage/persist';
+
+// i18n — reactive translations + Intl formatting. The bare t()/setLocale()
+// shortcuts and the default singleton live in the tina4js/i18n entry to keep
+// the top-level namespace clean; createI18n + the default instance are here.
+export { createI18n, i18n } from './i18n/i18n';
+export type { I18n, I18nOptions, Messages, LocaleMessages } from './i18n/i18n';

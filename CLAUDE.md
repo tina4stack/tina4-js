@@ -1,6 +1,6 @@
 # tina4-js
 
-Version 1.3.0 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, PWA, persistent signal storage, and debug overlay. Zero dependencies.
+Version 1.3.0 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, PWA, persistent signal storage, internationalization (i18n), and debug overlay. Zero dependencies.
 
 ## Build & Test
 
@@ -36,13 +36,15 @@ src/
     sse.ts               # SSE/NDJSON streaming with signals + auto-reconnect
   storage/
     persist.ts           # persist() wrapper for signals, clearPersistedKeys()
+  i18n/
+    i18n.ts              # createI18n, t, setLocale; Intl number/currency/date/relativeTime; dir/RTL
   debug/
     overlay.ts           # Dev overlay panel
     panels/              # Signal, component, route, API debug panels
     trackers.ts          # Performance tracking
     styles.ts            # Overlay CSS
 
-tests/                   # 303 vitest tests (happy-dom environment)
+tests/                   # 327 vitest tests (happy-dom environment)
 examples/
   todo-app/              # Example todo application
   gallery/               # 10 real-world demos (dashboard, CRUD, chat, auth, cart, persistent prefs, etc.)
@@ -290,9 +292,51 @@ would imply safety the framework cannot deliver.
 **Never store** auth tokens, passwords, personal data, payment details,
 permission flags, or anything authoritative. localStorage is XSS-readable.
 
+### Internationalization — `tina4js/i18n`
+
+Reactive translations plus browser-native Intl formatting. The active locale is a
+signal, so `t()` and the formatters re-render in place on `setLocale()` — use the
+`${() => ...}` form in templates. Mirrors the backend tina4 `I18n` API.
+
+```javascript
+import { createI18n } from "tina4js";
+// or the default singleton + shortcuts:
+import { i18n, t, setLocale } from "tina4js/i18n";
+
+const i = createI18n({
+    locale: "en-US",
+    fallbackLocale: "en-US",
+    messages: {
+        "en-US": { greeting: "Hello", welcome: "Welcome, {name}!", nav: { home: "Home" } },
+        "fr-FR": { greeting: "Bonjour", nav: { home: "Accueil" } },
+    },
+});
+
+i.t("greeting");                    // "Hello"
+i.t("welcome", { name: "Alice" });  // "Welcome, Alice!"  ({placeholder} interpolation)
+i.t("nav.home"); i.t("home");       // dot-path AND leaf alias both resolve
+i.number(1234.5);                   // "1,234.5"
+i.currency(19.99, "USD");           // "$19.99"
+i.date(new Date(), { dateStyle: "medium" });
+i.relativeTime(-1, "day");          // "yesterday"
+i.dir();                            // "ltr" | "rtl"  (RTL-aware)
+await i.loadMessages("es-ES", "/i18n/es-ES.json");  // fetch a bundle
+i.setLocale("fr-FR");               // every t()/formatter re-renders
+```
+
+In templates, use the function form so it stays reactive:
+
+```javascript
+html`<h1>${() => i.t("greeting")}</h1>`
+html`<div dir=${() => i.dir()}>...</div>`
+```
+
+Fallback order is current locale -> fallbackLocale -> the key itself (never throws).
+Formatting delegates to the browser's Intl APIs, so no locale data is shipped.
+
 ## Package Exports
 
-9 entry points for tree-shaking:
+10 entry points for tree-shaking:
 
 | Import | What you get |
 |--------|-------------|
@@ -304,6 +348,7 @@ permission flags, or anything authoritative. localStorage is XSS-readable.
 | `tina4js/ws` | ws (WebSocket) |
 | `tina4js/sse` | sse (SSE/NDJSON streaming) |
 | `tina4js/storage` | persist, clearPersistedKeys |
+| `tina4js/i18n` | createI18n, i18n, t, setLocale, getLocale (translations + Intl formatting) |
 | `tina4js/debug` | Debug overlay |
 
 ## IIFE Bundle
@@ -356,7 +401,7 @@ tina4 install tina4-js     # Downloads latest to src/public/js/
 - GitHub: https://github.com/tina4stack/tina4-js
 - Website: https://tina4.com/js
 - Version: 1.3.0
-- Tests: 310 passing
+- Tests: 327 passing
 
 ## Tina4-js Frontend Skill
 Always read and follow the instructions in .claude/skills/tina4-js/SKILL.md when working with tina4-js frontend code. Read its referenced files in .claude/skills/tina4-js/references/ as needed.

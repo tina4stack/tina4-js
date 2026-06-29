@@ -14,6 +14,7 @@ export default defineConfig({
         ws: resolve(__dirname, 'src/ws/index.ts'),
         sse: resolve(__dirname, 'src/sse/index.ts'),
         storage: resolve(__dirname, 'src/storage/index.ts'),
+        i18n: resolve(__dirname, 'src/i18n/index.ts'),
       },
       formats: ['es', 'cjs'],
     },
