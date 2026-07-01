@@ -3,7 +3,11 @@ npm publish
 /.idea/
 /.cache/
 /.parcel-cache/
-/dist/
+/dist/*
+# The IIFE bundle IS tracked: `tina4 install tina4-js` downloads it from
+# raw.githubusercontent.com/tina4stack/tina4-js/master/dist/tina4js.min.js,
+# so it must live in git or the install 404s and apps get a stale fallback.
+!/dist/tina4js.min.js
 *.tsbuildinfo
 /.claude/launch.json
 /examples/todo-app/package-lock.json

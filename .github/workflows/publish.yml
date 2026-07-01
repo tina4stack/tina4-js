@@ -53,6 +53,7 @@ jobs:
         run: |
           npm run build
           npm run build:types
+          npm run build:iife
 
       - name: Verify package.json version matches tag
         # Belt-and-braces: stop the release if someone tagged without

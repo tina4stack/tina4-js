@@ -1,6 +1,6 @@
 {
   "name": "tina4js",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "1.5KB core gzipped, reactive framework — signals, web components, routing, PWA",
   "type": "module",
   "main": "dist/tina4.cjs.js",
@@ -62,6 +62,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:types": "tsc --emitDeclarationOnly --outDir dist",
+    "build:iife": "esbuild src/index.ts --bundle --minify --format=iife --global-name=Tina4 --outfile=dist/tina4js.min.js --target=es2021",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:size": "vitest run tests/size.test.ts",
