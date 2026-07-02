@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Localization (i18n) — tina4js Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --primary: #38bdf8;
+      --success: #10b981;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+    }
+    .nav { padding: 0.75rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .nav a { color: var(--primary); text-decoration: none; font-size: 0.85rem; }
+    .nav .title { font-weight: 600; }
+    .pill { display: inline-block; padding: 0.15rem 0.5rem; background: var(--bg); border: 1px solid var(--border); border-radius: 99px; font-size: 0.7rem; color: var(--muted); }
+
+    .container { max-width: 760px; margin: 0 auto; padding: 1.5rem 2rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    /* Language switcher */
+    .langs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .lang-btn { display: flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.8rem; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-family: inherit; transition: border-color 0.15s, background 0.15s; }
+    .lang-btn:hover { border-color: var(--primary); }
+    .lang-btn.active { background: var(--primary); color: var(--bg); border-color: var(--primary); font-weight: 600; }
+    .lang-btn .flag { font-size: 1.1rem; line-height: 1; }
+
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+    .panel h2 { font-size: 1rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+    .panel .desc { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
+
+    /* dir="rtl" flips text alignment and flex row direction automatically */
+    .greeting { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .tagline { color: var(--primary); font-size: 0.95rem; }
+
+    .field { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; flex-wrap: wrap; }
+    label { font-size: 0.85rem; color: var(--muted); min-width: 90px; }
+    input { padding: 0.4rem 0.6rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; font-family: inherit; }
+
+    /* Menu of translated nav labels */
+    .menu { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .menu .item { padding: 0.4rem 0.8rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; }
+
+    /* Intl formatting grid */
+    .format-grid { display: grid; grid-template-columns: 140px 1fr; gap: 0.5rem 1rem; align-items: baseline; }
+    .format-grid .k { font-size: 0.8rem; color: var(--muted); }
+    .format-grid .v { font-size: 1rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); }
+
+    .source { margin-top: 1rem; }
+    .source h3 { margin-bottom: 1rem; color: var(--muted); font-size: 0.9rem; }
+    pre { background: #0b1120; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; color: var(--text); }
+    code .kw { color: #c084fc; }
+    code .fn { color: #38bdf8; }
+    code .str { color: #4ade80; }
+    code .cm { color: #64748b; }
+    @media (max-height: 500px) { .source { display: none !important; } }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <span><a href="index.html">&larr; Gallery</a> &nbsp; <span class="title">Localization (i18n)</span></span>
+    <span class="pill">the locale is a signal</span>
+  </nav>
+
+  <div id="app"></div>
+
+  <script src="tina4.bundle.js"></script>
+  <script type="module">
+    const { signal, html, createI18n } = tina4;
+
+    // ── One i18n instance, six locales ────────────────────────────────
+    //
+    // The active locale lives in a SIGNAL inside the instance. Every t()
+    // and every Intl formatter reads it, so calling setLocale() re-renders
+    // the whole page in place. No reload, no locale data downloaded.
+
+    const i18n = createI18n({
+      locale: 'en-US',
+      fallbackLocale: 'en-US',
+      messages: {
+        'en-US': {
+          greeting: 'Hello',
+          welcome: 'Welcome back, {name}!',
+          tagline: 'One app. Every language.',
+          nav: { home: 'Home', products: 'Products', pricing: 'Pricing', about: 'About' },
+        },
+        'fr-FR': {
+          greeting: 'Bonjour',
+          welcome: 'Bon retour, {name} !',
+          tagline: 'Une application. Toutes les langues.',
+          nav: { home: 'Accueil', products: 'Produits', pricing: 'Tarifs', about: 'A propos' },
+        },
+        'de-DE': {
+          greeting: 'Hallo',
+          welcome: 'Willkommen zurück, {name}!',
+          tagline: 'Eine App. Jede Sprache.',
+          nav: { home: 'Startseite', products: 'Produkte', pricing: 'Preise', about: 'Über uns' },
+        },
+        'es-ES': {
+          greeting: 'Hola',
+          welcome: 'Bienvenido de nuevo, {name}!',
+          tagline: 'Una aplicación. Todos los idiomas.',
+          nav: { home: 'Inicio', products: 'Productos', pricing: 'Precios', about: 'Acerca de' },
+        },
+        'ja-JP': {
+          greeting: 'こんにちは',
+          welcome: 'おかえりなさい、{name} さん！',
+          tagline: 'ひとつのアプリ。すべての言語。',
+          nav: { home: 'ホーム', products: '製品', pricing: '料金', about: '会社概要' },
+        },
+        'ar': {
+          greeting: 'مرحبا',
+          welcome: 'مرحبا بعودتك، {name}!',
+          tagline: 'تطبيق واحد. كل اللغات.',
+          nav: { home: 'الرئيسية', products: 'المنتجات', pricing: 'الأسعار', about: 'من نحن' },
+        },
+      },
+    });
+
+    const locales = [
+      { code: 'en-US', flag: '🇬🇧', label: 'English' },
+      { code: 'fr-FR', flag: '🇫🇷', label: 'Français' },
+      { code: 'de-DE', flag: '🇩🇪', label: 'Deutsch' },
+      { code: 'es-ES', flag: '🇪🇸', label: 'Español' },
+      { code: 'ja-JP', flag: '🇯🇵', label: '日本語' },
+      { code: 'ar',    flag: '🇸🇦', label: 'العربية' },
+    ];
+
+    // The name feeds {name} interpolation in the welcome message.
+    const userName = signal('Alice');
+
+    // Sample values the Intl formatters reshape per locale.
+    const bigNumber = 1234567.89;
+    const price = 4999.5;
+    const navKeys = ['home', 'products', 'pricing', 'about'];
+
+    // ── The view ──────────────────────────────────────────────────────
+    //
+    // Every i18n read uses the ${() => ...} function form. That is what
+    // makes it reactive: a bare ${i18n.t('greeting')} would format once
+    // and freeze at the first locale.
+
+    const view = html`
+      <div class="container">
+        <h1>Localization (i18n)</h1>
+        <p class="subtitle">
+          Pick a language. Every translated string and every formatted number, date,
+          and price updates in place. Arabic flips the whole layout to right-to-left.
+        </p>
+
+        <div class="langs">
+          ${locales.map(l => html`
+            <button
+              class=${() => 'lang-btn' + (i18n.getLocale() === l.code ? ' active' : '')}
+              @click=${() => { i18n.setLocale(l.code); }}
+            >
+              <span class="flag">${l.flag}</span> ${l.label}
+            </button>
+          `)}
+        </div>
+
+        <!-- dir follows the locale: "rtl" for Arabic, "ltr" otherwise -->
+        <div dir=${() => i18n.dir()}>
+          <div class="panel">
+            <h2>💬 Translation</h2>
+            <p class="desc">t(key) reads the active locale. Pass params for {placeholder} interpolation.</p>
+            <div class="greeting">${() => i18n.t('greeting')}, ${() => userName.value || '...'}</div>
+            <div class="tagline">${() => i18n.t('tagline')}</div>
+            <div class="field" dir="ltr">
+              <label>Your name</label>
+              <input .value=${userName} @input=${(e) => { userName.value = e.target.value; }} placeholder="Type a name">
+            </div>
+            <p style="margin-top:0.75rem;font-size:0.95rem;">${() => i18n.t('welcome', { name: userName.value || '?' })}</p>
+          </div>
+
+          <div class="panel">
+            <h2>🧭 Navigation labels</h2>
+            <p class="desc">Nested messages: t('nav.home') and the leaf alias t('home') both resolve.</p>
+            <div class="menu">
+              ${navKeys.map(key => html`<span class="item">${() => i18n.t('nav.' + key)}</span>`)}
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>🔢 Numbers, money, and dates</h2>
+            <p class="desc">The formatters delegate to the browser's Intl engine. Same values, reshaped for the locale.</p>
+            <div class="format-grid">
+              <span class="k">number</span>
+              <span class="v">${() => i18n.number(bigNumber)}</span>
+              <span class="k">currency (USD)</span>
+              <span class="v">${() => i18n.currency(price, 'USD')}</span>
+              <span class="k">date</span>
+              <span class="v">${() => i18n.date(new Date(), { dateStyle: 'full' })}</span>
+              <span class="k">relative time</span>
+              <span class="v">${() => i18n.relativeTime(-1, 'day')} / ${() => i18n.relativeTime(3, 'day')}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel source">
+          <h3>How it works — View Source</h3>
+          <pre><code><span class="kw">import</span> { <span class="fn">createI18n</span> } <span class="kw">from</span> <span class="str">'tina4js/i18n'</span>;
+
+<span class="kw">const</span> i18n = <span class="fn">createI18n</span>({
+  locale: <span class="str">'en-US'</span>,
+  fallbackLocale: <span class="str">'en-US'</span>,
+  messages: {
+    <span class="str">'en-US'</span>: { greeting: <span class="str">'Hello'</span>, welcome: <span class="str">'Welcome back, {name}!'</span> },
+    <span class="str">'fr-FR'</span>: { greeting: <span class="str">'Bonjour'</span> },
+    <span class="str">'ar'</span>:    { greeting: <span class="str">'مرحبا'</span> },
+  },
+});
+
+<span class="cm">// The locale is a signal, so read i18n through the ${'${'}() => ...} form</span>
+<span class="cm">// and it re-renders the instant you switch.</span>
+html<span class="str">\`</span>
+  &lt;h1&gt;<span class="str">\${</span>() => i18n.<span class="fn">t</span>(<span class="str">'greeting'</span>)<span class="str">}</span>&lt;/h1&gt;
+  &lt;p&gt;<span class="str">\${</span>() => i18n.<span class="fn">t</span>(<span class="str">'welcome'</span>, { name: <span class="str">'Alice'</span> })<span class="str">}</span>&lt;/p&gt;
+  &lt;span&gt;<span class="str">\${</span>() => i18n.<span class="fn">currency</span>(<span class="str">4999.5</span>, <span class="str">'USD'</span>)<span class="str">}</span>&lt;/span&gt;
+  &lt;div dir=<span class="str">\${</span>() => i18n.<span class="fn">dir</span>()<span class="str">}</span>&gt;...&lt;/div&gt;
+<span class="str">\`</span>;
+
+i18n.<span class="fn">setLocale</span>(<span class="str">'ar'</span>);   <span class="cm">// every t()/formatter re-renders, layout flips to RTL</span></code></pre>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('app').appendChild(view);
+  </script>
+</body>
+</html>
