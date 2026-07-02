@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Islands (Web Components) — tina4js Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f172a; --surface: #1e293b; --border: #334155;
+      --text: #e2e8f0; --muted: #64748b; --primary: #38bdf8;
+      --success: #10b981; --star: #f59e0b;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .nav { padding: 0.75rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .nav a { color: var(--primary); text-decoration: none; font-size: 0.85rem; }
+    .nav .title { font-weight: 600; }
+    .pill { display: inline-block; padding: 0.15rem 0.55rem; background: var(--bg); border: 1px solid var(--border); border-radius: 99px; font-size: 0.72rem; color: var(--muted); }
+
+    .container { max-width: 780px; margin: 0 auto; padding: 1.5rem 2rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    /* "Server-rendered" product page (static, light-DOM HTML) */
+    .product { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 1.25rem; }
+    .product .hero { height: 150px; display: flex; align-items: center; justify-content: center; font-size: 4rem; background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); position: relative; }
+    .product .body { padding: 1.25rem 1.5rem; }
+    .product .server-tag { position: absolute; top: 0.6rem; left: 0.6rem; }
+    .product h2 { font-size: 1.25rem; margin-bottom: 0.25rem; }
+    .product .price { color: var(--primary); font-size: 1.35rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .product .blurb { color: var(--muted); font-size: 0.88rem; line-height: 1.6; margin-bottom: 1rem; }
+    .island-slot { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border); }
+
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+    .panel h3 { font-size: 0.95rem; margin-bottom: 0.5rem; }
+    .panel p { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+    .panel code { background: var(--bg); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.82em; color: var(--primary); }
+
+    .source h3 { margin-bottom: 1rem; color: var(--muted); font-size: 0.9rem; }
+    pre { background: #0b1120; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; color: var(--text); }
+    code .kw { color: #c084fc; } code .fn { color: #38bdf8; } code .str { color: #4ade80; } code .cm { color: #64748b; }
+    @media (max-height: 500px) { .source { display: none !important; } }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <span><a href="index.html">&larr; Gallery</a> &nbsp; <span class="title">Islands (Web Components)</span></span>
+    <span class="pill">self-hydrating</span>
+  </nav>
+
+  <div class="container">
+    <h1>Islands Architecture</h1>
+    <p class="subtitle">
+      The page below is static, server-rendered HTML. The three interactive widgets are
+      tina4-js Web Components that hydrate on their own the moment the script defines them.
+      Each island is shadow-DOM encapsulated: it brings its own markup and its own styles.
+    </p>
+
+    <!-- Static, "server-rendered" product page. Only the custom-element -->
+    <!-- tags below hydrate; everything else is plain HTML the server sent. -->
+    <div class="product">
+      <div class="hero">
+        <span>&#127911;</span>
+        <span class="server-tag pill">server-rendered</span>
+      </div>
+      <div class="body">
+        <h2>Wireless Headphones</h2>
+        <div class="price">$79.99</div>
+        <p class="blurb">
+          Over-ear, 40-hour battery, active noise cancellation. This copy, the price,
+          and the layout arrived as static HTML. The stars, the cart, and the live
+          viewer count are islands.
+        </p>
+
+        <div class="island-slot"><star-rating sku="WH-100" rating="4"></star-rating></div>
+        <div class="island-slot"><add-to-cart sku="WH-100" price="79.99"></add-to-cart></div>
+        <div class="island-slot"><live-viewers></live-viewers></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>&#127796; Why islands</h3>
+      <p>
+        Each widget is a <code>Tina4Element</code> that calls <code>customElements.define()</code>.
+        Drop its tag into any server-rendered page - PHP, Twig, Go templates, plain HTML - and it
+        upgrades in place. An island ships around 2 KB of its own logic instead of booting a
+        whole framework for the entire page. It reads its own attributes, owns its own signals,
+        scopes its own styles, and cleans up when removed.
+      </p>
+    </div>
+
+    <div class="panel source">
+      <h3>How it works — View Source</h3>
+      <pre><code><span class="kw">import</span> { <span class="fn">Tina4Element</span>, <span class="fn">signal</span>, <span class="fn">html</span> } <span class="kw">from</span> <span class="str">'tina4js'</span>;
+
+<span class="kw">class</span> AddToCart <span class="kw">extends</span> Tina4Element {
+  <span class="kw">static</span> props  = { sku: String, price: Number };  <span class="cm">// attr names == keys</span>
+  <span class="kw">static</span> styles = <span class="str">\`.buy { background: var(--primary); }\`</span>;  <span class="cm">// scoped to the shadow root</span>
+  qty    = <span class="fn">signal</span>(<span class="str">1</span>);   <span class="cm">// each island owns its state</span>
+  inCart = <span class="fn">signal</span>(<span class="str">0</span>);
+
+  <span class="fn">render</span>() {
+    <span class="kw">return</span> html<span class="str">\`</span>
+      &lt;button @click=<span class="str">\${</span>() => this.qty.value++<span class="str">}</span>&gt;+&lt;/button&gt;
+      &lt;span&gt;<span class="str">\${</span>this.qty<span class="str">}</span>&lt;/span&gt;
+      &lt;button class="buy" @click=<span class="str">\${</span>() => this.inCart.value += this.qty.value<span class="str">}</span>&gt;
+        Add <span class="str">\${</span>() => this.<span class="fn">prop</span>(<span class="str">'price'</span>)<span class="str">}</span>
+      &lt;/button&gt;
+    <span class="str">\`</span>;
+  }
+}
+customElements.<span class="fn">define</span>(<span class="str">'add-to-cart'</span>, AddToCart);</code></pre>
+      <p style="font-size:0.75rem;color:var(--muted);margin-top:0.75rem;">Then in any server page: <code>&lt;add-to-cart sku="WH-100" price="79.99"&gt;&lt;/add-to-cart&gt;</code></p>
+    </div>
+  </div>
+
+  <script src="tina4.bundle.js"></script>
+  <script type="module">
+    const { signal, html, Tina4Element } = tina4;
+
+    // CSS custom properties inherit through the shadow boundary, so each
+    // island's scoped styles can still reference the page's --theme vars.
+
+    // ── Island 1: star rating ─────────────────────────────────────────
+    class StarRating extends Tina4Element {
+      static props = { sku: String, rating: Number };
+      static styles = `
+        :host { display: inline-flex; align-items: center; gap: 0.5rem; }
+        .stars { display: inline-flex; gap: 0.15rem; font-size: 1.5rem; cursor: pointer; }
+        .star { color: var(--border, #334155); transition: color 0.1s; }
+        .star.on { color: var(--star, #f59e0b); }
+        .rating-label { font-size: 0.8rem; color: var(--muted, #64748b); }
+      `;
+      selected = signal(0);   // 0 = show the server-provided rating
+
+      render() {
+        return html`
+          <div class="stars">
+            ${[1, 2, 3, 4, 5].map(n => html`
+              <span class=${() => 'star ' + (n <= (this.selected.value || this.prop('rating').value) ? 'on' : '')}
+                    @click=${() => { this.selected.value = n; }}>&#9733;</span>`)}
+          </div>
+          <span class="rating-label">${() => this.selected.value ? `you rated ${this.selected.value}/5` : `${this.prop('rating').value}.0 average`}</span>
+        `;
+      }
+    }
+    customElements.define('star-rating', StarRating);
+
+    // ── Island 2: add to cart ─────────────────────────────────────────
+    class AddToCart extends Tina4Element {
+      static props = { sku: String, price: Number };
+      static styles = `
+        :host { display: block; }
+        .cart-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+        .stepper { display: inline-flex; align-items: center; border: 1px solid var(--border, #334155); border-radius: 6px; overflow: hidden; }
+        .stepper button { background: var(--bg, #0f172a); color: var(--text, #e2e8f0); border: none; width: 32px; height: 32px; font-size: 1rem; cursor: pointer; }
+        .stepper button:hover { background: var(--border, #334155); }
+        .qty { width: 34px; text-align: center; }
+        .buy { padding: 0.5rem 1.1rem; background: var(--primary, #38bdf8); color: var(--bg, #0f172a); border: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer; font-family: inherit; }
+        .buy:hover { opacity: 0.9; }
+        .cart-note { font-size: 0.82rem; color: var(--success, #10b981); }
+      `;
+      qty = signal(1);
+      inCart = signal(0);
+
+      render() {
+        return html`
+          <div class="cart-row">
+            <div class="stepper">
+              <button @click=${() => { if (this.qty.value > 1) this.qty.value--; }}>-</button>
+              <span class="qty">${this.qty}</span>
+              <button @click=${() => { this.qty.value++; }}>+</button>
+            </div>
+            <button class="buy" @click=${() => { this.inCart.value += this.qty.value; }}>
+              ${() => `Add ${this.qty.value} - $${(this.prop('price').value * this.qty.value).toFixed(2)}`}
+            </button>
+            <span class="cart-note" ?hidden=${() => this.inCart.value === 0}>
+              ${() => `${this.inCart.value} in cart`}
+            </span>
+          </div>
+        `;
+      }
+    }
+    customElements.define('add-to-cart', AddToCart);
+
+    // ── Island 3: live viewers (self-contained lifecycle) ─────────────
+    class LiveViewers extends Tina4Element {
+      static styles = `
+        .viewers { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--muted, #64748b); }
+        .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success, #10b981); box-shadow: 0 0 6px var(--success, #10b981); }
+      `;
+      viewers = signal(12);
+      _timer = null;
+
+      connectedCallback() {
+        super.connectedCallback();
+        // The island owns its own timer and tears it down on removal.
+        this._timer = setInterval(() => {
+          const delta = Math.random() > 0.5 ? 1 : -1;
+          this.viewers.value = Math.max(1, this.viewers.value + delta);
+        }, 1400);
+      }
+      disconnectedCallback() {
+        if (this._timer) clearInterval(this._timer);
+        super.disconnectedCallback();
+      }
+      render() {
+        return html`<span class="viewers"><span class="live-dot"></span> ${this.viewers} people viewing now</span>`;
+      }
+    }
+    customElements.define('live-viewers', LiveViewers);
+  </script>
+</body>
+</html>

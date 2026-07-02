@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Upload — tina4js Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f172a; --surface: #1e293b; --border: #334155;
+      --text: #e2e8f0; --muted: #64748b; --primary: #38bdf8; --success: #10b981;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .nav { padding: 0.75rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .nav a { color: var(--primary); text-decoration: none; font-size: 0.85rem; }
+    .nav .title { font-weight: 600; }
+    .pill { display: inline-block; padding: 0.15rem 0.55rem; background: var(--bg); border: 1px solid var(--border); border-radius: 99px; font-size: 0.72rem; color: var(--muted); }
+
+    .container { max-width: 760px; margin: 0 auto; padding: 1.5rem 2rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+
+    .drop { border: 2px dashed var(--border); border-radius: 10px; padding: 2rem 1rem; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .drop:hover, .drop.over { border-color: var(--primary); background: var(--bg); }
+    .drop .big { font-size: 2.5rem; }
+    .drop p { color: var(--muted); font-size: 0.88rem; margin-top: 0.5rem; }
+    .drop .browse { color: var(--primary); text-decoration: underline; }
+    input[type="file"] { display: none; }
+
+    .files { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1rem; }
+    .file { display: flex; align-items: center; gap: 0.85rem; padding: 0.6rem 0.75rem; background: var(--bg); border-radius: 8px; }
+    .thumb { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+    .file-main { flex: 1; min-width: 0; }
+    .file-name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-meta { font-size: 0.72rem; color: var(--muted); }
+    .bar { height: 6px; background: var(--surface); border-radius: 99px; margin-top: 0.4rem; overflow: hidden; }
+    .bar .fill { height: 100%; background: var(--primary); border-radius: 99px; transition: width 0.15s linear; }
+    .bar .fill.done { background: var(--success); }
+    .file-status { font-size: 0.72rem; min-width: 66px; text-align: right; color: var(--muted); }
+    .file-status.done { color: var(--success); }
+    .rm { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 0 0.25rem; }
+    .rm:hover { color: #f43f5e; }
+
+    .actions { margin-top: 1rem; display: flex; gap: 0.5rem; align-items: center; }
+    button { padding: 0.5rem 1.1rem; background: var(--primary); color: var(--bg); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; font-family: inherit; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); font-weight: 400; }
+
+    .source { margin-top: 1rem; }
+    .source h3 { margin-bottom: 1rem; color: var(--muted); font-size: 0.9rem; }
+    pre { background: #0b1120; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; color: var(--text); }
+    code .kw { color: #c084fc; } code .fn { color: #38bdf8; } code .str { color: #4ade80; } code .cm { color: #64748b; }
+    .note { font-size: 0.75rem; color: var(--muted); margin-top: 0.75rem; border-left: 3px solid var(--border); padding-left: 0.6rem; }
+    @media (max-height: 500px) { .source { display: none !important; } }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <span><a href="index.html">&larr; Gallery</a> &nbsp; <span class="title">File Upload</span></span>
+    <span class="pill">multipart / FormData</span>
+  </nav>
+
+  <div id="app"></div>
+
+  <script src="tina4.bundle.js"></script>
+  <script type="module">
+    const { signal, computed, html } = tina4;
+
+    // Each entry tracks a real File plus its (simulated) upload progress.
+    const files = signal([]);   // { id, name, size, type, preview, progress, status }
+    let nextId = 1;
+
+    const pending = computed(() => files.value.filter(f => f.status !== 'done').length);
+
+    function humanSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    function addFiles(fileList) {
+      for (const file of fileList) {
+        const entry = {
+          id: nextId++, name: file.name, size: file.size,
+          type: file.type || 'application/octet-stream',
+          preview: null, progress: 0, status: 'ready', _file: file,
+        };
+        files.value = [...files.value, entry];
+        // Real browser FileReader: show a thumbnail for images.
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = () => { patch(entry.id, { preview: reader.result }); };
+          reader.readAsDataURL(file);
+        }
+      }
+    }
+
+    function patch(id, changes) {
+      files.value = files.value.map(f => f.id === id ? { ...f, ...changes } : f);
+    }
+
+    function removeFile(id) {
+      files.value = files.value.filter(f => f.id !== id);
+    }
+
+    // Simulated upload: a real app awaits api.upload(path, FormData). Here a
+    // timer advances each file's progress so the demo needs no server.
+    function uploadAll() {
+      files.value.filter(f => f.status === 'ready').forEach(f => {
+        patch(f.id, { status: 'uploading' });
+        const timer = setInterval(() => {
+          const current = files.value.find(x => x.id === f.id);
+          if (!current) { clearInterval(timer); return; }
+          const next = Math.min(100, current.progress + 8 + Math.floor(Math.random() * 12));
+          if (next >= 100) {
+            clearInterval(timer);
+            patch(f.id, { progress: 100, status: 'done' });
+          } else {
+            patch(f.id, { progress: next });
+          }
+        }, 140);
+      });
+    }
+
+    const view = html`
+      <div class="container">
+        <h1>File Upload</h1>
+        <p class="subtitle">
+          Pick or drop files. The browser reads each one for a preview, and api.upload()
+          sends them as multipart FormData with a live progress bar per file.
+        </p>
+
+        <div class="panel">
+          <div class="drop" id="drop"
+               @click=${() => document.getElementById('picker').click()}
+               @dragover=${(e) => { e.preventDefault(); e.currentTarget.classList.add('over'); }}
+               @dragleave=${(e) => { e.currentTarget.classList.remove('over'); }}
+               @drop=${(e) => { e.preventDefault(); e.currentTarget.classList.remove('over'); addFiles(e.dataTransfer.files); }}>
+            <div class="big">&#128228;</div>
+            <p>Drag files here, or <span class="browse">browse</span></p>
+          </div>
+          <input type="file" id="picker" multiple @change=${(e) => { addFiles(e.target.files); e.target.value = ''; }}>
+
+          <div class="files">${() =>
+            files.value.map(f => html`
+              <div class="file">
+                <div class="thumb">${() => f.preview ? html`<img class="thumb" src=${f.preview} alt=${f.name}>` : html`<span>&#128196;</span>`}</div>
+                <div class="file-main">
+                  <div class="file-name">${f.name}</div>
+                  <div class="file-meta">${humanSize(f.size)} - ${f.type}</div>
+                  <div class="bar"><div class=${() => 'fill' + (f.status === 'done' ? ' done' : '')} style=${() => 'width:' + f.progress + '%'}></div></div>
+                </div>
+                <span class=${() => 'file-status' + (f.status === 'done' ? ' done' : '')}>${() =>
+                  f.status === 'done' ? 'uploaded' : f.status === 'uploading' ? f.progress + '%' : 'ready'}</span>
+                <button class="rm" @click=${() => removeFile(f.id)} title="Remove">&times;</button>
+              </div>`)
+          }</div>
+
+          <div class="actions">
+            <button ?disabled=${() => pending.value === 0} @click=${uploadAll}>
+              ${() => pending.value > 0 ? `Upload ${pending.value} file${pending.value === 1 ? '' : 's'}` : 'All uploaded'}
+            </button>
+            <button class="ghost" ?disabled=${() => files.value.length === 0} @click=${() => { files.value = []; }}>Clear</button>
+          </div>
+        </div>
+
+        <div class="panel source">
+          <h3>How it works — View Source</h3>
+          <pre><code><span class="kw">import</span> { <span class="fn">api</span> } <span class="kw">from</span> <span class="str">'tina4js/api'</span>;
+
+<span class="kw">async function</span> <span class="fn">upload</span>(fileInput) {
+  <span class="kw">const</span> form = <span class="kw">new</span> <span class="fn">FormData</span>();
+  <span class="kw">for</span> (<span class="kw">const</span> file <span class="kw">of</span> fileInput.files) {
+    form.<span class="fn">append</span>(<span class="str">'files[]'</span>, file);   <span class="cm">// raw File objects</span>
+  }
+  form.<span class="fn">append</span>(<span class="str">'folder'</span>, <span class="str">'avatars'</span>);       <span class="cm">// extra fields ride along</span>
+
+  <span class="cm">// api.upload sends multipart/form-data - do NOT set Content-Type,</span>
+  <span class="cm">// the browser adds the boundary. Auth uses the Bearer token.</span>
+  <span class="kw">const</span> result = <span class="kw">await</span> api.<span class="fn">upload</span>(<span class="str">'/api/upload'</span>, form);
+  <span class="cm">// Backend reads request.files - raw bytes, not base64</span>
+}</code></pre>
+          <p class="note">Standalone demo: the FileReader preview is a real browser read; the progress bar is simulated by a timer so the page needs no server. api.upload(path, FormData) above is the real call shape.</p>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('app').appendChild(view);
+  </script>
+</body>
+</html>

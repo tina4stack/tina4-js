@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Streaming (SSE) — tina4js Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f172a; --surface: #1e293b; --border: #334155;
+      --text: #e2e8f0; --muted: #64748b; --primary: #38bdf8;
+      --success: #10b981; --accent: #a78bfa;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .nav { padding: 0.75rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .nav a { color: var(--primary); text-decoration: none; font-size: 0.85rem; }
+    .nav .title { font-weight: 600; }
+    .pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.55rem; background: var(--bg); border: 1px solid var(--border); border-radius: 99px; font-size: 0.72rem; color: var(--muted); }
+    .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+    .pill.live .dot { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .pill.streaming .dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+    .container { max-width: 780px; margin: 0 auto; padding: 1.5rem 2rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+    .panel h2 { font-size: 1rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    .panel .desc { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
+
+    .prompt-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    input { flex: 1; padding: 0.5rem 0.7rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; font-family: inherit; }
+    button { padding: 0.5rem 1rem; background: var(--primary); color: var(--bg); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; font-family: inherit; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); font-weight: 400; }
+    button.ghost:hover { border-color: var(--primary); }
+
+    .answer { min-height: 90px; padding: 0.9rem; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; }
+    .answer .caret { display: inline-block; width: 8px; height: 1.1em; background: var(--accent); vertical-align: text-bottom; animation: blink 1s step-end infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .answer .placeholder { color: var(--muted); }
+
+    .feed { display: flex; flex-direction: column; gap: 0.4rem; max-height: 240px; overflow-y: auto; }
+    .event { display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.7rem; background: var(--bg); border-radius: 6px; border-left: 3px solid var(--border); font-size: 0.85rem; }
+    .event.sale { border-left-color: var(--success); }
+    .event.signup { border-left-color: var(--primary); }
+    .event.alert { border-left-color: var(--accent); }
+    .event .tag { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); min-width: 54px; }
+    .event .body { flex: 1; }
+    .event .time { color: var(--muted); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+    .feed-empty { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 1.5rem 0; }
+
+    .source { margin-top: 1rem; }
+    .source h3 { margin-bottom: 1rem; color: var(--muted); font-size: 0.9rem; }
+    pre { background: #0b1120; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; color: var(--text); }
+    code .kw { color: #c084fc; } code .fn { color: #38bdf8; } code .str { color: #4ade80; } code .cm { color: #64748b; }
+    .note { font-size: 0.75rem; color: var(--muted); margin-top: 0.75rem; border-left: 3px solid var(--border); padding-left: 0.6rem; }
+    @media (max-height: 500px) { .source { display: none !important; } }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <span><a href="index.html">&larr; Gallery</a> &nbsp; <span class="title">Live Streaming (SSE)</span></span>
+    <span class="pill"><span class="dot"></span> signal-driven</span>
+  </nav>
+
+  <div id="app"></div>
+
+  <script src="tina4.bundle.js"></script>
+  <script type="module">
+    const { signal, html } = tina4;
+
+    // ── AI token stream (fetch/NDJSON mode) ───────────────────────────
+    //
+    // status drives the UI badge; answer is the growing text. In a real
+    // app sse.connect(...).pipe(answer, ...) appends each token as it
+    // arrives. Here a client-side timer plays a canned answer token by
+    // token so the demo runs with no server — the reactive wiring is real.
+
+    const status = signal('idle');            // idle | streaming | done
+    const answer = signal('');
+    let streamTimer = null;
+
+    const CANNED =
+      'tina4-js streams with signals. sse.connect() returns a managed stream ' +
+      'whose status is a signal and whose messages pipe straight into your ' +
+      'state. Each token you see appended here would arrive over the wire, ' +
+      'and the DOM updates in place with no virtual DOM and no re-render of ' +
+      'the surrounding page.';
+
+    function streamAnswer() {
+      if (streamTimer) return;
+      answer.value = '';
+      status.value = 'streaming';
+      const words = CANNED.split(' ');
+      let i = 0;
+      streamTimer = setInterval(() => {
+        answer.value = answer.value + (i === 0 ? '' : ' ') + words[i];
+        i += 1;
+        if (i >= words.length) {
+          clearInterval(streamTimer);
+          streamTimer = null;
+          status.value = 'done';
+        }
+      }, 90);
+    }
+
+    // ── Live event feed (EventSource mode, named events) ──────────────
+    //
+    // feed prepends each server-sent event. sse.connect('/events').pipe()
+    // would do exactly this. A timer simulates the server pushing events.
+
+    const feed = signal([]);
+    const feedLive = signal(false);
+    let feedTimer = null;
+    let tick = 0;
+
+    const SAMPLES = [
+      { kind: 'sale',   text: 'Order #{n} paid - $#{amt}' },
+      { kind: 'signup', text: 'New customer signed up' },
+      { kind: 'alert',  text: 'Stock low on Mechanical Keyboard' },
+      { kind: 'sale',   text: 'Order #{n} paid - $#{amt}' },
+    ];
+
+    function clockLabel() {
+      // Fixed-format HH:MM:SS without pulling in a date lib.
+      const d = new Date();
+      const p = (x) => String(x).padStart(2, '0');
+      return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    }
+
+    function pushEvent() {
+      const s = SAMPLES[tick % SAMPLES.length];
+      tick += 1;
+      const body = s.text
+        .replace('#{n}', String(1000 + tick))
+        .replace('#{amt}', String((tick * 7 % 90) + 9) + '.99');
+      feed.value = [{ id: tick, kind: s.kind, body, time: clockLabel() }, ...feed.value].slice(0, 30);
+    }
+
+    function toggleFeed() {
+      if (feedLive.value) {
+        clearInterval(feedTimer); feedTimer = null; feedLive.value = false;
+      } else {
+        feedLive.value = true;
+        pushEvent();
+        feedTimer = setInterval(pushEvent, 1500);
+      }
+    }
+
+    // ── View ──────────────────────────────────────────────────────────
+    const view = html`
+      <div class="container">
+        <h1>Live Streaming (SSE)</h1>
+        <p class="subtitle">
+          Server-Sent Events and NDJSON streaming, wired to signals. The status is a
+          signal you bind to a badge; messages pipe straight into your state and the
+          DOM grows token by token.
+        </p>
+
+        <div class="panel">
+          <h2>
+            <span>&#129302; AI Token Stream</span>
+            <span class=${() => 'pill ' + (status.value === 'streaming' ? 'streaming' : status.value === 'done' ? 'live' : '')}>
+              <span class="dot"></span> ${() => status.value}
+            </span>
+          </h2>
+          <p class="desc">Fetch/NDJSON mode: POST a prompt, tokens stream back into one signal.</p>
+          <div class="prompt-row">
+            <input id="prompt" value="Explain tina4-js streaming" placeholder="Ask something...">
+            <button ?disabled=${() => status.value === 'streaming'} @click=${streamAnswer}>
+              ${() => status.value === 'streaming' ? 'Streaming...' : 'Stream response'}
+            </button>
+          </div>
+          <div class="answer">${() =>
+            answer.value
+              ? html`${answer}${() => status.value === 'streaming' ? html`<span class="caret"></span>` : null}`
+              : html`<span class="placeholder">The response streams in here, one token at a time.</span>`
+          }</div>
+        </div>
+
+        <div class="panel">
+          <h2>
+            <span>&#128225; Live Event Feed</span>
+            <span class=${() => 'pill ' + (feedLive.value ? 'live' : '')}>
+              <span class="dot"></span> ${() => feedLive.value ? 'connected' : 'closed'}
+            </span>
+          </h2>
+          <p class="desc">EventSource mode: the server pushes named events, each one prepended to a list signal.</p>
+          <div class="prompt-row">
+            <button class="ghost" @click=${toggleFeed}>${() => feedLive.value ? 'Disconnect' : 'Connect'}</button>
+            <button class="ghost" @click=${() => { feed.value = []; }}>Clear</button>
+          </div>
+          <div class="feed">${() =>
+            feed.value.length === 0
+              ? html`<div class="feed-empty">Not connected. Hit Connect to open the stream.</div>`
+              : feed.value.map(e => html`
+                  <div class=${() => 'event ' + e.kind}>
+                    <span class="tag">${e.kind}</span>
+                    <span class="body">${e.body}</span>
+                    <span class="time">${e.time}</span>
+                  </div>`)
+          }</div>
+        </div>
+
+        <div class="panel source">
+          <h3>How it works — View Source</h3>
+          <pre><code><span class="kw">import</span> { <span class="fn">sse</span> } <span class="kw">from</span> <span class="str">'tina4js/sse'</span>;
+<span class="kw">import</span> { <span class="fn">signal</span> } <span class="kw">from</span> <span class="str">'tina4js'</span>;
+
+<span class="cm">// Fetch/NDJSON mode - stream an AI response token by token</span>
+<span class="kw">const</span> answer = <span class="fn">signal</span>(<span class="str">''</span>);
+<span class="kw">const</span> stream = sse.<span class="fn">connect</span>(<span class="str">'/api/chat'</span>, {
+  mode: <span class="str">'fetch'</span>, method: <span class="str">'POST'</span>,
+  body: { prompt: <span class="str">'Explain tina4-js streaming'</span> },
+});
+stream.<span class="fn">pipe</span>(answer, (token, current) => current + token);
+
+<span class="cm">// status is a signal - bind it straight into the template</span>
+html<span class="str">\`</span>&lt;span&gt;<span class="str">\${</span>() => stream.status.value<span class="str">}</span>&lt;/span&gt;&lt;p&gt;<span class="str">\${</span>answer<span class="str">}</span>&lt;/p&gt;<span class="str">\`</span>;
+
+<span class="cm">// EventSource mode - named events into a list signal</span>
+<span class="kw">const</span> feed = <span class="fn">signal</span>([]);
+<span class="kw">const</span> events = sse.<span class="fn">connect</span>(<span class="str">'/api/events'</span>, { events: [<span class="str">'sale'</span>, <span class="str">'signup'</span>] });
+events.<span class="fn">pipe</span>(feed, (msg, current) => [msg, ...current]);</code></pre>
+          <p class="note">Standalone demo: a client-side timer plays the tokens and events so the page runs with no backend. The signal wiring, status badge, and DOM updates are the real tina4-js runtime.</p>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('app').appendChild(view);
+  </script>
+</body>
+</html>

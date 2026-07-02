@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GraphQL Client — tina4js Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f172a; --surface: #1e293b; --border: #334155;
+      --text: #e2e8f0; --muted: #64748b; --primary: #38bdf8;
+      --success: #10b981; --accent: #e879a6;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .nav { padding: 0.75rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .nav a { color: var(--primary); text-decoration: none; font-size: 0.85rem; }
+    .nav .title { font-weight: 600; }
+    .pill { display: inline-block; padding: 0.15rem 0.55rem; background: var(--bg); border: 1px solid var(--border); border-radius: 99px; font-size: 0.72rem; color: var(--muted); }
+
+    .container { max-width: 820px; margin: 0 auto; padding: 1.5rem 2rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+    .panel h2 { font-size: 1rem; margin-bottom: 0.5rem; }
+    .panel .desc { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
+
+    .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    input, select { padding: 0.5rem 0.7rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; font-family: inherit; }
+    input { flex: 1; min-width: 160px; }
+    button { padding: 0.5rem 1rem; background: var(--primary); color: var(--bg); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; font-family: inherit; }
+    button.mut { background: var(--accent); }
+
+    .results { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .rowitem { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: var(--bg); border-radius: 6px; font-size: 0.88rem; }
+    .rowitem .meta { color: var(--muted); font-size: 0.8rem; }
+    .rowitem .price { color: var(--primary); font-weight: 600; }
+    .empty { color: var(--muted); font-size: 0.85rem; padding: 0.75rem 0; }
+
+    /* Query/response console */
+    .console { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+    @media (max-width: 640px) { .console { grid-template-columns: 1fr; } }
+    .console .box h4 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 0.4rem; }
+    .console pre { background: #0b1120; padding: 0.75rem; border-radius: 8px; overflow-x: auto; font-size: 0.76rem; line-height: 1.55; color: var(--text); min-height: 90px; }
+    .gql-kw { color: #c084fc; } .gql-field { color: #38bdf8; } .gql-str { color: #4ade80; } .gql-var { color: #f59e0b; }
+
+    .source { margin-top: 1rem; }
+    .source h3 { margin-bottom: 1rem; color: var(--muted); font-size: 0.9rem; }
+    pre.src { background: #0b1120; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; color: var(--text); }
+    code .kw { color: #c084fc; } code .fn { color: #38bdf8; } code .str { color: #4ade80; } code .cm { color: #64748b; }
+    .note { font-size: 0.75rem; color: var(--muted); margin-top: 0.75rem; border-left: 3px solid var(--border); padding-left: 0.6rem; }
+    @media (max-height: 500px) { .source { display: none !important; } }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <span><a href="index.html">&larr; Gallery</a> &nbsp; <span class="title">GraphQL Client</span></span>
+    <span class="pill">query + mutation</span>
+  </nav>
+
+  <div id="app"></div>
+
+  <script src="tina4.bundle.js"></script>
+  <script type="module">
+    const { signal, html } = tina4;
+
+    // ── In-memory catalog standing in for the backend resolver ────────
+    // A real page calls api.graphql('/api/graphql', query, variables) and the
+    // Tina4 backend resolves it. Here a tiny client-side resolver answers the
+    // same two operations so the demo runs with no server.
+
+    let catalog = [
+      { id: 1, name: 'Wireless Headphones', price: 79.99, stock: 12 },
+      { id: 2, name: 'Mechanical Keyboard', price: 129.99, stock: 5 },
+      { id: 3, name: 'USB-C Hub', price: 49.99, stock: 30 },
+      { id: 4, name: 'Webcam HD', price: 89.99, stock: 0 },
+      { id: 5, name: 'Monitor Light Bar', price: 59.99, stock: 8 },
+    ];
+
+    function resolve(query, variables) {
+      if (query.includes('searchProducts')) {
+        const term = (variables.term || '').toLowerCase();
+        const products = catalog
+          .filter(p => p.name.toLowerCase().includes(term))
+          .map(({ id, name, price, stock }) => ({ id, name, price, stock }));
+        return { data: { searchProducts: products } };
+      }
+      if (query.includes('restock')) {
+        const p = catalog.find(x => x.id === variables.id);
+        if (!p) return { data: null, errors: [{ message: 'Product not found' }] };
+        p.stock += variables.qty;
+        return { data: { restock: { id: p.id, name: p.name, stock: p.stock } } };
+      }
+      return { data: null, errors: [{ message: 'Unknown operation' }] };
+    }
+
+    // ── Query panel state ─────────────────────────────────────────────
+    const term = signal('');
+    const results = signal(catalog.map(({ id, name, price, stock }) => ({ id, name, price, stock })));
+    const lastQuery = signal('');
+    const lastResponse = signal('');
+
+    const QUERY = 'query Search($term: String!) {\n  searchProducts(term: $term) {\n    id name price stock\n  }\n}';
+
+    function runSearch() {
+      const variables = { term: term.value };
+      const res = resolve('searchProducts', variables);
+      results.value = res.data.searchProducts;
+      lastQuery.value = QUERY + '\n\n# variables\n' + JSON.stringify(variables, null, 2);
+      lastResponse.value = JSON.stringify(res, null, 2);
+    }
+
+    // ── Mutation panel state ──────────────────────────────────────────
+    const selId = signal(1);
+    const addQty = signal(10);
+    const mutMsg = signal('');
+
+    const MUTATION = 'mutation Restock($id: Int!, $qty: Int!) {\n  restock(id: $id, qty: $qty) {\n    id name stock\n  }\n}';
+
+    function runRestock() {
+      const variables = { id: Number(selId.value), qty: Number(addQty.value) };
+      const res = resolve('restock', variables);
+      lastQuery.value = MUTATION + '\n\n# variables\n' + JSON.stringify(variables, null, 2);
+      lastResponse.value = JSON.stringify(res, null, 2);
+      if (res.data && res.data.restock) {
+        mutMsg.value = `${res.data.restock.name} restocked to ${res.data.restock.stock}`;
+        // Re-run the current search so the list reflects the new stock.
+        results.value = resolve('searchProducts', { term: term.value }).data.searchProducts;
+      }
+    }
+
+    // seed the console with the initial query
+    runSearch();
+
+    const view = html`
+      <div class="container">
+        <h1>GraphQL Client</h1>
+        <p class="subtitle">
+          One endpoint, typed queries. api.graphql() sends a query plus variables and
+          hands back a { data, errors } object. Watch the query and the response as you go.
+        </p>
+
+        <div class="panel">
+          <h2>&#128269; Query with variables</h2>
+          <p class="desc">searchProducts(term) - the term rides as a GraphQL variable, not string concatenation.</p>
+          <div class="row">
+            <input .value=${term} @input=${(e) => { term.value = e.target.value; }}
+                   @keydown=${(e) => { if (e.key === 'Enter') runSearch(); }} placeholder="Search products (try 'key' or 'hub')...">
+            <button @click=${runSearch}>Run query</button>
+          </div>
+          <div class="results">${() =>
+            results.value.length === 0
+              ? html`<div class="empty">No products matched.</div>`
+              : results.value.map(p => html`
+                  <div class="rowitem">
+                    <span>${p.name} <span class="meta">stock: ${p.stock}</span></span>
+                    <span class="price">$${p.price.toFixed(2)}</span>
+                  </div>`)
+          }</div>
+        </div>
+
+        <div class="panel">
+          <h2>&#9998; Mutation</h2>
+          <p class="desc">restock(id, qty) - mutate on the server, get the updated object straight back.</p>
+          <div class="row">
+            <select @change=${(e) => { selId.value = e.target.value; }}>
+              ${catalog.map(p => html`<option value=${p.id} ?selected=${() => String(p.id) === String(selId.value)}>${p.name}</option>`)}
+            </select>
+            <input type="number" .value=${() => String(addQty.value)} @input=${(e) => { addQty.value = e.target.value; }} style="max-width:90px;flex:none">
+            <button class="mut" @click=${runRestock}>Run mutation</button>
+          </div>
+          <div class="empty" ?hidden=${() => !mutMsg.value} style="color:var(--success)">${() => mutMsg.value}</div>
+        </div>
+
+        <div class="panel">
+          <h2>&#128225; Wire console</h2>
+          <p class="desc">Exactly what went over the wire on your last call.</p>
+          <div class="console">
+            <div class="box"><h4>Request</h4><pre>${lastQuery}</pre></div>
+            <div class="box"><h4>Response</h4><pre>${lastResponse}</pre></div>
+          </div>
+        </div>
+
+        <div class="panel source">
+          <h3>How it works — View Source</h3>
+          <pre class="src"><code><span class="kw">import</span> { <span class="fn">api</span> } <span class="kw">from</span> <span class="str">'tina4js/api'</span>;
+
+<span class="cm">// Query with variables - api.graphql(url, query, variables)</span>
+<span class="kw">const</span> { data, errors } = <span class="kw">await</span> api.<span class="fn">graphql</span>(<span class="str">'/api/graphql'</span>,
+  <span class="str">'query Search($term: String!) { searchProducts(term: $term) { id name price stock } }'</span>,
+  { term: <span class="str">'keyboard'</span> },
+);
+<span class="cm">// data.searchProducts -> [{ id, name, price, stock }, ...]</span>
+
+<span class="cm">// Mutation - same call shape, returns the updated object</span>
+<span class="kw">const</span> res = <span class="kw">await</span> api.<span class="fn">graphql</span>(<span class="str">'/api/graphql'</span>,
+  <span class="str">'mutation Restock($id: Int!, $qty: Int!) { restock(id: $id, qty: $qty) { id name stock } }'</span>,
+  { id: <span class="str">2</span>, qty: <span class="str">10</span> },
+);
+<span class="cm">// res.data.restock.stock -> 15</span></code></pre>
+          <p class="note">Standalone demo: a client-side resolver answers the two operations so the page runs with no backend. The api.graphql request/response shape shown above is the real contract against a Tina4 GraphQL endpoint.</p>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('app').appendChild(view);
+  </script>
+</body>
+</html>
