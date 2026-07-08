@@ -1,6 +1,6 @@
 {
   "name": "tina4js",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "1.5KB core gzipped, reactive framework — signals, web components, routing, PWA",
   "type": "module",
   "main": "dist/tina4.cjs.js",
@@ -39,6 +39,10 @@
     "./sse": {
       "import": "./dist/sse.es.js",
       "types": "./dist/sse/index.d.ts"
+    },
+    "./rtc": {
+      "import": "./dist/rtc.es.js",
+      "types": "./dist/rtc/index.d.ts"
     },
     "./storage": {
       "import": "./dist/storage.es.js",
