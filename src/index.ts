@@ -31,6 +31,15 @@ export type { SocketStatus, SocketOptions, ManagedSocket } from './ws/ws';
 export { sse } from './sse/sse';
 export type { StreamStatus, StreamOptions, ManagedStream } from './sse/sse';
 
+// RTC — realtime collaboration client (calls, chat, files) for the realtime() mount
+export { rtc, rtcConfig } from './rtc/rtc';
+export type {
+  RtcConfig,
+  CallStatus, CallOptions, CallSession, RemotePeer,
+  ChatOptions, ChatSession, ChatMessage,
+  FileOptions, UploadResult,
+} from './rtc/rtc';
+
 // Persistent signal storage — see STORAGE.md for the must-never-store list
 export { persist, clearPersistedKeys } from './storage/persist';
 export type { PersistOptions, PersistSerializer, PersistedSignal } from './storage/persist';
