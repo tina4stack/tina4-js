@@ -50,6 +50,10 @@ switch (command) {
   case 'build':
     runBuild(args.includes('--target') ? args[args.indexOf('--target') + 1] : null);
     break;
+  case 'generate':
+  case 'g':
+    runGenerate(args.slice(1));
+    break;
   default:
     console.error(`Unknown command: ${command}\n`);
     printHelp();
@@ -616,6 +620,232 @@ html\\\`<ul>\\\${() => items.value.map(i => html\\\`<li>\\\${i}</li>\\\`)}</ul>\
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
+
+// ── Generate ────────────────────────────────────────────────────────
+//
+// Per-piece scaffolding — the frontend equivalent of `tina4python generate
+// model/route`. Emits CORRECT tina4-js by construction (the reactivity patterns
+// AI gets wrong are baked in), so a coder scaffolds first and fills only logic.
+// These target the NO-BUILD path: plain JS using the global `Tina4` (from
+// `dist/tina4js.min.js`), served straight from a tina4 backend's `public/`.
+
+function runGenerate(rest) {
+  const kind = rest[0];
+  const name = rest[1];
+  if (!kind || !name) {
+    console.error('Usage: tina4js generate <page|component> <name> [--api /api/x]');
+    process.exit(1);
+  }
+  const apiIdx = rest.indexOf('--api');
+  const apiPath = apiIdx !== -1 ? rest[apiIdx + 1] : null;
+  const cwd = process.cwd();
+
+  if (kind === 'page') {
+    genPage(cwd, name, apiPath);
+  } else if (kind === 'component') {
+    genComponent(cwd, name);
+  } else {
+    console.error(`Unknown generate kind: ${kind} (use: page, component)`);
+    process.exit(1);
+  }
+}
+
+/** camelCase → kebab-case; strip a trailing "-page"/"-component". */
+function toKebab(s) {
+  return s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').replace(/[_\s]+/g, '-').toLowerCase();
+}
+function toTitle(s) {
+  const k = toKebab(s).replace(/-(page|component)$/, '');
+  return k.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+/** Copy the full IIFE bundle into public/js when it isn't already served — the
+ *  no-build page needs `window.Tina4`, and a project may only ship the core. */
+function ensureBundle(cwd) {
+  const dest = path.join(cwd, 'public', 'js', 'tina4js.min.js');
+  const srcAlt = path.join(cwd, 'src', 'public', 'js', 'tina4js.min.js');
+  if (fs.existsSync(dest) || fs.existsSync(srcAlt)) return;
+  const bundle = path.join(__dirname, '..', 'dist', 'tina4js.min.js');
+  if (fs.existsSync(bundle)) {
+    // Prefer src/public/js (tina4-python layout) when it exists, else public/js.
+    const target = fs.existsSync(path.join(cwd, 'src', 'public', 'js'))
+      ? srcAlt : dest;
+    writeFile(cwd, path.relative(cwd, target), fs.readFileSync(bundle));
+    console.log(`  ${c.green('✓')} Copied tina4js.min.js → ${path.relative(cwd, target)}`);
+  }
+}
+
+/** Ensure the tina4-css stylesheet is served — the generated markup styles with
+ *  its classes (never inline styles), so the page needs it. Every tina4 backend
+ *  usually ships it already; copy from tina4-css only as a fallback. */
+function ensureCss(cwd) {
+  const rel = fs.existsSync(path.join(cwd, 'src', 'public')) ? 'src/public/css' : 'public/css';
+  const target = path.join(cwd, rel, 'tina4.min.css');
+  if (fs.existsSync(target)) return;
+  // tina4-css lives next to tina4-js in the monorepo; try a couple of spots.
+  const candidates = [
+    path.join(__dirname, '..', '..', 'tina4-css', 'dist', 'tina4.min.css'),
+    path.join(__dirname, '..', 'node_modules', 'tina4-css', 'dist', 'tina4.min.css'),
+  ];
+  const src = candidates.find((p) => fs.existsSync(p));
+  if (src) {
+    writeFile(cwd, `${rel}/tina4.min.css`, fs.readFileSync(src));
+    console.log(`  ${c.green('✓')} Copied tina4.min.css → ${rel}/tina4.min.css`);
+  }
+}
+
+function publicJsDir(cwd) {
+  // tina4-python serves src/public/js; other layouts serve public/js.
+  return fs.existsSync(path.join(cwd, 'src', 'public', 'js')) ? 'src/public/js' : 'public/js';
+}
+function publicDir(cwd) {
+  return fs.existsSync(path.join(cwd, 'src', 'public')) ? 'src/public' : 'public';
+}
+
+function genPage(cwd, rawName, apiPath) {
+  ensureBundle(cwd);
+  ensureCss(cwd);
+  const kebab = toKebab(rawName).replace(/-page$/, '');
+  const title = toTitle(rawName);
+  const jsDir = publicJsDir(cwd);
+  const pubDir = publicDir(cwd);
+  const jsRel = `${jsDir}/${kebab}-page.js`;
+  const htmlRel = `${pubDir}/${kebab}.html`;
+
+  const fetchBlock = apiPath
+    ? `  async function load() {
+    loading.value = true;
+    try {
+      const data = await api.get('${apiPath}');
+      // Tina4 CRUD list endpoints return { records: [...] }; fall back to a bare array.
+      rows.value = Array.isArray(data) ? data : (data && data.records) || [];
+      error.value = null;
+    } catch (e) {
+      error.value = (e && e.message) || String(e);
+    } finally {
+      loading.value = false;
+    }
+  }`
+    : `  function load() {
+    // No --api given: seed with static rows. Replace with api.get('/api/...').
+    rows.value = [{ id: 1, name: 'First' }, { id: 2, name: 'Second' }];
+    loading.value = false;
+  }`;
+
+  const js = `// ${kebab}-page.js — generated by \`tina4js generate page\`.
+// A reactive tina4-js page, no build step: uses the global \`Tina4\` from
+// /js/tina4js.min.js. Signal reads stay inside \${} holes so only the list
+// updates — the whole page is never torn down.
+(function () {
+  const { signal, html, api, route, router } = Tina4;
+
+  const rows = signal([]);
+  const loading = signal(true);
+  const error = signal(null);
+
+${fetchBlock}
+
+  // Styling is tina4-css classes only — never inline styles.
+  function ${kebab}Page() {
+    load();
+    return html\`
+      <div class="container">
+        <div class="card">
+          <div class="card-body">
+            <h1>${title}</h1>
+            \${() => loading.value ? html\`<p class="text-muted">Loading…</p>\` : null}
+            \${() => error.value ? html\`<div class="alert alert-danger">\${error.value}</div>\` : null}
+            \${() => !loading.value && rows.value.length === 0 ? html\`<p class="text-muted">No rows yet.</p>\` : null}
+            \${() => rows.value.length ? html\`
+              <table class="table table-striped">
+                <tbody>
+                  \${rows.value.map((row) => html\`
+                    <tr><td>\${row.name != null ? row.name : JSON.stringify(row)}</td></tr>
+                  \`)}
+                </tbody>
+              </table>
+            \` : null}
+            <button class="btn btn-primary" @click=\${load}>Refresh</button>
+          </div>
+        </div>
+      </div>
+    \`;
+  }
+
+  route('/', ${kebab}Page);
+  router.start({ target: '#root', mode: 'hash' });
+})();
+`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <link rel="stylesheet" href="/css/tina4.min.css">
+</head>
+<body>
+  <div id="root"></div>
+  <script src="/js/tina4js.min.js"></script>
+  <script src="/js/${kebab}-page.js"></script>
+</body>
+</html>
+`;
+
+  writeFile(cwd, jsRel, js);
+  writeFile(cwd, htmlRel, html);
+  console.log(`  ${c.green('✓')} ${jsRel}`);
+  console.log(`  ${c.green('✓')} ${htmlRel}`);
+  console.log(`\n  Serve it: open ${c.cyan('/' + kebab + '.html')} on your running app.`);
+}
+
+function genComponent(cwd, rawName) {
+  ensureBundle(cwd);
+  const kebab = toKebab(rawName).replace(/-component$/, '');
+  const tag = kebab.includes('-') ? kebab : `x-${kebab}`; // custom elements need a hyphen
+  const className = toTitle(rawName).replace(/ /g, '');
+  const jsDir = publicJsDir(cwd);
+  const jsRel = `${jsDir}/components/${kebab}.js`;
+
+  const js = `// ${kebab}.js — generated by \`tina4js generate component\`.
+// A tina4-js Web Component (Tina4Element), no build step: global \`Tina4\`.
+// RULE: read signals inside the template \${} holes, NOT in render()'s body,
+// or the whole component re-renders and loses input focus.
+(function () {
+  const { Tina4Element, signal, html } = Tina4;
+
+  class ${className} extends Tina4Element {
+    static props = { label: String };
+    static styles = \`
+      :host { display: block; }
+      button { padding: 8px 16px; cursor: pointer; }
+    \`;
+
+    count = signal(0);
+
+    render() {
+      return html\`
+        <div>
+          <p>\${() => this.prop('label').value || '${toTitle(rawName)}'}: \${this.count}</p>
+          <button @click=\${() => this.count.value++}>Add</button>
+          <button @click=\${() => this.emit('changed', { detail: this.count.value })}>Save</button>
+        </div>
+      \`;
+    }
+  }
+
+  customElements.define('${tag}', ${className});
+})();
+// Usage: <script src="/js/tina4js.min.js"></script>
+//        <script src="/js/components/${kebab}.js"></script>
+//        <${tag} label="Clicks"></${tag}>
+`;
+
+  writeFile(cwd, jsRel, js);
+  console.log(`  ${c.green('✓')} ${jsRel}`);
+  console.log(`\n  Use it: ${c.cyan('<' + tag + ' label="…"></' + tag + '>')}`);
+}
 
 function writeFile(dir, filePath, content) {
   const full = path.join(dir, filePath);
