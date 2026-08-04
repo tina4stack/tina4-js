@@ -488,10 +488,30 @@ function getTina4ContextMd() {
 ## File Conventions
 
 - Components: \`src/components/kebab-case.ts\`
-- Routes: \`src/routes/index.ts\`
+- Routes: \`src/routes/index.ts\`, or one file per feature wired with a wildcard (below)
 - Pages: \`src/pages/kebab-case.ts\`
 - Static files: \`src/public/\`
 - Styles: \`src/public/css/\`
+
+**Wildcard imports.** \`route()\` appends to the router table and \`customElements.define()\`
+runs at module scope, so importing a file *is* registering what it declares. One glob
+replaces the whole barrel file:
+
+\`\`\`ts
+// src/main.ts
+import { route, router, html } from 'tina4js';
+
+import.meta.glob('./routes/*.ts', { eager: true });
+import.meta.glob('./components/**/*.ts', { eager: true });
+
+route('*', () => html\`<h1>404</h1>\`);   // catch-all AFTER the glob
+router.start({ target: '#root', mode: 'hash' });
+\`\`\`
+
+\`{ eager: true }\` is mandatory. Without it the glob returns loader functions nobody calls,
+so nothing registers at all. Keep the catch-all out of the globbed folder: glob keys arrive
+in alphabetical path order and the router takes the first matching pattern, so a \`404.ts\`
+inside the folder renders for every path.
 
 ## Rules
 
@@ -505,6 +525,8 @@ function getTina4ContextMd() {
 8. Use \`static props = { name: String }\` for component attributes
 9. Use \`static styles = \\\`css\\\`\` for scoped styles (Shadow DOM)
 10. Use \`static shadow = false\` for light DOM components
+11. Wire folders with \`import.meta.glob(pattern, { eager: true })\` instead of a hand-written
+    barrel. The pattern must be a literal string, and \`route('*', ...)\` goes after the glob
 
 ## Signal Patterns
 

@@ -378,6 +378,8 @@ Build: `npx esbuild src/index.ts --bundle --minify --format=iife --global-name=T
 - Tests use happy-dom, NOT jsdom
 - Raw HTML injection: use `.innerHTML=${val}` property binding (never `${htmlString}`)
 - Event handlers: `@click=${fn}` not `onclick=${fn}`
+- Registration is an import side effect — `route()` appends to the router table and `customElements.define()` runs at module scope, so `import.meta.glob('./routes/*.ts', { eager: true })` wires a whole folder and no barrel file is needed. `{ eager: true }` is mandatory: without it the glob returns uncalled loader functions and nothing registers at all
+- Keep `route('*', ...)` out of any globbed folder. Glob keys arrive in alphabetical path order and the router takes the first matching pattern, so a `404.ts` inside the folder swallows every route. Register the catch-all after the glob
 
 ## Publishing
 
