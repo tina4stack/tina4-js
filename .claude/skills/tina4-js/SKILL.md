@@ -856,6 +856,43 @@ navigate('/users/42');
 
 **Navigation:** Use a BARE `<a href="/path">` in **both** hash and history mode — the router intercepts the click and, in hash mode, prepends the `#` for you. Do NOT write `<a href="#/path">` in hash mode: the interceptor uses the raw `href` as the path, so it becomes `##/path` → 404 (see the hash-router footgun above).
 
+### Wildcard imports — wire a whole folder, never hand-write a barrel
+
+`route()` appends to the router table as the module body runs, and
+`customElements.define()` runs at module scope. **Importing a file is registering
+what it declares**, so one glob replaces the whole import list. Do not generate
+`routes/index.ts` barrels — they go stale the first time someone forgets a line.
+
+```ts
+// src/main.ts
+import { route, router, html } from 'tina4js';
+
+import.meta.glob('./routes/*.ts', { eager: true });        // every route registers
+import.meta.glob('./components/**/*.ts', { eager: true });  // every tag defines
+
+route('*', () => html`<h1>404 — Not Found</h1>`);           // AFTER the glob
+router.start({ target: '#app', mode: 'hash' });
+```
+
+Two failures to avoid, both verified:
+
+- **Omitting `{ eager: true }` is a silent total no-op.** You get an object of
+  loader functions nobody calls, so no route registers and no tag is defined. The
+  pattern must also be a literal string — Vite expands it at build time and
+  cannot read a variable.
+- **A catch-all inside a globbed folder swallows the app.** Glob keys arrive in
+  alphabetical path order and the router takes the first pattern that matches, so
+  `routes/404.ts` registers `*` first and every path renders 404. Keep it out of
+  the folder and register it after the glob. Renaming it to sort last works until
+  someone renames it back.
+
+Component order is safe to ignore: `customElements.define()` upgrades matching
+elements already in the DOM, so a tag defined late still renders.
+
+One trade-off worth stating out loud: an eager glob imports the whole folder, so
+tree-shaking cannot drop a component nobody uses yet. Keep unfinished
+experiments outside the globbed directory.
+
 ## Persistent Signal Storage (v1.2.5+)
 
 Wrap a signal so its value survives a page refresh, backed by localStorage or sessionStorage.
