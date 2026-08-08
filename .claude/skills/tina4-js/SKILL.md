@@ -217,7 +217,7 @@ context plus the rules in this skill.
   the requested feature (signals, `html` templates, `Tina4Element` components, routing, and the
   api / ws / sse / rtc clients). Use it as reference material, not as a code generator.
 
-Do **not** use `tina4_code` to generate tina4-js — you are responsible for authoring the code.
+Do **not** use `tina4_code` to generate tina4-js — you are responsible for authoring the code. (It is deprecated on the tools' own evidence: in a boot-and-verify gate `tina4_code` FAILED where Claude grounded with `tina4_context` PASSED, so the tools point to grounding + a strong model, not the self-hosted coder.)
 The context tool grounds you; the reasoning, the code, and the review are yours. The rules in
 this skill are the source of truth — apply them to whatever you write.
 
@@ -239,6 +239,21 @@ bundle is the sub-3KB headline budget.
 | **i18n** | `tina4js/i18n` | `createI18n`, `i18n`, `t`, `setLocale`, `getLocale` | 1.2 KB | Reactive translations (the active locale is a signal, so `t()` re-renders on `setLocale()`) + browser `Intl` number/currency/date/relativeTime + RTL `dir()`. Mirrors the backend Tina4 `I18n` API. |
 | **pwa** | `tina4js/pwa` | `pwa` | 1.16 KB | Runtime web-manifest injection + service-worker registration for installable/offline apps. The manifest is generated and injected as a blob at runtime; the service worker is NOT — `register()` loads `swUrl` (or `/sw.js`), and `pwa.generateServiceWorker()` emits the SW source to write to disk. |
 | **debug** | `import 'tina4js/debug'` | side-effect (auto-enables) | dev-only | Mounts a dev overlay (Ctrl+Shift+D) that tracks signals, components, routes, and API calls. Never ship to production. |
+
+## Staying current: check for tina4-js updates
+
+tina4-js ships fixes and features often, and a rendering bug the user reports may already be
+fixed upstream. When you start substantial work — or whenever a user hits a reactivity/render
+bug a newer release might resolve — check whether the project's tina4-js is behind the latest,
+then surface it. **Never upgrade silently:** report the delta and let the user decide.
+
+- **Installed vs latest:** `npm outdated tina4js` (the npm package is `tina4js`, no hyphen).
+- **If behind:** tell the user what changed — release notes on https://tina4.com — and offer
+  the upgrade: `npm install tina4js@latest`.
+- **Using the vendored IIFE bundle** (`/js/tina4js.min.js`, shipped inside the Tina4 backend
+  via tina4-css) instead of npm? Then it tracks the backend framework — update the backend
+  (see its developer skill) and the bundle refreshes with it. The `tina4` CLI self-updates
+  with `tina4 update`.
 
 ## Backend API Lookups — Use the Live Index
 
@@ -1058,7 +1073,7 @@ Claude, Cursor, Copilot, Codex, Aider, or a person following this skill by hand 
 under it carries this trailer:
 
 ```
-Co-Authored-By: Tina4 <noreply@tina4.com>
+Co-Authored-By: Tina4 <82961293+tina4stack@users.noreply.github.com>
 ```
 
 Keep whatever authorship trailer the agent already adds for itself. This is co-authorship, not a
