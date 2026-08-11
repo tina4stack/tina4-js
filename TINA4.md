@@ -22,10 +22,30 @@
 ## File Conventions
 
 - Components: `src/components/kebab-case.ts`
-- Routes: `src/routes/index.ts`
+- Routes: `src/routes/index.ts`, or one file per feature wired with a wildcard (below)
 - Pages: `src/pages/kebab-case.ts`
 - Static files: `src/public/`
 - Styles: `src/public/css/`
+
+**Wildcard imports.** `route()` appends to the router table and `customElements.define()`
+runs at module scope, so importing a file *is* registering what it declares. One glob
+replaces the whole barrel file:
+
+```ts
+// src/main.ts
+import { route, router, html } from 'tina4js';
+
+import.meta.glob('./routes/*.ts', { eager: true });
+import.meta.glob('./components/**/*.ts', { eager: true });
+
+route('*', () => html`<h1>404</h1>`);   // catch-all AFTER the glob
+router.start({ target: '#root', mode: 'hash' });
+```
+
+`{ eager: true }` is mandatory. Without it the glob returns loader functions nobody calls,
+so nothing registers at all. Keep the catch-all out of the globbed folder: glob keys arrive
+in alphabetical path order and the router takes the first matching pattern, so a `404.ts`
+inside the folder renders for every path.
 
 ## Rules
 
@@ -43,6 +63,8 @@
 12. `api.configure()` must be called before any API calls if you need auth or a base URL
 13. `persist()` is for user preferences only — never tokens, passwords, personal data, or any
     credentials. localStorage is XSS-readable. See `STORAGE.md` for the full dangers list.
+14. Wire folders with `import.meta.glob(pattern, { eager: true })` instead of a hand-written
+    barrel. The pattern must be a literal string, and `route('*', ...)` goes after the glob
 
 ## Signal Patterns
 
@@ -371,3 +393,5 @@ import type { PropType } from 'tina4js';
 4. **Not returning from `render()`**: Always `return html\`...\``
 5. **Missing `api.configure()`**: Must configure before making authenticated requests
 6. **Using `api.get('/users/{id}', { id: 42 })`**: Changed to `api.get('/users/42')` — use params for query strings: `api.get('/users', { params: { id: 42 } })`
+7. **`import.meta.glob` without `{ eager: true }`**: returns loader functions nobody calls, so no route registers and no tag is defined — a silent no-op
+8. **A `404.ts` inside a globbed routes folder**: registers `*` before the real routes and renders 404 for every path. Register the catch-all after the glob

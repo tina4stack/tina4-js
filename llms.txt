@@ -283,6 +283,17 @@ route('/dashboard', {
 });
 ```
 
+### Wildcard-register a whole folder (no barrel file)
+```ts
+// src/main.ts — route() and customElements.define() register on import,
+// so importing a file IS registering it. Vite expands the glob at build time.
+import.meta.glob('./routes/*.ts', { eager: true });      // every route registers
+import.meta.glob('./components/**/*.ts', { eager: true }); // every tag defines
+
+route('*', () => html`<h1>404</h1>`);  // catch-all AFTER the glob — see gotcha 9
+router.start({ target: '#root', mode: 'hash' });
+```
+
 ---
 
 ## Known Gotchas
@@ -304,3 +315,12 @@ route('/dashboard', {
 6. **`computed()` is read-only.** Writing throws an error.
 
 7. **Non-2xx responses are thrown**, not returned. Always wrap `api.*` calls in try/catch.
+
+8. **`import.meta.glob` needs `{ eager: true }`.** Without it you get loader
+   functions nobody calls, so no route registers and no tag is defined — a
+   silent, total no-op. The pattern must be a literal string, never a variable.
+
+9. **Never put the catch-all in a globbed folder.** Glob keys come back in
+   alphabetical path order and the router takes the first pattern that matches,
+   so `routes/404.ts` registers `*` before the real routes and every path
+   renders 404. Register `route('*', ...)` after the glob instead.
