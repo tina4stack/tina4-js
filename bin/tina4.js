@@ -482,9 +482,9 @@ function getTina4ContextMd() {
 | State | \`const x = signal(value)\` — read/write via \`.value\` |
 | Derived | \`const d = computed(() => x.value * 2)\` — read-only, auto-tracks |
 | Effect | \`effect(() => { /* runs when signals change */ })\` |
-| Render | \`html\\\`<div>\\\${signal}</div>\\\`\` — returns real DOM nodes |
-| Component | \`class X extends Tina4Element { render() { return html\\\`...\\\`; } }\` |
-| Route | \`route('/path', (params) => html\\\`...\\\`)\` |
+| Render | \`\` html\`<div>\${signal}</div>\` \`\` — returns real DOM nodes |
+| Component | \`\` class X extends Tina4Element { render() { return html\`...\`; } } \`\` |
+| Route | \`\` route('/path', (params) => html\`...\`) \`\` |
 | Navigate | \`navigate('/path')\` |
 | API | \`await api.get('/path')\`, \`.post\`, \`.put\`, \`.patch\`, \`.delete\` |
 | PWA | \`pwa.register({ name, themeColor, cacheStrategy })\` |
@@ -492,23 +492,45 @@ function getTina4ContextMd() {
 ## File Conventions
 
 - Components: \`src/components/kebab-case.ts\`
-- Routes: \`src/routes/index.ts\`
+- Routes: \`src/routes/index.ts\`, or one file per feature wired with a wildcard (below)
 - Pages: \`src/pages/kebab-case.ts\`
 - Static files: \`src/public/\`
 - Styles: \`src/public/css/\`
 
+**Wildcard imports.** \`route()\` appends to the router table and \`customElements.define()\`
+runs at module scope, so importing a file *is* registering what it declares. One glob
+replaces the whole barrel file:
+
+\`\`\`ts
+// src/main.ts
+import { route, router, html } from 'tina4js';
+
+import.meta.glob('./routes/*.ts', { eager: true });
+import.meta.glob('./components/**/*.ts', { eager: true });
+
+route('*', () => html\`<h1>404</h1>\`);   // catch-all AFTER the glob
+router.start({ target: '#root', mode: 'hash' });
+\`\`\`
+
+\`{ eager: true }\` is mandatory. Without it the glob returns loader functions nobody calls,
+so nothing registers at all. Keep the catch-all out of the globbed folder: glob keys arrive
+in alphabetical path order and the router takes the first matching pattern, so a \`404.ts\`
+inside the folder renders for every path.
+
 ## Rules
 
 1. Always use \`.value\` to read/write signals
-2. Always return \`html\\\`...\\\`\` from \`render()\` and route handlers
-3. Route params use \`{name}\` syntax: \`route('/user/{id}', ({ id }) => ...)\`
-4. Event handlers use \`@\` prefix: \`@click=\\\${handler}\`, \`@input=\\\${handler}\`
-5. Boolean attrs use \`?\` prefix: \`?disabled=\\\${signal}\`
+2. Always return \`\` html\`...\` \`\` from \`render()\` and route handlers
+3. Route params use \`{name}\` syntax: \`\` route('/user/{id}', ({ id }) => ...) \`\`
+4. Event handlers use \`@\` prefix: \`\` @click=\${handler} \`\`, \`\` @input=\${handler} \`\`
+5. Boolean attrs use \`?\` prefix: \`\` ?disabled=\${signal} \`\`
 6. API calls are async/await
 7. Components extend \`Tina4Element\` and must call \`customElements.define()\`
 8. Use \`static props = { name: String }\` for component attributes
-9. Use \`static styles = \\\`css\\\`\` for scoped styles (Shadow DOM)
+9. Use \`\` static styles = \`css\` \`\` for scoped styles (Shadow DOM)
 10. Use \`static shadow = false\` for light DOM components
+11. Wire folders with \`import.meta.glob(pattern, { eager: true })\` instead of a hand-written
+    barrel. The pattern must be a literal string, and \`route('*', ...)\` goes after the glob
 
 ## Signal Patterns
 
@@ -532,7 +554,7 @@ effect(() => console.log(count.value));
 batch(() => { a.value = 1; b.value = 2; }); // one notification
 
 // In templates — signals interpolate directly
-html\\\`<span>\\\${count}</span>\\\`; // auto-updates when count changes
+html\`<span>\${count}</span>\`; // auto-updates when count changes
 \`\`\`
 
 ## Component Pattern
@@ -542,21 +564,21 @@ import { Tina4Element, html, signal } from 'tina4js';
 
 class MyWidget extends Tina4Element {
   static props = { label: String, count: Number, active: Boolean };
-  static styles = \\\`:host { display: block; }\\\`;
+  static styles = \`:host { display: block; }\`;
 
   // Internal state
   expanded = signal(false);
 
   render() {
-    return html\\\`
+    return html\`
       <div>
-        <span>\\\${this.prop('label')}: \\\${this.prop('count')}</span>
-        <button @click=\\\${() => this.expanded.value = !this.expanded.value}>
-          \\\${() => this.expanded.value ? 'Less' : 'More'}
+        <span>\${this.prop('label')}: \${this.prop('count')}</span>
+        <button @click=\${() => this.expanded.value = !this.expanded.value}>
+          \${() => this.expanded.value ? 'Less' : 'More'}
         </button>
-        \\\${() => this.expanded.value ? html\\\`<slot></slot>\\\` : null}
+        \${() => this.expanded.value ? html\`<slot></slot>\` : null}
       </div>
-    \\\`;
+    \`;
   }
 
   onMount() { /* connected to DOM */ }
@@ -571,10 +593,10 @@ customElements.define('my-widget', MyWidget);
 \`\`\`ts
 import { route, router, navigate, html } from 'tina4js';
 
-route('/', () => html\\\`<h1>Home</h1>\\\`);
-route('/user/{id}', ({ id }) => html\\\`<h1>User \\\${id}</h1>\\\`);
-route('/admin', { guard: () => isLoggedIn() || '/login', handler: () => html\\\`<h1>Admin</h1>\\\` });
-route('*', () => html\\\`<h1>404</h1>\\\`);
+route('/', () => html\`<h1>Home</h1>\`);
+route('/user/{id}', ({ id }) => html\`<h1>User \${id}</h1>\`);
+route('/admin', { guard: () => isLoggedIn() || '/login', handler: () => html\`<h1>Admin</h1>\` });
+route('*', () => html\`<h1>404</h1>\`);
 
 router.start({ target: '#root', mode: 'hash' }); // or mode: 'history'
 navigate('/user/42');
@@ -602,10 +624,10 @@ api.intercept('response', (res) => { if (res.status === 401) navigate('/login');
 
 \`\`\`ts
 // Conditional — use a function that returns html or null
-html\\\`\\\${() => show.value ? html\\\`<p>Visible</p>\\\` : null}\\\`;
+html\`\${() => show.value ? html\`<p>Visible</p>\` : null}\`;
 
 // List — use a function that maps to html templates
-html\\\`<ul>\\\${() => items.value.map(i => html\\\`<li>\\\${i}</li>\\\`)}</ul>\\\`;
+html\`<ul>\${() => items.value.map(i => html\`<li>\${i}</li>\`)}</ul>\`;
 \`\`\`
 
 ## Framework Size
