@@ -303,6 +303,15 @@ function isInsideAttribute(markup: string): boolean {
   let inTag = false;
 
   for (let i = 0; i < markup.length; i++) {
+    // Quotes inside a valid HTML comment are text, not attribute delimiters.
+    // Skip the whole comment so it cannot change the surrounding context.
+    if (!inTag && markup.startsWith('<!--', i)) {
+      const commentEnd = markup.indexOf('-->', i + 4);
+      if (commentEnd === -1) return false;
+      i = commentEnd + 2;
+      continue;
+    }
+
     const ch = markup[i];
     if (ch === '<' && !inSingle && !inDouble) inTag = true;
     if (ch === '>' && !inSingle && !inDouble) inTag = false;
