@@ -17,4 +17,4 @@ Treat valid HTML comments as comment syntax while determining whether a tagged-t
 - [x] Document the supported behavior.
 - [x] Pass the focused regression tests.
 - [x] Pass the complete test, build, type, and size gates.
-- [ ] Publish and verify `tina4js@1.5.2`.
+- [x] Publish and verify `tina4js@1.5.2`.

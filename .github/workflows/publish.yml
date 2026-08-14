@@ -108,9 +108,9 @@ jobs:
         # update (rare but worth catching).
         run: |
           sleep 5
-          PUBLISHED=$(npm view tina4js@${{ github.event.inputs.tag || github.ref_name }} version 2>&1 || echo "NOT_FOUND")
           EXPECTED="${{ github.event.inputs.tag || github.ref_name }}"
           EXPECTED_VERSION="${EXPECTED#v}"
+          PUBLISHED=$(npm view tina4js@${EXPECTED_VERSION} version 2>&1 || echo "NOT_FOUND")
           if [ "$PUBLISHED" != "$EXPECTED_VERSION" ]; then
             echo "::warning::Registry shows '$PUBLISHED', expected '$EXPECTED_VERSION'. Possibly a propagation lag — re-check in a minute."
           else
