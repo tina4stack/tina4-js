@@ -1,5 +1,9 @@
 # Tina4-JS System Overview
 
+## Active release work
+
+- [Issue 13 — HTML comment interpolation context](14-ISSUE-13-COMMENT-INTERPOLATION.md)
+
 ## Vision
 
 A sub-3KB (gzipped) frontend framework that leverages native browser APIs instead of reimplementing them. Designed to work standalone OR embedded inside tina4-php / tina4-python backends.
