@@ -6,10 +6,10 @@
  * Usage:
  *   npx tina4js create <name>           Scaffold a new project
  *   npx tina4js create <name> --pwa     Include PWA support
- *   npx tina4 build                   Production build
- *   npx tina4 build --target php      Build for tina4-php embedding
- *   npx tina4 build --target python   Build for tina4-python embedding
- *   npx tina4 dev                     Dev server with HMR
+ *   npx tina4js generate page <name>  Scaffold a reactive page
+ *   npx tina4js generate component <name>  Scaffold a Web Component
+ *   npx tina4js build                 Production build
+ *   npx tina4js dev                   Package-level fallback dev server
  */
 
 import fs from 'node:fs';
@@ -103,7 +103,7 @@ function createProject(name, withPwa, withCss) {
       test: 'vitest run',
     },
     dependencies: {
-      tina4js: '^1.0.7',
+      tina4js: '^1.5.2',
       ...(withCss ? { 'tina4-css': '^2.0.0' } : {}),
     },
     devDependencies: {
@@ -356,8 +356,7 @@ dist/
 
   console.log(`\n${c.bold('Next steps:')}\n`);
   console.log(`  cd ${projectName}`);
-  console.log(`  npm install`);
-  console.log(`  npm run dev\n`);
+  console.log(`  tina4 serve\n`);
 }
 
 // ── Dev ─────────────────────────────────────────────────────────────
@@ -456,15 +455,22 @@ ${c.bold('Usage:')}
   tina4js create <name> --pwa         Create with PWA support
   tina4js create <name> --css         Create with tina4-css framework
   tina4js create <name> --pwa --css   Create with both
+  tina4js generate page <name>        Scaffold a reactive page
+  tina4js generate page <name> --api <url>
+  tina4js generate component <name>   Scaffold a Web Component
   tina4js dev                         Start dev server
   tina4js build                       Production build → dist/
   tina4js build --target php          Build for tina4-php
   tina4js build --target python       Build for tina4-python
 
 ${c.bold('Examples:')}
-  ${c.dim('$')} npx tina4js create my-app
-  ${c.dim('$')} npx tina4js create my-app --css
-  ${c.dim('$')} cd my-app && npm install && npm run dev
+  ${c.dim('$')} tina4 init js my-app
+  ${c.dim('$')} cd my-app && tina4 serve
+  ${c.dim('$')} tina4 generate page products --api /api/products
+  ${c.dim('$')} tina4 generate component product-card
+
+${c.dim('Use the unified tina4 client for normal project creation and startup.')}
+${c.dim('The tina4js package commands are fallbacks when that client is unavailable.')}
 `);
 }
 

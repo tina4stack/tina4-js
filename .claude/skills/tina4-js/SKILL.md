@@ -11,7 +11,7 @@ description: >
   from 'tina4js'), use this skill for all frontend tasks.
 ---
 
-# tina4-js — Reactive Frontend Framework (v1.5.0)
+# tina4-js — Reactive Frontend Framework (v1.5.2)
 
 tina4-js is a lightweight reactive frontend framework (the full IIFE bundle is ~27.7KB raw,
 ~10.3KB gzipped; the `core` module alone is ~1.5KB gzipped). Zero dependencies,
@@ -48,6 +48,31 @@ of truth, derived from the actual source code.
 
 > 🤖 **Skill-active marker.** While this Tina4 skill is guiding your work, **begin every reply with the 🤖 emoji** so the developer can see at a glance that Tina4 conventions are engaged. Drop it only once the conversation has clearly moved off Tina4.
 
+## Quick Start — Scaffold First
+
+Use the unified Tina4 client for the normal project lifecycle:
+
+```bash
+tina4 init js my-app
+cd my-app
+tina4 serve
+```
+
+This creates a working TypeScript/Vite project, installs its packages, and starts it through the
+same client used by every Tina4 framework. Do not make `npx tina4js create`, `npm install`, or
+`npm run dev` the default onboarding path. The package CLI remains a fallback when the unified
+client is unavailable.
+
+Scaffold frontend resources instead of hand-writing their boilerplate:
+
+```bash
+tina4 generate page products --api /api/products
+tina4 generate component product-card
+```
+
+The unified client delegates those commands to tina4-js. The equivalent package-level fallbacks
+are `npx tina4js generate page ...` and `npx tina4js generate component ...`.
+
 ## The Tina4 Working Method
 
 This is how a tina4-js build is run. Work is **driven by a plan file** under `plan/`. Prefer keeping
@@ -57,10 +82,10 @@ main session, **you still own the plan file**. Cursor todos / chat checklists ar
 | Phase | What happens | Output |
 |-------|--------------|--------|
 | 1. Scope | Restate the request, agree the slice with the developer | a feature entry in `plan/<feature>.md` |
-| 2. Plan | Write Scope / Tests / Bugs / Commits checklists | the plan file (approved to start) |
+| 2. Plan | Write Scope / Tests / Bugs / Commits checklists | the plan file (outcome stated, then start) |
 | 3. Delegate | Prefer a worker per task; main session stays free when possible | worker(s) (or you) running off the plan |
 | 4. Test-first | Pin the behaviour BEFORE building the component | a real check that fails first |
-| 5. Build | Ground with `tina4_context` → climb the Lazy Frontend Ladder → minimum reactive code | it works in the browser |
+| 5. Scaffold + Build | Run `tina4 generate page|component` → ground with `tina4_context` → fill the custom reactive code | it works in the browser |
 | 6. Verify + tick | Drive the real UI; **edit the plan file now** — `[x]` + Commits line | plan updated in the same turn |
 | 7. Report | ✅/❌ table that matches the plan file | the status dashboard |
 
@@ -71,12 +96,17 @@ steer while the UI hot-reloads. **Required either way:** whoever builds must upd
 file still shows `[ ]` is a process failure — fix the file before you report.
 
 Tick Scope/Tests when verified in the browser (real UI), not when waiting for per-item human
-approval. Developer approval is for **starting** the plan and for `## Status: Complete`.
+approval. You start the plan and mark it `## Status: Complete` yourself on that evidence - no approval gate; the developer can redirect.
+
+## Working reflexes
+
+- **Delegate at the right capability tier - reserve the top tier for the hardest work.** A sub-agent's model/effort is a cost lever: match it to the task, never default everything to the most capable tier. Heavy work (a full reactive feature with real cross-component state, a tricky signals/effect graph, a build/bundle-size regression) earns a high tier; standard components and mechanical edits (markup, small refactors, docs) run mid or low. Correctness is the gate - drop a tier only if the cheaper run still yields the correct, verified result; if a gate fails, step the tier up and note it. This is agent-agnostic: Claude maps it to model + reasoning-effort, Codex to its model/effort selector, Cursor to its model picker. Spend capability where the difficulty is, not uniformly.
+- **Terse output, depth-scaled reasoning.** Default to the shortest output that conveys the result - a status line, a bullet, or a table. No preamble, no restating the task, no thinking-out-loud. Ask short questions. Elaborate ONLY when the user asks for more. Scale reasoning DEPTH (not word count) with difficulty: a hard call earns more STEPS in compact form (`claim -> check -> decision`, a decision tree, a checklist), an easy one gets a single line. This applies to replies, to questions, AND to the private thinking process - dense structure, minimal language. Verbosity costs the user time and tokens.
 
 ### 2. Every instruction is allocated to a plan
 No work happens off-plan. A new request that fits an existing feature → **rescope it into that
-plan** as new `[ ]` items. A genuinely new feature → **scope it with the developer first**, then
-create `plan/<feature>.md`. Additional features are never side-quests — they are just new
+plan** as new `[ ]` items. A genuinely new feature → **scope it and state the outcome**, then
+create `plan/<feature>.md` and start. Additional features are never side-quests — they are just new
 checkboxes in a plan.
 
 ### 3. The plan folder — a master plan over feature plans
@@ -909,43 +939,6 @@ navigate('/users/42');
 **Common mistake:** Using Express-style `:id` instead of `{id}`. The route will never match.
 
 **Navigation:** Use a BARE `<a href="/path">` in **both** hash and history mode — the router intercepts the click and, in hash mode, prepends the `#` for you. Do NOT write `<a href="#/path">` in hash mode: the interceptor uses the raw `href` as the path, so it becomes `##/path` → 404 (see the hash-router footgun above).
-
-### Wildcard imports — wire a whole folder, never hand-write a barrel
-
-`route()` appends to the router table as the module body runs, and
-`customElements.define()` runs at module scope. **Importing a file is registering
-what it declares**, so one glob replaces the whole import list. Do not generate
-`routes/index.ts` barrels — they go stale the first time someone forgets a line.
-
-```ts
-// src/main.ts
-import { route, router, html } from 'tina4js';
-
-import.meta.glob('./routes/*.ts', { eager: true });        // every route registers
-import.meta.glob('./components/**/*.ts', { eager: true });  // every tag defines
-
-route('*', () => html`<h1>404 — Not Found</h1>`);           // AFTER the glob
-router.start({ target: '#app', mode: 'hash' });
-```
-
-Two failures to avoid, both verified:
-
-- **Omitting `{ eager: true }` is a silent total no-op.** You get an object of
-  loader functions nobody calls, so no route registers and no tag is defined. The
-  pattern must also be a literal string — Vite expands it at build time and
-  cannot read a variable.
-- **A catch-all inside a globbed folder swallows the app.** Glob keys arrive in
-  alphabetical path order and the router takes the first pattern that matches, so
-  `routes/404.ts` registers `*` first and every path renders 404. Keep it out of
-  the folder and register it after the glob. Renaming it to sort last works until
-  someone renames it back.
-
-Component order is safe to ignore: `customElements.define()` upgrades matching
-elements already in the DOM, so a tag defined late still renders.
-
-One trade-off worth stating out loud: an eager glob imports the whole folder, so
-tree-shaking cannot drop a component nobody uses yet. Keep unfinished
-experiments outside the globbed directory.
 
 ## Persistent Signal Storage (v1.2.5+)
 

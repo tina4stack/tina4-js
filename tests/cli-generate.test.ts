@@ -13,6 +13,31 @@ function run(cwd: string, args: string[]): void {
   execFileSync('node', [CLI, ...args], { cwd, stdio: 'pipe' });
 }
 
+function output(cwd: string, args: string[]): string {
+  return execFileSync('node', [CLI, ...args], { cwd, encoding: 'utf-8' });
+}
+
+describe('tina4js CLI onboarding', () => {
+  let dir: string;
+  beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'tina4-cli-')); });
+  afterEach(() => { rmSync(dir, { recursive: true, force: true }); });
+
+  it('exposes the page and component generators in help', () => {
+    const help = output(dir, ['--help']);
+    expect(help).toContain('generate page <name>');
+    expect(help).toContain('generate component <name>');
+  });
+
+  it('creates a current project and hands startup to the unified client', () => {
+    const result = output(dir, ['create', 'my-app']);
+    const pkg = JSON.parse(readFileSync(join(dir, 'my-app/package.json'), 'utf-8'));
+
+    expect(pkg.dependencies.tina4js).toBe('^1.5.2');
+    expect(result).toContain('tina4 serve');
+    expect(result).not.toContain('npm run dev');
+  });
+});
+
 describe('tina4js generate', () => {
   let dir: string;
   beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'tina4-gen-')); });
