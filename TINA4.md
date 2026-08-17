@@ -39,7 +39,7 @@ import.meta.glob('./routes/*.ts', { eager: true });
 import.meta.glob('./components/**/*.ts', { eager: true });
 
 route('*', () => html`<h1>404</h1>`);   // catch-all AFTER the glob
-router.start({ target: '#root', mode: 'hash' });
+router.start({ target: '#root', mode: 'history' });
 ```
 
 `{ eager: true }` is mandatory. Without it the glob returns loader functions nobody calls,
@@ -152,7 +152,7 @@ route('/admin', {
 route('*', () => html`<h1>404</h1>`);
 
 // Start router — call AFTER all routes are registered
-router.start({ target: '#root', mode: 'hash' }); // or mode: 'history'
+router.start({ target: '#root', mode: 'history' }); // use 'hash' only on static hosts without rewrites
 
 // Programmatic navigation
 navigate('/user/42');
@@ -163,6 +163,8 @@ router.on('change', (event) => {
   // event: { path, params, pattern, durationMs }
 });
 ```
+
+History mode is the default and produces clean `/user/42` URLs. Use hash mode only when a static host cannot send unknown paths back to `index.html`. Links and `navigate()` always receive a bare `/path`; never add `#` yourself.
 
 ## API Pattern (tina4-php/python compatible)
 

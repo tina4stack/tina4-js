@@ -146,6 +146,8 @@ route('*', () => html`<h1>404</h1>`);
 router.start({ target: '#root', mode: 'history' });
 ```
 
+History mode is the default and produces clean `/user/42` URLs. Use hash mode only when a static host cannot send unknown paths back to `index.html`. Pass bare `/path` values to links and `navigate()` in both modes; the router adds `#` when hash mode needs it.
+
 ### 4. Create a component
 
 ```ts

@@ -31,10 +31,13 @@ describe('tina4js CLI onboarding', () => {
   it('creates a current project and hands startup to the unified client', () => {
     const result = output(dir, ['create', 'my-app']);
     const pkg = JSON.parse(readFileSync(join(dir, 'my-app/package.json'), 'utf-8'));
+    const main = readFileSync(join(dir, 'my-app/src/main.ts'), 'utf-8');
 
     expect(pkg.dependencies.tina4js).toBe('^1.5.3');
     expect(result).toContain('tina4 serve');
     expect(result).not.toContain('npm run dev');
+    expect(main).toContain("mode: 'history'");
+    expect(main).not.toContain("mode: 'hash'");
   });
 });
 
@@ -79,6 +82,13 @@ describe('tina4js generate', () => {
       const js = pageJs();
       expect(js).not.toMatch(/\b(React|Vue|from ['"]react|createApp|FastAPI)\b/);
       expect(js).not.toMatch(/^\s*import\s/m); // no ES imports — pure global Tina4
+    });
+
+    it('renders directly without adding a hash router to a standalone page', () => {
+      const js = pageJs();
+      expect(js).toContain("document.getElementById('root').appendChild(productsPage())");
+      expect(js).not.toContain('router.start');
+      expect(js).not.toContain("route('/',");
     });
 
     it('is syntactically valid JavaScript', () => {

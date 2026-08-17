@@ -894,6 +894,8 @@ its file. The IIFE bundle provides the framework globally; island scripts just u
 
 ## Routing — IMPORTANT: {param} not :param
 
+History mode is canonical and produces clean URLs. Use hash mode only when a static host cannot rewrite unknown paths to `index.html`. Links and `navigate()` always take a bare `/path`; never add `#` yourself.
+
 tina4-js uses **curly brace** syntax for route parameters — NOT Express-style colons.
 
 ```ts
@@ -924,7 +926,7 @@ route('/data', async () => {
 });
 
 // Start the router
-router.start({ target: '#app', mode: 'hash' });  // or mode: 'history'
+router.start({ target: '#app', mode: 'history' });  // use 'hash' only on static hosts without rewrites
 
 // Listen for route changes
 router.on('change', ({ path, params, pattern, durationMs }) => {

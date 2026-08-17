@@ -274,7 +274,7 @@ route('/admin', {
 route('*', () => html`<h1>Page Not Found</h1>`);
 
 // Start the router AFTER registering routes
-router.start({ target: '#root', mode: 'hash' });
+router.start({ target: '#root', mode: 'history' });
 ```
 
 **Voiceover:**

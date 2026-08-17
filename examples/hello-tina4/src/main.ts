@@ -8,4 +8,4 @@ import '@/routes/index';
 // api.configure({ baseUrl: '/api', auth: true });
 
 // Start router
-router.start({ target: '#root', mode: 'hash' });
+router.start({ target: '#root', mode: 'history' });

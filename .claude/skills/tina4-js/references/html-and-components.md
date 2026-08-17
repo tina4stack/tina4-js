@@ -182,6 +182,8 @@ class MyWidget extends Tina4Element {
 
 ## Routing
 
+History mode is canonical and produces clean URLs. Use hash mode only when a static host cannot rewrite unknown paths to `index.html`. Links and `navigate()` always take a bare `/path`; never add `#` yourself.
+
 ```ts
 import { route, navigate, router } from 'tina4js/router';
 
@@ -198,7 +200,7 @@ route('/admin', {
 });
 
 // Start
-router.start({ target: '#app', mode: 'hash' });  // or 'history'
+router.start({ target: '#app', mode: 'history' });  // use 'hash' only on static hosts without rewrites
 
 // Navigate programmatically
 navigate('/users/42');

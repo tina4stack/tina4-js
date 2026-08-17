@@ -7,4 +7,4 @@ import '@/components/todo-item';
 import '@/routes/index';
 
 // Start the router
-router.start({ target: '#root', mode: 'hash' });
+router.start({ target: '#root', mode: 'history' });
