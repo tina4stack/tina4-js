@@ -241,6 +241,39 @@ describe('html + signals (reactive)', () => {
 });
 
 describe('html + property bindings (.value, .innerHTML, etc.)', () => {
+  it('preserves .innerHTML casing and injects inline SVG', () => {
+    const frag = html`<div .innerHTML=${'<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"></circle></svg>'}></div>`;
+    const container = frag.firstElementChild as HTMLDivElement;
+    document.body.appendChild(container);
+
+    expect(container.querySelector('svg')).not.toBeNull();
+    expect((container as any).innerhtml).toBeUndefined();
+  });
+
+  it('preserves .textContent casing for reactive signal values', () => {
+    const content = signal('first');
+    const frag = html`<div .textContent=${content}></div>`;
+    const container = frag.firstElementChild as HTMLDivElement;
+    document.body.appendChild(container);
+
+    expect(container.textContent).toBe('first');
+    content.value = 'second';
+    expect(container.textContent).toBe('second');
+    expect((container as any).textcontent).toBeUndefined();
+  });
+
+  it('preserves custom camelCase properties and native values for reactive functions', () => {
+    const state = signal({ count: 1 });
+    const frag = html`<div .customState=${() => state.value}></div>`;
+    const container = frag.firstElementChild as HTMLDivElement & { customState: { count: number } };
+    document.body.appendChild(container);
+
+    expect(container.customState).toEqual({ count: 1 });
+    state.value = { count: 2 };
+    expect(container.customState).toEqual({ count: 2 });
+    expect((container as any).customstate).toBeUndefined();
+  });
+
   it('property binding with a signal updates reactively', () => {
     const value = signal('hello');
     const frag = html`<input .value=${value}>`;

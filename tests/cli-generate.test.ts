@@ -32,7 +32,7 @@ describe('tina4js CLI onboarding', () => {
     const result = output(dir, ['create', 'my-app']);
     const pkg = JSON.parse(readFileSync(join(dir, 'my-app/package.json'), 'utf-8'));
 
-    expect(pkg.dependencies.tina4js).toBe('^1.5.2');
+    expect(pkg.dependencies.tina4js).toBe('^1.5.3');
     expect(result).toContain('tina4 serve');
     expect(result).not.toContain('npm run dev');
   });

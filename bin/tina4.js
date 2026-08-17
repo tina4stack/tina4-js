@@ -103,7 +103,7 @@ function createProject(name, withPwa, withCss) {
       test: 'vitest run',
     },
     dependencies: {
-      tina4js: '^1.5.2',
+      tina4js: '^1.5.3',
       ...(withCss ? { 'tina4-css': '^2.0.0' } : {}),
     },
     devDependencies: {
