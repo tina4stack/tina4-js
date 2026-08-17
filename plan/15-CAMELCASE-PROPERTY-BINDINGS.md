@@ -7,7 +7,7 @@
 - [x] Reproduce HTML parser lowercasing of `.innerHTML`.
 - [x] Preserve the original property name outside the parsed DOM attribute.
 - [x] Build the package and browser bundle for release 1.5.3.
-- [ ] Verify the release on the Linux lab.
+- [x] Verify the release on the Linux lab as root.
 - [x] Make the clean-checkout size test a real gate instead of a warning-and-return ghost test.
 - [x] Remove known vulnerabilities from the release toolchain without adding runtime dependencies.
 - [x] Make clean history URLs canonical in scaffolds, examples, documentation, and skills; keep hash routing as an explicit static-host fallback.
@@ -47,6 +47,6 @@
 
 - `f1e6d24` — preserve camelCase property bindings and add regression coverage.
 - `6877d88` — resolve hash navigation synchronously.
-- Remaining release hardening, clean-URL, and Metrics changes are pending final verification.
+- `fab28b8` — harden release gates, make clean URLs canonical, and remove the Metrics error in `persist()`.
 
-## Status: In Progress
+## Status: Complete
