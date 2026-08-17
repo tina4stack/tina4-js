@@ -2,14 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'fs';
 import { gzipSync } from 'zlib';
 
+function readBuiltBundle(path: string): Buffer {
+  if (!existsSync(path)) {
+    throw new Error(`${path} not found — the bundle-size gate requires a production build`);
+  }
+  return readFileSync(path);
+}
+
 describe('bundle size', () => {
   it('core bundle (signals + html + component) is under 3KB gzipped', () => {
     const path = './dist/core.es.js';
-    if (!existsSync(path)) {
-      console.warn('dist/core.es.js not found — run `npm run build` first');
-      return;
-    }
-    const bundle = readFileSync(path);
+    const bundle = readBuiltBundle(path);
     const gzipped = gzipSync(bundle);
     const sizeKB = gzipped.length / 1024;
 
@@ -19,8 +22,7 @@ describe('bundle size', () => {
 
   it('router bundle is under 2KB gzipped', () => {
     const path = './dist/router.es.js';
-    if (!existsSync(path)) return;
-    const bundle = readFileSync(path);
+    const bundle = readBuiltBundle(path);
     const gzipped = gzipSync(bundle);
     const sizeKB = gzipped.length / 1024;
 
@@ -30,8 +32,7 @@ describe('bundle size', () => {
 
   it('api bundle is under 2.5KB gzipped', () => {
     const path = './dist/api.es.js';
-    if (!existsSync(path)) return;
-    const bundle = readFileSync(path);
+    const bundle = readBuiltBundle(path);
     const gzipped = gzipSync(bundle);
     const sizeKB = gzipped.length / 1024;
 
@@ -41,8 +42,7 @@ describe('bundle size', () => {
 
   it('pwa bundle is under 2KB gzipped', () => {
     const path = './dist/pwa.es.js';
-    if (!existsSync(path)) return;
-    const bundle = readFileSync(path);
+    const bundle = readBuiltBundle(path);
     const gzipped = gzipSync(bundle);
     const sizeKB = gzipped.length / 1024;
 
@@ -52,8 +52,7 @@ describe('bundle size', () => {
 
   it('ws bundle is under 1.5KB gzipped', () => {
     const path = './dist/ws.es.js';
-    if (!existsSync(path)) return;
-    const bundle = readFileSync(path);
+    const bundle = readBuiltBundle(path);
     const gzipped = gzipSync(bundle);
     const sizeKB = gzipped.length / 1024;
 
@@ -63,8 +62,7 @@ describe('bundle size', () => {
 
   it('sse bundle is under 1.5KB gzipped', () => {
     const path = './dist/sse.es.js';
-    if (!existsSync(path)) return;
-    const bundle = readFileSync(path);
+    const bundle = readBuiltBundle(path);
     const gzipped = gzipSync(bundle);
     const sizeKB = gzipped.length / 1024;
 
@@ -74,8 +72,7 @@ describe('bundle size', () => {
 
   it('full framework re-export is under 0.5KB gzipped', () => {
     const path = './dist/tina4.es.js';
-    if (!existsSync(path)) return;
-    const bundle = readFileSync(path);
+    const bundle = readBuiltBundle(path);
     const gzipped = gzipSync(bundle);
     const sizeKB = gzipped.length / 1024;
 

@@ -103,7 +103,7 @@ route('/user/{id}', ({ id }) => html\`<h1>User \${id}</h1>\`);
 route('/admin', { guard: () => isLoggedIn() || '/login', handler: () => html\`<h1>Admin</h1>\` });
 route('*', () => html\`<h1>404</h1>\`);
 
-router.start({ target: '#root', mode: 'hash' }); // or mode: 'history'
+router.start({ target: '#root', mode: 'history' }); // use 'hash' only on static hosts without rewrites
 navigate('/user/42');
 ```
 

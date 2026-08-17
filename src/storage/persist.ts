@@ -55,6 +55,11 @@ interface Envelope {
   value: unknown;
 }
 
+interface StoredValue {
+  version: number | undefined;
+  payload: unknown;
+}
+
 const DEFAULT_SERIALIZER: PersistSerializer<unknown> = {
   read: (raw) => JSON.parse(raw),
   write: (value) => JSON.stringify(value),
@@ -126,6 +131,149 @@ function getStorage(kind: 'local' | 'session'): Storage | null {
   }
 }
 
+function parseStoredValue<T>(
+  raw: string,
+  serializer: PersistSerializer<T>,
+  isDefault: boolean,
+): StoredValue {
+  try {
+    const parsed = JSON.parse(raw) as Envelope;
+    if (parsed && typeof parsed === 'object' && 'value' in parsed) {
+      return { version: parsed.v, payload: parsed.value };
+    }
+    return { version: undefined, payload: parsed };
+  } catch {
+    return {
+      version: undefined,
+      payload: isDefault ? raw : serializer.read(raw),
+    };
+  }
+}
+
+function deserializePayload<T>(
+  payload: unknown,
+  serializer: PersistSerializer<T>,
+  isDefault: boolean,
+): T {
+  if (isDefault) return payload as T;
+  return serializer.read(typeof payload === 'string' ? payload : JSON.stringify(payload));
+}
+
+function readInitialValue<T>(
+  source: Signal<T>,
+  store: Storage,
+  key: string,
+  version: number,
+  serializer: PersistSerializer<T>,
+  isDefault: boolean,
+  migrate: PersistOptions<T>['migrate'],
+): void {
+  try {
+    const raw = store.getItem(key);
+    if (raw === null) return;
+
+    const stored = parseStoredValue(raw, serializer, isDefault);
+    if (stored.version === version || stored.version === undefined) {
+      source.value = deserializePayload(stored.payload, serializer, isDefault);
+      return;
+    }
+    if (migrate) {
+      try {
+        source.value = migrate(stored.payload, stored.version);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn(`[tina4 persist] migrate() threw for key "${key}":`, err);
+      }
+      return;
+    }
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[tina4 persist] stored version ${stored.version} does not match current ${version} ` +
+      `for key "${key}", and no migrate() was provided. Discarding the stored value.`,
+    );
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn(`[tina4 persist] failed to read key "${key}":`, err);
+  }
+}
+
+function warnIfCredential(key: string, value: unknown, silenced: boolean): void {
+  if (silenced) return;
+  const reason = looksLikeCredential(key, value);
+  if (reason) warnCredential(reason, key);
+}
+
+function createWriteEffect<T>(
+  source: Signal<T>,
+  store: Storage,
+  key: string,
+  version: number,
+  serializer: PersistSerializer<T>,
+  isDefault: boolean,
+  silenceCredentialWarning: boolean,
+): () => void {
+  return effect(() => {
+    const value = source.value;
+    warnIfCredential(key, value, silenceCredentialWarning);
+    try {
+      const serialized = isDefault
+        ? JSON.stringify({ v: version, value } satisfies Envelope)
+        : JSON.stringify({ v: version, value: serializer.write(value) });
+      store.setItem(key, serialized);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(`[tina4 persist] failed to write key "${key}":`, err);
+    }
+  });
+}
+
+function createStorageListener<T>(
+  source: Signal<T>,
+  store: Storage,
+  key: string,
+  version: number,
+  serializer: PersistSerializer<T>,
+  isDefault: boolean,
+  migrate: PersistOptions<T>['migrate'],
+  syncTabs: boolean,
+): (() => void) | null {
+  if (!syncTabs || typeof globalThis === 'undefined' || !('addEventListener' in globalThis)) {
+    return null;
+  }
+
+  const listener = (event: Event): void => {
+    const e = event as StorageEvent;
+    if (e.storageArea !== store || e.key !== key || e.newValue === null) return;
+    try {
+      const stored = parseStoredValue(e.newValue, serializer, isDefault);
+      if (stored.version !== undefined && stored.version !== version && migrate) {
+        source.value = migrate(stored.payload, stored.version);
+      } else if (stored.version === version || stored.version === undefined) {
+        source.value = deserializePayload(stored.payload, serializer, isDefault);
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(`[tina4 persist] failed to parse storage event for key "${key}":`, err);
+    }
+  };
+
+  (globalThis as { addEventListener?: (t: string, l: EventListener) => void })
+    .addEventListener?.('storage', listener as EventListener);
+  return (): void => {
+    (globalThis as { removeEventListener?: (t: string, l: EventListener) => void })
+      .removeEventListener?.('storage', listener as EventListener);
+  };
+}
+
+function clearStoredKey(store: Storage, key: string): void {
+  try {
+    store.removeItem(key);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn(`[tina4 persist] failed to clear key "${key}":`, err);
+  }
+}
+
 // ── persist() ──────────────────────────────────────────────────────────
 
 /**
@@ -165,119 +313,31 @@ export function persist<T>(source: Signal<T>, options: PersistOptions<T>): Persi
     return attach(source, () => {}, () => {});
   }
 
-  // Initial read — pull a stored value into the signal if one exists
-  try {
-    const raw = store.getItem(key);
-    if (raw !== null) {
-      // Envelope shape: { v, value }. Old keys may be bare values; tolerate them.
-      let storedVersion: number | undefined;
-      let storedPayload: unknown;
-      try {
-        const parsed = JSON.parse(raw) as Envelope;
-        if (parsed && typeof parsed === 'object' && 'value' in parsed) {
-          storedVersion = parsed.v;
-          storedPayload = parsed.value;
-        } else {
-          storedPayload = parsed;
-        }
-      } catch {
-        // Stored value is not JSON at all — try the custom serializer
-        storedPayload = isDefault ? raw : serializer.read(raw);
-      }
-
-      if (storedVersion === version || storedVersion === undefined) {
-        const value = isDefault
-          ? (storedPayload as T)
-          : serializer.read(typeof storedPayload === 'string' ? storedPayload : JSON.stringify(storedPayload));
-        source.value = value;
-      } else if (migrate) {
-        try {
-          source.value = migrate(storedPayload, storedVersion);
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.warn(`[tina4 persist] migrate() threw for key "${key}":`, err);
-        }
-      } else {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[tina4 persist] stored version ${storedVersion} does not match current ${version} ` +
-          `for key "${key}", and no migrate() was provided. Discarding the stored value.`,
-        );
-      }
-    }
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn(`[tina4 persist] failed to read key "${key}":`, err);
-  }
-
-  // Credential-shape check on the value the signal now holds
-  if (!silenceCredentialWarning) {
-    const reason = looksLikeCredential(key, source.peek());
-    if (reason) warnCredential(reason, key);
-  }
-
-  // Write effect — runs on every change, including the initial seed
-  const stopEffect = effect(() => {
-    const value = source.value;
-    if (!silenceCredentialWarning) {
-      const reason = looksLikeCredential(key, value);
-      if (reason) warnCredential(reason, key);
-    }
-    try {
-      const envelope: Envelope = { v: version, value };
-      const serialized = isDefault
-        ? JSON.stringify(envelope)
-        : JSON.stringify({ v: version, value: serializer.write(value) });
-      store.setItem(key, serialized);
-    } catch (err) {
-      // QuotaExceededError or similar — log and continue
-      // eslint-disable-next-line no-console
-      console.warn(`[tina4 persist] failed to write key "${key}":`, err);
-    }
-  });
-
-  // Cross-tab sync — the storage event fires in OTHER tabs, never the writer
-  let stopStorageListener: (() => void) | null = null;
-  if (syncTabs && typeof globalThis !== 'undefined' && 'addEventListener' in globalThis) {
-    const listener = (event: Event): void => {
-      const e = event as StorageEvent;
-      if (e.storageArea !== store) return;
-      if (e.key !== key) return;
-      if (e.newValue === null) return;
-      try {
-        const parsed = JSON.parse(e.newValue) as Envelope;
-        const newV = parsed && typeof parsed === 'object' && 'v' in parsed ? parsed.v : undefined;
-        const newPayload = newV !== undefined ? parsed.value : parsed;
-        if (newV !== undefined && newV !== version && migrate) {
-          source.value = migrate(newPayload, newV);
-        } else if (newV === version || newV === undefined) {
-          source.value = isDefault
-            ? (newPayload as T)
-            : serializer.read(typeof newPayload === 'string' ? newPayload : JSON.stringify(newPayload));
-        }
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.warn(`[tina4 persist] failed to parse storage event for key "${key}":`, err);
-      }
-    };
-    (globalThis as { addEventListener?: (t: string, l: EventListener) => void })
-      .addEventListener?.('storage', listener as EventListener);
-    stopStorageListener = (): void => {
-      (globalThis as { removeEventListener?: (t: string, l: EventListener) => void })
-        .removeEventListener?.('storage', listener as EventListener);
-    };
-  }
+  readInitialValue(source, store, key, version, serializer, isDefault, migrate);
+  warnIfCredential(key, source.peek(), silenceCredentialWarning);
+  const stopEffect = createWriteEffect(
+    source,
+    store,
+    key,
+    version,
+    serializer,
+    isDefault,
+    silenceCredentialWarning,
+  );
+  const stopStorageListener = createStorageListener(
+    source,
+    store,
+    key,
+    version,
+    serializer,
+    isDefault,
+    migrate,
+    syncTabs,
+  );
 
   return attach(
     source,
-    () => {
-      try {
-        store.removeItem(key);
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.warn(`[tina4 persist] failed to clear key "${key}":`, err);
-      }
-    },
+    () => clearStoredKey(store, key),
     () => {
       stopEffect();
       if (stopStorageListener) stopStorageListener();

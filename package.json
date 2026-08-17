@@ -1,6 +1,6 @@
 {
   "name": "tina4js",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "1.5KB core gzipped, reactive framework — signals, web components, routing, PWA",
   "type": "module",
   "main": "dist/tina4.cjs.js",
@@ -8,49 +8,49 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/tina4.es.js",
-      "require": "./dist/tina4.cjs.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/tina4.cjs.js"
     },
     "./core": {
-      "import": "./dist/core.es.js",
-      "types": "./dist/core/index.d.ts"
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core.es.js"
     },
     "./router": {
-      "import": "./dist/router.es.js",
-      "types": "./dist/router/index.d.ts"
+      "types": "./dist/router/index.d.ts",
+      "import": "./dist/router.es.js"
     },
     "./api": {
-      "import": "./dist/api.es.js",
-      "types": "./dist/api/index.d.ts"
+      "types": "./dist/api/index.d.ts",
+      "import": "./dist/api.es.js"
     },
     "./pwa": {
-      "import": "./dist/pwa.es.js",
-      "types": "./dist/pwa/index.d.ts"
+      "types": "./dist/pwa/index.d.ts",
+      "import": "./dist/pwa.es.js"
     },
     "./debug": {
-      "import": "./dist/debug.es.js",
-      "types": "./dist/debug/index.d.ts"
+      "types": "./dist/debug/index.d.ts",
+      "import": "./dist/debug.es.js"
     },
     "./ws": {
-      "import": "./dist/ws.es.js",
-      "types": "./dist/ws/index.d.ts"
+      "types": "./dist/ws/index.d.ts",
+      "import": "./dist/ws.es.js"
     },
     "./sse": {
-      "import": "./dist/sse.es.js",
-      "types": "./dist/sse/index.d.ts"
+      "types": "./dist/sse/index.d.ts",
+      "import": "./dist/sse.es.js"
     },
     "./rtc": {
-      "import": "./dist/rtc.es.js",
-      "types": "./dist/rtc/index.d.ts"
+      "types": "./dist/rtc/index.d.ts",
+      "import": "./dist/rtc.es.js"
     },
     "./storage": {
-      "import": "./dist/storage.es.js",
-      "types": "./dist/storage/index.d.ts"
+      "types": "./dist/storage/index.d.ts",
+      "import": "./dist/storage.es.js"
     },
     "./i18n": {
-      "import": "./dist/i18n.es.js",
-      "types": "./dist/i18n/index.d.ts"
+      "types": "./dist/i18n/index.d.ts",
+      "import": "./dist/i18n.es.js"
     }
   },
   "sideEffects": false,
@@ -67,18 +67,21 @@
     "build": "vite build",
     "build:types": "tsc --emitDeclarationOnly --outDir dist",
     "build:iife": "esbuild src/index.ts --bundle --minify --format=iife --global-name=Tina4 --outfile=dist/tina4js.min.js --target=es2021",
+    "pretest": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
+    "pretest:size": "npm run build",
     "test:size": "vitest run tests/size.test.ts",
     "build:gallery": "vite build --config examples/gallery/vite.gallery.config.ts",
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^2.1.9",
-    "happy-dom": "^15.0.0",
+    "@vitest/coverage-v8": "^3.2.6",
+    "esbuild": "^0.28.2",
+    "happy-dom": "^20.8.9",
     "typescript": "^5.4.0",
-    "vite": "^5.4.0",
-    "vitest": "^2.1.0"
+    "vite": "^6.4.3",
+    "vitest": "^3.2.6"
   },
   "keywords": [
     "framework",

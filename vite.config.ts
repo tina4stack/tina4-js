@@ -5,17 +5,17 @@ export default defineConfig({
   build: {
     lib: {
       entry: {
-        tina4: resolve(__dirname, 'src/index.ts'),
-        core: resolve(__dirname, 'src/core/index.ts'),
-        router: resolve(__dirname, 'src/router/index.ts'),
-        api: resolve(__dirname, 'src/api/index.ts'),
-        pwa: resolve(__dirname, 'src/pwa/index.ts'),
-        debug: resolve(__dirname, 'src/debug/index.ts'),
-        ws: resolve(__dirname, 'src/ws/index.ts'),
-        sse: resolve(__dirname, 'src/sse/index.ts'),
-        rtc: resolve(__dirname, 'src/rtc/index.ts'),
-        storage: resolve(__dirname, 'src/storage/index.ts'),
-        i18n: resolve(__dirname, 'src/i18n/index.ts'),
+        tina4: resolve(import.meta.dirname, 'src/index.ts'),
+        core: resolve(import.meta.dirname, 'src/core/index.ts'),
+        router: resolve(import.meta.dirname, 'src/router/index.ts'),
+        api: resolve(import.meta.dirname, 'src/api/index.ts'),
+        pwa: resolve(import.meta.dirname, 'src/pwa/index.ts'),
+        debug: resolve(import.meta.dirname, 'src/debug/index.ts'),
+        ws: resolve(import.meta.dirname, 'src/ws/index.ts'),
+        sse: resolve(import.meta.dirname, 'src/sse/index.ts'),
+        rtc: resolve(import.meta.dirname, 'src/rtc/index.ts'),
+        storage: resolve(import.meta.dirname, 'src/storage/index.ts'),
+        i18n: resolve(import.meta.dirname, 'src/i18n/index.ts'),
       },
       formats: ['es', 'cjs'],
     },
@@ -23,7 +23,6 @@ export default defineConfig({
       output: {
         entryFileNames: '[name].[format].js',
         chunkFileNames: '[name].[format].js',
-        // Inline shared code into each entry — keeps imports self-contained
         manualChunks: undefined,
         inlineDynamicImports: false,
       },

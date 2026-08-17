@@ -103,7 +103,7 @@ function createProject(name, withPwa, withCss) {
       test: 'vitest run',
     },
     dependencies: {
-      tina4js: '^1.5.2',
+      tina4js: '^1.5.3',
       ...(withCss ? { 'tina4-css': '^2.0.0' } : {}),
     },
     devDependencies: {
@@ -191,7 +191,7 @@ pwa.register({
 // api.configure({ baseUrl: '/api', auth: true });
 
 // Start router
-router.start({ target: '#root', mode: 'hash' });
+router.start({ target: '#root', mode: 'history' });
 `;
   writeFile(projectDir, 'src/main.ts', mainTs);
 
@@ -515,7 +515,7 @@ import.meta.glob('./routes/*.ts', { eager: true });
 import.meta.glob('./components/**/*.ts', { eager: true });
 
 route('*', () => html\`<h1>404</h1>\`);   // catch-all AFTER the glob
-router.start({ target: '#root', mode: 'hash' });
+router.start({ target: '#root', mode: 'history' });
 \`\`\`
 
 \`{ eager: true }\` is mandatory. Without it the glob returns loader functions nobody calls,
@@ -604,7 +604,7 @@ route('/user/{id}', ({ id }) => html\`<h1>User \${id}</h1>\`);
 route('/admin', { guard: () => isLoggedIn() || '/login', handler: () => html\`<h1>Admin</h1>\` });
 route('*', () => html\`<h1>404</h1>\`);
 
-router.start({ target: '#root', mode: 'hash' }); // or mode: 'history'
+router.start({ target: '#root', mode: 'history' }); // use 'hash' only on static hosts without rewrites
 navigate('/user/42');
 \`\`\`
 
@@ -765,7 +765,7 @@ function genPage(cwd, rawName, apiPath) {
 // /js/tina4js.min.js. Signal reads stay inside \${} holes so only the list
 // updates — the whole page is never torn down.
 (function () {
-  const { signal, html, api, route, router } = Tina4;
+  const { signal, html, api } = Tina4;
 
   const rows = signal([]);
   const loading = signal(true);
@@ -800,8 +800,7 @@ ${fetchBlock}
     \`;
   }
 
-  route('/', ${kebab}Page);
-  router.start({ target: '#root', mode: 'hash' });
+  document.getElementById('root').appendChild(${kebab}Page());
 })();
 `;
 

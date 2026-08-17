@@ -7,8 +7,15 @@
 
 import { effect, batch, isSignal, _setEffectCollector, _getEffectCollector, type Signal } from './signal';
 
-// Cache parsed templates by their static string parts identity
-const templateCache = new WeakMap<TemplateStringsArray, HTMLTemplateElement>();
+interface CachedTemplate {
+  template: HTMLTemplateElement;
+  propertyNames: Map<number, string>;
+}
+
+// Cache parsed templates and case-sensitive property names by static string identity.
+// HTML parsing lowercases attribute names, so `.innerHTML` cannot be recovered from
+// the parsed DOM and must be retained from the original template literal.
+const templateCache = new WeakMap<TemplateStringsArray, CachedTemplate>();
 
 // Marker prefix used in comment placeholders
 const MARKER = 't4:';
@@ -45,16 +52,19 @@ const MARKER = 't4:';
  * name.value = 'Tina4'; // DOM updates automatically
  */
 export function html(strings: TemplateStringsArray, ...values: unknown[]): DocumentFragment {
-  let template = templateCache.get(strings);
+  let cachedTemplate = templateCache.get(strings);
 
-  if (!template) {
-    template = document.createElement('template');
+  if (!cachedTemplate) {
+    const template = document.createElement('template');
+    const propertyNames = new Map<number, string>();
     let markup = '';
     for (let i = 0; i < strings.length; i++) {
       markup += strings[i];
       if (i < values.length) {
         const inAttr = isInsideAttribute(markup);
         if (inAttr) {
+          const propertyName = findPropertyBindingName(strings[i]);
+          if (propertyName) propertyNames.set(i, propertyName);
           markup += `__t4_${i}__`;
         } else {
           markup += `<!--${MARKER}${i}-->`;
@@ -62,10 +72,11 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): Docum
       }
     }
     template.innerHTML = markup;
-    templateCache.set(strings, template);
+    cachedTemplate = { template, propertyNames };
+    templateCache.set(strings, cachedTemplate);
   }
 
-  const fragment = template.content.cloneNode(true) as DocumentFragment;
+  const fragment = cachedTemplate.template.content.cloneNode(true) as DocumentFragment;
   // Collect markers first (recursive walk), then bind — avoids mutation during walk
   const comments = findComments(fragment);
   for (const { marker, index } of comments) {
@@ -74,7 +85,7 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): Docum
   // Bind attributes on elements
   const elements = findElements(fragment);
   for (const el of elements) {
-    bindElementAttrs(el, values);
+    bindElementAttrs(el, values, cachedTemplate.propertyNames);
   }
   return fragment;
 }
@@ -182,7 +193,7 @@ function bindValue(marker: Comment, value: unknown): void {
 
 // ── Attribute Binding ───────────────────────────────────────────────
 
-function bindElementAttrs(el: Element, values: unknown[]): void {
+function bindElementAttrs(el: Element, values: unknown[], propertyNames: Map<number, string>): void {
   const attrsToRemove: string[] = [];
 
   for (const attr of Array.from(el.attributes)) {
@@ -236,10 +247,11 @@ function bindElementAttrs(el: Element, values: unknown[]): void {
 
     // Property bindings: .value, .innerHTML, etc.
     if (name.startsWith('.')) {
-      const propName = name.slice(1);
       const match = rawValue.match(/__t4_(\d+)__/);
       if (match) {
-        const val = values[parseInt(match[1], 10)];
+        const valueIndex = parseInt(match[1], 10);
+        const propName = propertyNames.get(valueIndex) ?? name.slice(1);
+        const val = values[valueIndex];
         if (isSignal(val)) {
           // Reactive: track the signal's value through an effect.
           effect(() => { (el as any)[propName] = (val as Signal<unknown>).value; });
@@ -278,6 +290,10 @@ function bindElementAttrs(el: Element, values: unknown[]): void {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
+
+function findPropertyBindingName(staticPart: string): string | undefined {
+  return staticPart.match(/\.([^\s"'<>/=]+)\s*=\s*["']?$/)?.[1];
+}
 
 function resultToNodes(value: unknown): Node[] {
   if (value == null || value === false) return [];

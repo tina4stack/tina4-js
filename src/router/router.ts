@@ -115,7 +115,10 @@ export function navigate(path: string, opts?: { replace?: boolean }): void {
       history.replaceState(null, '', url.toString());
       resolve();
     } else {
-      location.hash = '#' + path;
+      const url = new URL(location.href);
+      url.hash = '#' + path;
+      history.pushState(null, '', url.toString());
+      resolve();
     }
   } else {
     if (opts?.replace) {

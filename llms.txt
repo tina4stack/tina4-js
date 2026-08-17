@@ -77,6 +77,8 @@ To inject raw HTML or SVG: `<div .innerHTML=${svgString}></div>`
 
 ## Router (src/router/router.ts)
 
+History mode is canonical and produces clean URLs. Use hash mode only for static hosts without an `index.html` fallback. Links and `navigate()` always use a bare `/path`; never write `#/path`.
+
 ```ts
 import { route, navigate, router } from 'tina4js';
 
@@ -291,7 +293,7 @@ import.meta.glob('./routes/*.ts', { eager: true });      // every route register
 import.meta.glob('./components/**/*.ts', { eager: true }); // every tag defines
 
 route('*', () => html`<h1>404</h1>`);  // catch-all AFTER the glob — see gotcha 9
-router.start({ target: '#root', mode: 'hash' });
+router.start({ target: '#root', mode: 'history' });
 ```
 
 ---
