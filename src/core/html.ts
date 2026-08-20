@@ -165,23 +165,34 @@ function bindValue(marker: Comment, value: unknown): void {
       const nodes = resultToNodes(result);
       const p = anchor.parentNode;
       if (!p) return; // anchor detached from DOM — skip insertion
+      const ns = foreignNsOf(p);
       for (const n of nodes) {
-        p.insertBefore(n, anchor);
-        currentNodes.push(n);
+        const nn = ns ? toNamespace(n, ns) : n;
+        p.insertBefore(nn, anchor);
+        currentNodes.push(nn);
       }
     });
 
   } else if (isDocFragment(value)) {
-    parent.replaceChild(value as DocumentFragment, marker);
+    const ns = foreignNsOf(parent);
+    if (ns) {
+      const frag = document.createDocumentFragment();
+      for (const n of Array.from((value as DocumentFragment).childNodes)) frag.appendChild(toNamespace(n, ns));
+      parent.replaceChild(frag, marker);
+    } else {
+      parent.replaceChild(value as DocumentFragment, marker);
+    }
 
   } else if (value instanceof Node) {
-    parent.replaceChild(value, marker);
+    const ns = foreignNsOf(parent);
+    parent.replaceChild(ns ? toNamespace(value, ns) : value, marker);
 
   } else if (Array.isArray(value)) {
+    const ns = foreignNsOf(parent);
     const frag = document.createDocumentFragment();
     for (const item of value) {
       const nodes = resultToNodes(item);
-      for (const n of nodes) frag.appendChild(n);
+      for (const n of nodes) frag.appendChild(ns ? toNamespace(n, ns) : n);
     }
     parent.replaceChild(frag, marker);
 
@@ -287,6 +298,60 @@ function bindElementAttrs(el: Element, values: unknown[], propertyNames: Map<num
   }
 
   for (const n of attrsToRemove) el.removeAttribute(n);
+}
+
+// ── Foreign content (SVG / MathML) namespace repair ─────────────────
+//
+// The HTML parser only puts elements in the SVG/MathML namespace when they are
+// parsed *inside* an <svg>/<math> ancestor. A whole-literal html`<svg>…</svg>`
+// parses correctly, but an interpolated child template — html`<svg>${html`<circle/>`}</svg>`,
+// the natural reusable-icon pattern — is parsed standalone, so its <circle> lands
+// in the HTML namespace and renders invisibly once inserted under the <svg>.
+//
+// The destination namespace is only knowable at insertion time (from the parent),
+// so we recreate HTML-namespaced nodes in the parent's foreign namespace as they
+// are bound. Caveat: recreating an element drops listeners/property bindings that a
+// nested html`` applied to that element — negligible for SVG/MathML shapes, which
+// are static; use a whole-literal <svg> for interactive foreign content.
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const MATHML_NS = 'http://www.w3.org/1998/Math/MathML';
+const HTML_NS = 'http://www.w3.org/1999/xhtml';
+
+// The foreign namespace inserted children must adopt, or null for ordinary HTML.
+function foreignNsOf(parent: Node | null): string | null {
+  let n: Node | null = parent;
+  while (n && n.nodeType === 1 /* ELEMENT_NODE */) {
+    const el = n as Element;
+    const ns = el.namespaceURI;
+    // Inside <foreignObject> content is HTML again — no repair needed.
+    if (ns === SVG_NS && el.localName === 'foreignObject') return null;
+    if (ns === SVG_NS || ns === MATHML_NS) return ns;
+    if (ns === HTML_NS) return null;
+    n = n.parentNode;
+  }
+  return null;
+}
+
+// Recreate `node` (and descendants) in namespace `ns` when it is an HTML element.
+// Text/comment nodes are namespace-neutral and returned untouched.
+function toNamespace(node: Node, ns: string): Node {
+  if (node.nodeType !== 1 /* ELEMENT_NODE */) return node;
+  const el = node as Element;
+  if (el.namespaceURI === ns) {
+    // Correct namespace already, but a mixed subtree can still hold stray HTML.
+    for (const c of Array.from(el.childNodes)) {
+      const rc = toNamespace(c, ns);
+      if (rc !== c) el.replaceChild(rc, c);
+    }
+    return el;
+  }
+  const created = document.createElementNS(ns, el.localName);
+  for (const a of Array.from(el.attributes)) created.setAttribute(a.name, a.value);
+  // <foreignObject> switches its own children back to HTML.
+  const childNs = (ns === SVG_NS && el.localName === 'foreignObject') ? HTML_NS : ns;
+  for (const c of Array.from(el.childNodes)) created.appendChild(toNamespace(c, childNs));
+  return created;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────

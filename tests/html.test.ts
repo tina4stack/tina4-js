@@ -571,3 +571,46 @@ describe('html — inner effect cleanup', () => {
     expect(div.querySelector('span')?.textContent).toBe('Hidden');
   });
 });
+
+describe('html + SVG foreign-content namespace (issue: nested icon templates)', () => {
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  it('whole-literal <svg> puts children in the SVG namespace', () => {
+    const frag = html`<svg viewBox="0 0 24 24"><circle cx="5" cy="5" r="4"></circle></svg>`;
+    const circle = frag.firstElementChild!.querySelector('circle')!;
+    expect(circle.namespaceURI).toBe(SVG_NS);
+  });
+
+  it('nested child template inside <svg> is created in the SVG namespace', () => {
+    // The reusable-icon pattern: an svg wrapper with the inner shapes
+    // interpolated as a nested html`` template. These children MUST end up in
+    // the SVG namespace or they render invisibly in real browsers.
+    const shapes = html`<circle cx="5" cy="5" r="4"></circle><path d="M0 0L10 10"></path>`;
+    const frag = html`<svg viewBox="0 0 24 24" stroke="currentColor">${shapes}</svg>`;
+    const svg = frag.firstElementChild!;
+    expect(svg.namespaceURI).toBe(SVG_NS);
+    const circle = svg.querySelector('circle');
+    const path = svg.querySelector('path');
+    expect(circle).not.toBeNull();
+    expect(path).not.toBeNull();
+    expect(circle!.namespaceURI).toBe(SVG_NS);
+    expect(path!.namespaceURI).toBe(SVG_NS);
+  });
+
+  it('re-namespaces deeply nested groups inside <svg>', () => {
+    const inner = html`<g class="layer"><line x1="0" y1="0" x2="9" y2="9"></line></g>`;
+    const frag = html`<svg viewBox="0 0 24 24">${inner}</svg>`;
+    const svg = frag.firstElementChild!;
+    const g = svg.querySelector('g')!;
+    const line = svg.querySelector('line')!;
+    expect(g.namespaceURI).toBe(SVG_NS);
+    expect(line.namespaceURI).toBe(SVG_NS);
+  });
+
+  it('does NOT touch namespaces for ordinary HTML parents', () => {
+    const inner = html`<span>hi</span>`;
+    const frag = html`<div>${inner}</div>`;
+    const span = frag.firstElementChild!.querySelector('span')!;
+    expect(span.namespaceURI).toBe('http://www.w3.org/1999/xhtml');
+  });
+});
