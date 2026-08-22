@@ -57,7 +57,7 @@ class MockEventSource {
 
 // ── Mock Fetch + ReadableStream ──────────────────────────────────────
 
-function createMockFetch() {
+function createMockFetch(responseHeaders: Record<string, string> = {}) {
   let streamController: ReadableStreamDefaultController<Uint8Array> | null = null;
   const encoder = new TextEncoder();
   let fetchCalls: { url: string; init: RequestInit }[] = [];
@@ -71,7 +71,7 @@ function createMockFetch() {
       ok: true,
       status: 200,
       body: stream,
-      headers: new Headers(),
+      headers: new Headers(responseHeaders),
     } as unknown as Response;
   });
 
@@ -424,6 +424,199 @@ describe('sse — fetch mode', () => {
     expect(stream.status.value).toBe('closed');
     expect(stream.connected.value).toBe(false);
     expect(closeHandler).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── Fetch Mode: real SSE framing (text/event-stream) ───────────────
+
+describe('sse — fetch mode SSE framing (text/event-stream)', () => {
+  function useSseMock(headers: Record<string, string> = { 'Content-Type': 'text/event-stream' }) {
+    mockFetchCtrl = createMockFetch(headers);
+    (globalThis as any).fetch = mockFetchCtrl.fetch;
+  }
+
+  it('parses an OpenAI-style stream (2 text deltas + [DONE]) and closes', async () => {
+    useSseMock();
+    const handler = vi.fn();
+    const closeHandler = vi.fn();
+    const stream = sse.connect('http://localhost/v1/chat/completions', {
+      mode: 'fetch',
+      method: 'POST',
+      body: {},
+      reconnect: false,
+    });
+    stream.on('message', handler);
+    stream.on('close', closeHandler);
+
+    await vi.advanceTimersByTimeAsync(0);
+    // Real OpenAI chat.completions.chunk framing (blank-line delimited,
+    // each event a JSON object under `data:`, terminated by `data: [DONE]`).
+    mockFetchCtrl.pushChunk(
+      'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n' +
+      'data: {"choices":[{"delta":{"content":" world"}}]}\n\n' +
+      'data: [DONE]\n\n'
+    );
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(handler).toHaveBeenCalledTimes(2);
+    expect(handler).toHaveBeenNthCalledWith(
+      1,
+      { choices: [{ delta: { content: 'Hello' } }] },
+      undefined
+    );
+    expect(handler).toHaveBeenNthCalledWith(
+      2,
+      { choices: [{ delta: { content: ' world' } }] },
+      undefined
+    );
+    expect(closeHandler).toHaveBeenCalledTimes(1);
+    expect(stream.status.value).toBe('closed');
+    expect(stream.connected.value).toBe(false);
+  });
+
+  it('parses Anthropic-style named events (event: content_block_delta + data:)', async () => {
+    useSseMock();
+    const handler = vi.fn();
+    const stream = sse.connect('http://localhost/v1/messages', {
+      mode: 'fetch',
+      method: 'POST',
+      body: {},
+      reconnect: false,
+    });
+    stream.on('message', handler);
+
+    await vi.advanceTimersByTimeAsync(0);
+    mockFetchCtrl.pushChunk(
+      'event: message_start\ndata: {"type":"message_start","message":{"id":"msg_1"}}\n\n' +
+      'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hi"}}\n\n' +
+      'event: message_stop\ndata: {"type":"message_stop"}\n\n'
+    );
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(handler).toHaveBeenCalledTimes(3);
+    expect(handler).toHaveBeenNthCalledWith(
+      1,
+      { type: 'message_start', message: { id: 'msg_1' } },
+      'message_start'
+    );
+    expect(handler).toHaveBeenNthCalledWith(
+      2,
+      { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Hi' } },
+      'content_block_delta'
+    );
+    expect(handler).toHaveBeenNthCalledWith(
+      3,
+      { type: 'message_stop' },
+      'message_stop'
+    );
+    stream.close();
+  });
+
+  it('concatenates multi-line data: fields with \\n between them', async () => {
+    useSseMock();
+    const handler = vi.fn();
+    const stream = sse.connect('http://localhost/lines', {
+      mode: 'fetch',
+      reconnect: false,
+    });
+    stream.on('message', handler);
+
+    await vi.advanceTimersByTimeAsync(0);
+    mockFetchCtrl.pushChunk('data: line1\ndata: line2\ndata: line3\n\n');
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith('line1\nline2\nline3', undefined);
+    stream.close();
+  });
+
+  it('ignores comment lines (lines starting with `:`) and heartbeats', async () => {
+    useSseMock();
+    const handler = vi.fn();
+    const stream = sse.connect('http://localhost/comments', {
+      mode: 'fetch',
+      reconnect: false,
+    });
+    stream.on('message', handler);
+
+    await vi.advanceTimersByTimeAsync(0);
+    mockFetchCtrl.pushChunk(
+      ': heartbeat\n\n' +
+      ': keep-alive comment\ndata: {"a":1}\n\n' +
+      ':\n\n'
+    );
+    await vi.advanceTimersByTimeAsync(0);
+
+    // Comment-only events produce no data field so they don't dispatch.
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith({ a: 1 }, undefined);
+    stream.close();
+  });
+
+  it('matches text/event-stream even with a charset suffix', async () => {
+    useSseMock({ 'Content-Type': 'text/event-stream; charset=utf-8' });
+    const handler = vi.fn();
+    const stream = sse.connect('http://localhost/utf8', {
+      mode: 'fetch',
+      reconnect: false,
+    });
+    stream.on('message', handler);
+
+    await vi.advanceTimersByTimeAsync(0);
+    mockFetchCtrl.pushChunk('data: {"ok":true}\n\n');
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith({ ok: true }, undefined);
+    stream.close();
+  });
+
+  it('handles event boundaries that arrive split across chunks', async () => {
+    useSseMock();
+    const handler = vi.fn();
+    const stream = sse.connect('http://localhost/split', {
+      mode: 'fetch',
+      reconnect: false,
+    });
+    stream.on('message', handler);
+
+    await vi.advanceTimersByTimeAsync(0);
+    // Partial event — no boundary yet.
+    mockFetchCtrl.pushChunk('data: {"n":');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(handler).not.toHaveBeenCalled();
+    // Complete the event.
+    mockFetchCtrl.pushChunk('1}\n\n');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith({ n: 1 }, undefined);
+    stream.close();
+  });
+});
+
+// ── Fetch Mode: NDJSON preserved when Content-Type isn't event-stream ─
+
+describe('sse — fetch mode NDJSON (application/x-ndjson)', () => {
+  it('still emits one dispatch per JSON line when content-type is not text/event-stream', async () => {
+    mockFetchCtrl = createMockFetch({ 'Content-Type': 'application/x-ndjson' });
+    (globalThis as any).fetch = mockFetchCtrl.fetch;
+
+    const handler = vi.fn();
+    const stream = sse.connect('http://localhost/ndjson', {
+      mode: 'fetch',
+      reconnect: false,
+    });
+    stream.on('message', handler);
+
+    await vi.advanceTimersByTimeAsync(0);
+    mockFetchCtrl.pushChunk('{"a":1}\n{"b":2}\n{"c":3}\n');
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(handler).toHaveBeenCalledTimes(3);
+    expect(handler).toHaveBeenNthCalledWith(1, { a: 1 }, undefined);
+    expect(handler).toHaveBeenNthCalledWith(2, { b: 2 }, undefined);
+    expect(handler).toHaveBeenNthCalledWith(3, { c: 3 }, undefined);
+    stream.close();
   });
 });
 

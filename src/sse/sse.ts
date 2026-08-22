@@ -92,6 +92,63 @@ const DEFAULTS: Required<StreamOptions> = {
   json: true,
 };
 
+// ── SSE framer ───────────────────────────────────────────────────────
+// WHATWG SSE parser used when a fetch-mode response is text/event-stream.
+// Blank-line event boundaries, multi-line `data:` joined with `\n`,
+// `event:` name captured, `:` comment lines skipped, `data: [DONE]` flagged.
+// `id` and `retry` are ignored here (Last-Event-ID reconnection is an
+// Api.stream_sse concern per ADR-0060).
+
+type SseEv = { data: string; name: string | null; done: boolean };
+
+function makeSseFramer(): {
+  push(chunk: string): SseEv[];
+  flush(): SseEv[];
+} {
+  let buf = '';
+  const rx = /\r?\n\r?\n/g;
+
+  const parse = (block: string): SseEv | null => {
+    let name: string | null = null;
+    const parts: string[] = [];
+    for (const line of block.split(/\r?\n/)) {
+      if (!line || line[0] === ':') continue;
+      const c = line.indexOf(':');
+      const field = c < 0 ? line : line.slice(0, c);
+      let v = c < 0 ? '' : line.slice(c + 1);
+      if (v.charCodeAt(0) === 32) v = v.slice(1);
+      if (field === 'data') parts.push(v);
+      else if (field === 'event') name = v;
+    }
+    if (!parts.length) return null;
+    const data = parts.join('\n');
+    return { data, name, done: data === '[DONE]' };
+  };
+
+  return {
+    push(chunk) {
+      buf += chunk;
+      const out: SseEv[] = [];
+      let cur = 0;
+      rx.lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = rx.exec(buf))) {
+        const p = parse(buf.slice(cur, m.index));
+        cur = rx.lastIndex;
+        if (p) out.push(p);
+      }
+      if (cur) buf = buf.slice(cur);
+      return out;
+    },
+    flush() {
+      if (!buf) return [];
+      const p = parse(buf);
+      buf = '';
+      return p ? [p] : [];
+    },
+  };
+}
+
 // ── Implementation ───────────────────────────────────────────────────
 
 function createStream(url: string, options: StreamOptions = {}): ManagedStream {
@@ -220,25 +277,53 @@ function createStream(url: string, options: StreamOptions = {}): ManagedStream {
 
         const reader = res.body!.getReader();
         const decoder = new TextDecoder();
-        let buffer = '';
+        const contentType = (res.headers.get('content-type') || '').toLowerCase();
+        const isSSE = contentType.startsWith('text/event-stream');
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop()!; // keep incomplete line
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed) dispatch(parseData(trimmed), null);
+        if (isSSE) {
+          // Real SSE: parse per WHATWG framing (blank-line boundaries,
+          // multi-line `data:` joined with `\n`, `event:` name, `:` comment,
+          // OpenAI `data: [DONE]` sentinel closes the stream).
+          const framer = makeSseFramer();
+          let stopped = false;
+          while (!stopped) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            for (const ev of framer.push(decoder.decode(value, { stream: true }))) {
+              if (ev.done) { stopped = true; break; }
+              dispatch(parseData(ev.data), ev.name);
+            }
           }
-        }
+          if (!stopped) {
+            for (const ev of framer.flush()) {
+              if (ev.done) break;
+              dispatch(parseData(ev.data), ev.name);
+            }
+          } else {
+            // Server may still be pushing bytes after [DONE]; release the reader.
+            reader.cancel().catch(() => {});
+          }
+        } else {
+          // NDJSON / plain line-buffered mode (unchanged behaviour).
+          let buffer = '';
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-        // Flush remaining buffer
-        const remaining = buffer.trim();
-        if (remaining) dispatch(parseData(remaining), null);
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop()!; // keep incomplete line
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed) dispatch(parseData(trimmed), null);
+            }
+          }
+
+          // Flush remaining buffer
+          const remaining = buffer.trim();
+          if (remaining) dispatch(parseData(remaining), null);
+        }
 
         controller = null;
         onClose();

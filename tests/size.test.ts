@@ -60,14 +60,18 @@ describe('bundle size', () => {
     expect(sizeKB).toBeLessThan(1.5);
   });
 
-  it('sse bundle is under 1.5KB gzipped', () => {
+  it('sse bundle is under 2KB gzipped', () => {
+    // Budget bumped from 1.5KB → 2KB in 1.6.0 when connectFetch() gained
+    // real WHATWG SSE framing (blank-line boundaries, multi-line data,
+    // named events, [DONE] sentinel) on top of the existing NDJSON path.
+    // See ADR-0060.
     const path = './dist/sse.es.js';
     const bundle = readBuiltBundle(path);
     const gzipped = gzipSync(bundle);
     const sizeKB = gzipped.length / 1024;
 
     console.log(`SSE: ${bundle.length}B raw, ${gzipped.length}B gzip (${sizeKB.toFixed(2)}KB)`);
-    expect(sizeKB).toBeLessThan(1.5);
+    expect(sizeKB).toBeLessThan(2);
   });
 
   it('full framework re-export is under 0.5KB gzipped', () => {
