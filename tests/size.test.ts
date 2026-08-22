@@ -74,6 +74,19 @@ describe('bundle size', () => {
     expect(sizeKB).toBeLessThan(2);
   });
 
+  it('ai bundle is under 1.5KB gzipped', () => {
+    // ADR-0060 + ADR-0061 typed AI event stream. Vite lib mode emits
+    // ai.es.js as a thin wrapper (cross-entry sse/signal imports stay as
+    // ESM references), so the module's own code is the only thing weighed.
+    const path = './dist/ai.es.js';
+    const bundle = readBuiltBundle(path);
+    const gzipped = gzipSync(bundle);
+    const sizeKB = gzipped.length / 1024;
+
+    console.log(`AI: ${bundle.length}B raw, ${gzipped.length}B gzip (${sizeKB.toFixed(2)}KB)`);
+    expect(sizeKB).toBeLessThan(1.5);
+  });
+
   it('full framework re-export is under 0.5KB gzipped', () => {
     const path = './dist/tina4.es.js';
     const bundle = readBuiltBundle(path);

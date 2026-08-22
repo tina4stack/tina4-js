@@ -16,6 +16,7 @@ export default defineConfig({
         rtc: resolve(import.meta.dirname, 'src/rtc/index.ts'),
         storage: resolve(import.meta.dirname, 'src/storage/index.ts'),
         i18n: resolve(import.meta.dirname, 'src/i18n/index.ts'),
+        ai: resolve(import.meta.dirname, 'src/ai/index.ts'),
       },
       formats: ['es', 'cjs'],
     },

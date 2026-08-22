@@ -1,6 +1,6 @@
 {
   "name": "tina4js",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "1.5KB core gzipped, reactive framework — signals, web components, routing, PWA",
   "type": "module",
   "main": "dist/tina4.cjs.js",
@@ -51,6 +51,10 @@
     "./i18n": {
       "types": "./dist/i18n/index.d.ts",
       "import": "./dist/i18n.es.js"
+    },
+    "./ai": {
+      "types": "./dist/ai/index.d.ts",
+      "import": "./dist/ai.es.js"
     }
   },
   "sideEffects": false,

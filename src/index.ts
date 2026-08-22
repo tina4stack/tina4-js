@@ -31,6 +31,17 @@ export type { SocketStatus, SocketOptions, ManagedSocket } from './ws/ws';
 export { sse } from './sse/sse';
 export type { StreamStatus, StreamOptions, ManagedStream } from './sse/sse';
 
+// AI — typed AiEvent stream (ADR-0060 + ADR-0061) on top of sse.connect()
+export { ai } from './ai/ai';
+export type {
+  AiEvent,
+  ContentPart,
+  AiMessage,
+  AiTool,
+  AiToolChoice,
+  AiChatOptions,
+} from './ai/ai';
+
 // RTC — realtime collaboration client (calls, chat, files) for the realtime() mount
 export { rtc, rtcConfig } from './rtc/rtc';
 export type {

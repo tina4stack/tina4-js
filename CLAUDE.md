@@ -1,6 +1,6 @@
 # tina4-js
 
-Version 1.6.0 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, PWA, persistent signal storage, internationalization (i18n), and debug overlay. Zero dependencies.
+Version 1.7.0 — 1.5KB core gzipped, reactive JavaScript framework. Signals, Web Components, routing, API client, WebSocket, SSE/NDJSON streaming, typed AI event stream (ADR-0060/0061), PWA, persistent signal storage, internationalization (i18n), and debug overlay. Zero dependencies.
 
 ## Build & Test
 
@@ -34,6 +34,8 @@ src/
     ws.ts                # WebSocket client with signals + auto-reconnect
   sse/
     sse.ts               # SSE/NDJSON streaming with signals + auto-reconnect
+  ai/
+    ai.ts                # Typed AiEvent async-generator on top of sse.connect (ADR-0060/0061)
   storage/
     persist.ts           # persist() wrapper for signals, clearPersistedKeys()
   i18n/
@@ -44,7 +46,7 @@ src/
     trackers.ts          # Performance tracking
     styles.ts            # Overlay CSS
 
-tests/                   # 327 vitest tests (happy-dom environment)
+tests/                   # 367 vitest tests (happy-dom environment)
 examples/
   todo-app/              # Example todo application
   gallery/               # 10 real-world demos (dashboard, CRUD, chat, auth, cart, persistent prefs, etc.)
@@ -248,6 +250,38 @@ stream.close();
 
 Features: dual-mode (EventSource + fetch/NDJSON), named events, auto-reconnect with exponential backoff, JSON auto-parsing, pipe to signal. 1.30KB gzipped.
 
+### AI — Typed AiEvent stream (ADR-0060 + ADR-0061)
+
+```javascript
+import { ai } from "tina4js/ai";
+
+for await (const ev of ai.stream("/api/chat", {
+    messages: [{ role: "user", content: "Weather in NYC?" }],
+    tools: [{
+        name: "get_weather",
+        description: "Get the weather",
+        parameters: {
+            type: "object",
+            properties: { city: { type: "string" } },
+            required: ["city"],
+        },
+    }],
+    toolChoice: "auto",
+})) {
+    if (ev.type === "text_delta")  process.stdout.write(ev.text);
+    else if (ev.type === "tool_call")  runTool(ev.name, ev.args);
+    else if (ev.type === "done")   console.log("\n", ev.finishReason, ev.usage);
+    else if (ev.type === "error")  console.error(ev.message);
+}
+```
+
+The generator ends cleanly on `done`, propagates and ends on `error`, and
+closes the underlying fetch reader (AbortController) when the caller
+breaks out of the loop early. Body is POSTed as JSON with
+`Content-Type: application/json`; caller `headers` merge over the default.
+Backend contract: any tina4-python / tina4-php / tina4-ruby / tina4-nodejs
+service running `Ai.chat(stream=True)` re-emitted through `Api.stream_sse`.
+
 ### PWA — Progressive Web App
 
 ```javascript
@@ -347,6 +381,7 @@ Formatting delegates to the browser's Intl APIs, so no locale data is shipped.
 | `tina4js/pwa` | pwa |
 | `tina4js/ws` | ws (WebSocket) |
 | `tina4js/sse` | sse (SSE/NDJSON streaming) |
+| `tina4js/ai` | ai (typed AiEvent streaming; ADR-0060 + ADR-0061) |
 | `tina4js/storage` | persist, clearPersistedKeys |
 | `tina4js/i18n` | createI18n, i18n, t, setLocale, getLocale (translations + Intl formatting) |
 | `tina4js/debug` | Debug overlay |
@@ -402,8 +437,8 @@ tina4 install tina4-js     # Downloads latest to src/public/js/
 - npm: https://www.npmjs.com/package/tina4js
 - GitHub: https://github.com/tina4stack/tina4-js
 - Website: https://tina4.com/js
-- Version: 1.5.4
-- Tests: 355 passing
+- Version: 1.7.0
+- Tests: 367 passing
 
 ## Tina4-js Frontend Skill
 Always read and follow the instructions in .claude/skills/tina4-js/SKILL.md when working with tina4-js frontend code. Read its referenced files in .claude/skills/tina4-js/references/ as needed.
