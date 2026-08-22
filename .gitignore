@@ -14,3 +14,6 @@ npm publish
 .npm-token
 coverage/
 .DS_Store
+
+# Local experiment / scratch (not part of the package)
+_fromscratch/
