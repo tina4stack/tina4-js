@@ -39,6 +39,26 @@ describe('tina4js CLI onboarding', () => {
     expect(main).toContain("mode: 'history'");
     expect(main).not.toContain("mode: 'hash'");
   });
+
+  it('types import.meta for the project it creates', () => {
+    // src/main.ts uses import.meta.env and TINA4.md teaches import.meta.glob.
+    // Both are Vite additions to ImportMeta, so without vite/client in scope a
+    // brand new project failed `tsc --noEmit` with TS2339 on generated code —
+    // invisible at run time, because vite build strips types without checking.
+    run(dir, ['create', 'typed-app']);
+    const decl = readFileSync(join(dir, 'typed-app/src/vite-env.d.ts'), 'utf-8');
+    expect(decl).toContain('/// <reference types="vite/client" />');
+
+    // The reference must come from that .d.ts and NOT from a tsconfig `types`
+    // array: `types` is not additive, so setting it would also switch off
+    // automatic inclusion of every other @types/* package.
+    const tsconfig = JSON.parse(readFileSync(join(dir, 'typed-app/tsconfig.json'), 'utf-8'));
+    expect(tsconfig.compilerOptions.types).toBeUndefined();
+
+    // Nothing else in the scaffold runs tsc, so type errors ship unseen.
+    const pkg = JSON.parse(readFileSync(join(dir, 'typed-app/package.json'), 'utf-8'));
+    expect(pkg.scripts.typecheck).toBe('tsc --noEmit');
+  });
 });
 
 describe('tina4js generate', () => {

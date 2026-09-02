@@ -101,6 +101,7 @@ function createProject(name, withPwa, withCss) {
       build: 'vite build',
       preview: 'vite preview',
       test: 'vitest run',
+      typecheck: 'tsc --noEmit',
     },
     dependencies: {
       tina4js: '^1.5.3',
@@ -129,6 +130,20 @@ function createProject(name, withPwa, withCss) {
     include: ['src/**/*.ts'],
   };
   writeFile(projectDir, 'tsconfig.json', JSON.stringify(tsconfig, null, 2));
+
+  // ── src/vite-env.d.ts ─────────────────────────────────────────
+  //
+  // src/main.ts below uses import.meta.env, and TINA4.md teaches
+  // import.meta.glob. Both are Vite additions to ImportMeta that TypeScript
+  // does not know about until vite/client is in scope, so without this file a
+  // freshly created project fails `tsc --noEmit` on code this generator wrote.
+  //
+  // The reference goes in a .d.ts and NOT in a tsconfig `types` array on
+  // purpose: `types` is not additive, so setting it would also switch off
+  // automatic inclusion of every other @types/* package, and a later
+  // `npm i -D @types/node` would silently stop taking effect.
+
+  writeFile(projectDir, 'src/vite-env.d.ts', '/// <reference types="vite/client" />\n');
 
   // ── vite.config.ts ────────────────────────────────────────────
 
@@ -346,6 +361,7 @@ dist/
 
   console.log(`  ${c.green('✓')} Created project structure`);
   console.log(`  ${c.green('✓')} package.json, tsconfig, vite config`);
+  console.log(`  ${c.green('✓')} src/vite-env.d.ts (Vite client types)`);
   console.log(`  ${c.green('✓')} Home page with reactive counter`);
   console.log(`  ${c.green('✓')} Router with /, /about, 404`);
   console.log(`  ${c.green('✓')} AppHeader web component`);
