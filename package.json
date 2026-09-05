@@ -28,6 +28,10 @@
       "types": "./dist/pwa/index.d.ts",
       "import": "./dist/pwa.es.js"
     },
+    "./push": {
+      "types": "./dist/push.d.ts",
+      "import": "./dist/push.es.js"
+    },
     "./debug": {
       "types": "./dist/debug/index.d.ts",
       "import": "./dist/debug.es.js"

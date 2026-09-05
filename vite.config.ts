@@ -10,6 +10,7 @@ export default defineConfig({
         router: resolve(import.meta.dirname, 'src/router/index.ts'),
         api: resolve(import.meta.dirname, 'src/api/index.ts'),
         pwa: resolve(import.meta.dirname, 'src/pwa/index.ts'),
+        push: resolve(import.meta.dirname, 'src/push.ts'),
         debug: resolve(import.meta.dirname, 'src/debug/index.ts'),
         ws: resolve(import.meta.dirname, 'src/ws/index.ts'),
         sse: resolve(import.meta.dirname, 'src/sse/index.ts'),

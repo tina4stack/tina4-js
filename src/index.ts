@@ -23,6 +23,10 @@ export type { ApiConfig, ApiResponse, RequestOptions } from './api/fetch';
 export { pwa } from './pwa/pwa';
 export type { PWAConfig } from './pwa/pwa';
 
+// Web Push subscription setup (delivery/VAPID lives in the backend frameworks)
+export { push } from './push';
+export type { PushClientOptions, PushSubscriptionData } from './push';
+
 // WebSocket
 export { ws } from './ws/ws';
 export type { SocketStatus, SocketOptions, ManagedSocket } from './ws/ws';
