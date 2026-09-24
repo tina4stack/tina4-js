@@ -12,7 +12,7 @@ export { Tina4Element } from './core/component';
 export type { PropType } from './core/component';
 
 // Router
-export { route, navigate, router } from './router/router';
+export { route, navigate, router, rawHtml, RawHtml } from './router/router';
 export type { RouteParams, RouteHandler, RouteGuard, RouteConfig } from './router/router';
 
 // API

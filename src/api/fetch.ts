@@ -75,6 +75,28 @@ type ReqConfig = RequestInit & { headers: Record<string, string>; _url?: string;
  * run request interceptors, fetch, rotate FreshToken, sniff content type,
  * build the ApiResponse, run response interceptors, throw on !ok.
  */
+// The origin of a URL resolved against the current document, or null if it is
+// not parseable. A relative path resolves to the document origin.
+function originOf(u: string): string | null {
+  try {
+    return new URL(u, typeof location !== 'undefined' ? location.href : undefined).origin;
+  } catch {
+    return null;
+  }
+}
+
+// A URL is trusted for auth when it is same-origin or shares the configured
+// baseUrl's origin (API1/RTC1). An absolute or protocol-relative URL to any
+// other origin is NOT trusted, so the Bearer token is never sent there and a
+// FreshToken from there is never accepted.
+function isTrustedUrl(url: string): boolean {
+  const target = originOf(url);
+  if (target === null) return false;
+  if (typeof location !== 'undefined' && target === location.origin) return true;
+  const base = config.baseUrl ? originOf(config.baseUrl) : null;
+  return base !== null && target === base;
+}
+
 async function finalize<T>(reqConfig: ReqConfig, url: string): Promise<T> {
   reqConfig._url = url;
   reqConfig._requestId = ++requestIdCounter;
@@ -86,9 +108,12 @@ async function finalize<T>(reqConfig: ReqConfig, url: string): Promise<T> {
   }
   const response = await fetch(url, reqConfig);
 
-  // Token rotation: read FreshToken header (tina4-php/python)
-  const freshToken = response.headers.get('FreshToken');
-  if (freshToken) setToken(freshToken);
+  // Token rotation: accept a FreshToken only from a trusted origin, so a
+  // response from an unrelated origin cannot plant a token (API1/RTC1).
+  if (isTrustedUrl(url)) {
+    const freshToken = response.headers.get('FreshToken');
+    if (freshToken) setToken(freshToken);
+  }
 
   // Parse response based on content type
   const ct = response.headers.get('Content-Type') ?? '';
@@ -130,8 +155,17 @@ async function request<T = unknown>(method: string, path: string, body?: unknown
     },
   };
 
-  // Add auth header
-  if (config.auth) {
+  // Build query string, then the final URL, so auth can be gated on its origin.
+  if (options?.params) {
+    path = buildQueryString(path, options.params);
+  }
+  const url = config.baseUrl + path;
+  const trusted = isTrustedUrl(url);
+
+  // Add the Bearer header only for a same-origin / baseUrl-origin request, so
+  // the token is never sent to an absolute or protocol-relative foreign URL
+  // (API1/RTC1).
+  if (config.auth && trusted) {
     const token = getToken();
     if (token) {
       reqConfig.headers['Authorization'] = `Bearer ${token}`;
@@ -142,8 +176,9 @@ async function request<T = unknown>(method: string, path: string, body?: unknown
   if (body !== undefined && method !== 'GET') {
     let payload = typeof body === 'object' && body !== null ? { ...body as object } : body;
 
-    // Add formToken for write operations (tina4-php/python compatibility)
-    if (config.auth && typeof payload === 'object' && payload !== null) {
+    // Add formToken for write operations, only for a trusted origin so the
+    // token is not smuggled into a body sent elsewhere.
+    if (config.auth && trusted && typeof payload === 'object' && payload !== null) {
       const token = getToken();
       if (token) {
         (payload as Record<string, unknown>).formToken = token;
@@ -158,12 +193,7 @@ async function request<T = unknown>(method: string, path: string, body?: unknown
     Object.assign(reqConfig.headers, options.headers);
   }
 
-  // Build query string from options.params
-  if (options?.params) {
-    path = buildQueryString(path, options.params);
-  }
-
-  return finalize<T>(reqConfig, config.baseUrl + path);
+  return finalize<T>(reqConfig, url);
 }
 
 // ── Public API ──────────────────────────────────────────────────────
