@@ -10,7 +10,20 @@ import { _setEffectCollector } from '../core/signal';
 
 export type RouteParams = Record<string, string>;
 export type RouteHandler = (params: RouteParams) => unknown;
-export type RouteGuard = () => boolean | string;
+export type RouteGuard = () => boolean | string | Promise<boolean | string>;
+
+/**
+ * Marks a string as trusted raw HTML for a route handler to return. The router
+ * writes a plain string result as TEXT; wrap it in `rawHtml(...)` only when the
+ * markup is trusted (not built from user input). This is the explicit, named
+ * opt-in that replaces the old implicit innerHTML of every string result.
+ */
+export class RawHtml {
+  constructor(public readonly html: string) {}
+}
+export function rawHtml(html: string): RawHtml {
+  return new RawHtml(html);
+}
 
 export interface RouteConfig {
   guard?: RouteGuard;
@@ -143,15 +156,32 @@ function resolve(): void {
     const match = path.match(r.regex);
     if (!match) continue;
 
-    // Extract params
+    // Extract params. A malformed percent-escape makes decodeURIComponent
+    // throw; fall back to the raw match so one bad URL cannot abort routing (R4).
     const params: RouteParams = {};
     r.paramNames.forEach((name, i) => {
-      params[name] = decodeURIComponent(match[i + 1]);
+      const rawParam = match[i + 1];
+      try {
+        params[name] = decodeURIComponent(rawParam);
+      } catch {
+        params[name] = rawParam;
+      }
     });
 
-    // Guard check
+    // Guard check. A synchronous guard is applied inline so the common path
+    // stays synchronous; a guard that returns a Promise is awaited so it is not
+    // silently treated as a pass (R3).
     if (r.guard) {
       const guardResult = r.guard();
+      if (guardResult && typeof (guardResult as PromiseLike<unknown>).then === 'function') {
+        (guardResult as Promise<boolean | string>).then((res) => {
+          if (version !== routeVersion) return;
+          if (res === false) return;
+          if (typeof res === 'string') { navigate(res, { replace: true }); return; }
+          renderMatched(r, params, path, startTime, version);
+        });
+        return;
+      }
       if (guardResult === false) return;
       if (typeof guardResult === 'string') {
         navigate(guardResult, { replace: true });
@@ -159,6 +189,15 @@ function resolve(): void {
       }
     }
 
+    renderMatched(r, params, path, startTime, version);
+    return;
+  }
+}
+
+function renderMatched(
+  r: CompiledRoute, params: RouteParams, path: string, startTime: number, version: number,
+): void {
+    if (!targetEl) return;
     // Dispose effects from previous route
     activeDisposers.splice(0).forEach(d => d());
 
@@ -193,16 +232,18 @@ function resolve(): void {
       const durationMs = performance.now() - startTime;
       for (const fn of listeners) fn({ path, params, pattern: r.pattern, durationMs });
     }
-
-    return;
-  }
 }
 
 function renderContent(target: Element, content: unknown): void {
   if (content instanceof DocumentFragment || content instanceof Node) {
     target.replaceChildren(content);
+  } else if (content instanceof RawHtml) {
+    // Explicit, opt-in raw HTML — the caller vouched for the string (R1).
+    target.innerHTML = content.html;
   } else if (typeof content === 'string') {
-    target.innerHTML = content;
+    // A plain string handler result is TEXT, never HTML: a route that returns
+    // user data must not be able to inject markup (R1).
+    target.replaceChildren(document.createTextNode(content));
   } else if (content != null) {
     target.replaceChildren(document.createTextNode(String(content)));
   }

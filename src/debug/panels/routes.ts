@@ -43,7 +43,8 @@ export function renderRoutesPanel(): string {
     for (const h of history) {
       const { text, cls } = formatDuration(h.durationMs);
       const params = Object.keys(h.params).length > 0
-        ? Object.entries(h.params).map(([k, v]) => `<span class="route-param">${k}=${v}</span>`).join(' ')
+        ? Object.entries(h.params).map(([k, v]) =>
+            `<span class="route-param">${escHtml(k)}=${escHtml(String(v))}</span>`).join(' ')
         : '';
       historyRows += `<tr>
         <td>${formatTime(h.timestamp)}</td>
