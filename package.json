@@ -75,10 +75,10 @@
     "build": "vite build",
     "build:types": "tsc --emitDeclarationOnly --outDir dist",
     "build:iife": "esbuild src/index.ts --bundle --minify --format=iife --global-name=Tina4 --outfile=dist/tina4js.min.js --target=es2021",
-    "pretest": "npm run build",
+    "pretest": "npm run build && npm run build:iife",
     "test": "vitest run",
     "test:watch": "vitest",
-    "pretest:size": "npm run build",
+    "pretest:size": "npm run build && npm run build:iife",
     "test:size": "vitest run tests/size.test.ts",
     "build:gallery": "vite build --config examples/gallery/vite.gallery.config.ts",
     "preview": "vite preview"
