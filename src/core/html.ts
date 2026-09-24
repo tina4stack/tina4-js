@@ -203,6 +203,38 @@ function bindValue(marker: Comment, value: unknown): void {
 
 // ── Attribute Binding ───────────────────────────────────────────────
 
+// URL-bearing attributes whose value must be refused when it carries a
+// dangerous scheme (A2). srcdoc is included: its value is checked the same way.
+const URL_ATTRS = new Set(['href', 'src', 'action', 'formaction', 'xlink:href', 'srcdoc']);
+const HOLE_RE = /__t4_(\d+)__/g;
+
+// A URL scheme is dangerous when it can run script. Control characters and
+// whitespace (including obfuscation like "java\tscript:") are stripped before
+// the check. data: URIs are refused unless they are images.
+function isDangerousUrl(value: string): boolean {
+  const normalized = value.replace(/[\u0000- ]+/g, '').toLowerCase();
+  if (normalized.startsWith('javascript:') || normalized.startsWith('vbscript:')) return true;
+  if (normalized.startsWith('data:')) return !normalized.startsWith('data:image/');
+  return false;
+}
+
+// Resolve one hole's value to a string (signal -> value, function -> result).
+function resolveHole(val: unknown): string {
+  const r = isSignal(val)
+    ? (val as Signal<unknown>).value
+    : typeof val === 'function'
+      ? (val as () => unknown)()
+      : val;
+  return String(r ?? '');
+}
+
+// Substitute EVERY hole inside an attribute value, keeping the static text
+// around each one (A1). Before this, only the first hole was used and it
+// replaced the whole attribute, so `href="/users/${x}"` became just `x`.
+function resolveAttrValue(rawValue: string, values: unknown[]): string {
+  return rawValue.replace(HOLE_RE, (_m, i) => resolveHole(values[parseInt(i, 10)]));
+}
+
 function bindElementAttrs(el: Element, values: unknown[], propertyNames: Map<number, string>): void {
   const attrsToRemove: string[] = [];
 
@@ -281,18 +313,26 @@ function bindElementAttrs(el: Element, values: unknown[], propertyNames: Map<num
       continue;
     }
 
-    // Regular dynamic attribute
-    const match = rawValue.match(/__t4_(\d+)__/);
-    if (match) {
-      const val = values[parseInt(match[1], 10)];
-      if (isSignal(val)) {
-        const sigVal = val as Signal<unknown>;
-        effect(() => { el.setAttribute(name, String(sigVal.value ?? '')); });
-      } else if (typeof val === 'function') {
-        effect(() => { el.setAttribute(name, String((val as () => unknown)() ?? '')); });
-      } else {
-        el.setAttribute(name, String(val ?? ''));
+    // Regular dynamic attribute — may hold several holes plus static text.
+    HOLE_RE.lastIndex = 0;
+    if (HOLE_RE.test(rawValue)) {
+      // A plain onclick=/onerror= attribute is never bound from an interpolation
+      // (A2): use the @event form. Drop the literal attribute.
+      if (/^on/i.test(name)) {
+        attrsToRemove.push(name);
+        continue;
       }
+      const holeIdxs = [...rawValue.matchAll(/__t4_(\d+)__/g)].map((m) => parseInt(m[1], 10));
+      const reactive = holeIdxs.some((i) => isSignal(values[i]) || typeof values[i] === 'function');
+      const isUrlAttr = URL_ATTRS.has(name);
+      const apply = (): void => {
+        let out = resolveAttrValue(rawValue, values);
+        // Refuse a dangerous scheme in a URL attribute (A2).
+        if (isUrlAttr && isDangerousUrl(out)) out = '';
+        el.setAttribute(name, out);
+      };
+      if (reactive) effect(apply);
+      else apply();
     }
   }
 
@@ -372,7 +412,13 @@ function resultToNodes(value: unknown): Node[] {
 }
 
 function isDocFragment(value: unknown): boolean {
-  return value != null && typeof value === 'object' && (value as Node).nodeType === 11;
+  // Use a real instanceof brand rather than duck-typing on nodeType === 11
+  // (A3): a plain object carrying a nodeType field can no longer masquerade as
+  // a DocumentFragment. Falls back to the Node check across DOM realms.
+  if (typeof DocumentFragment !== 'undefined' && value instanceof DocumentFragment) return true;
+  return typeof Node !== 'undefined'
+    && value instanceof Node
+    && (value as Node).nodeType === 11;
 }
 
 function isInsideAttribute(markup: string): boolean {

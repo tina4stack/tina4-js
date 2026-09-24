@@ -419,16 +419,39 @@ export interface FileOptions {
   filesPath?: string;   // default "/api/files"
 }
 
+// The origin of a URL resolved against the current document, or null.
+function rtcOriginOf(u: string): string | null {
+  try {
+    return new URL(u, typeof location !== 'undefined' ? location.href : undefined).origin;
+  } catch {
+    return null;
+  }
+}
+
+// A file URL is trusted for the Bearer token when it is same-origin or shares
+// the configured apiBase origin (RTC1, same rule as API1). The token is never
+// sent to any other absolute or protocol-relative URL.
+function isTrustedFileUrl(url: string, apiBase?: string): boolean {
+  const target = rtcOriginOf(url);
+  if (target === null) return false;
+  if (typeof location !== 'undefined' && target === location.origin) return true;
+  const base = apiBase ? rtcOriginOf(apiBase) : null;
+  return base !== null && target === base;
+}
+
 async function uploadFile(
   channel: string | number, file: File | Blob, options: FileOptions = {},
 ): Promise<UploadResult> {
   const path = options.filesPath ?? '/api/files';
+  const url = `${options.apiBase ?? ''}${path}`;
   const form = new FormData();
   form.append('channel_id', String(channel));
   form.append('file', file, (file as File).name ?? 'file');
   const headers: Record<string, string> = {};
-  if (options.token) headers['Authorization'] = `Bearer ${options.token}`;
-  const res = await fetch(`${options.apiBase ?? ''}${path}`, {
+  if (options.token && isTrustedFileUrl(url, options.apiBase)) {
+    headers['Authorization'] = `Bearer ${options.token}`;
+  }
+  const res = await fetch(url, {
     method: 'POST', body: form, headers,
   });
   if (!res.ok) throw new Error(`[tina4] file upload failed: ${res.status}`);
@@ -446,7 +469,11 @@ async function fetchBlobUrl(keyOrUrl: string, options: FileOptions = {}): Promis
     ? keyOrUrl
     : `${options.apiBase ?? ''}${options.filesPath ?? '/api/files'}/${keyOrUrl}`;
   const headers: Record<string, string> = {};
-  if (options.token) headers['Authorization'] = `Bearer ${options.token}`;
+  // Attach the token only to a trusted origin so a caller-supplied absolute URL
+  // cannot exfiltrate it (RTC1).
+  if (options.token && isTrustedFileUrl(url, options.apiBase)) {
+    headers['Authorization'] = `Bearer ${options.token}`;
+  }
   const res = await fetch(url, { headers });
   if (!res.ok) throw new Error(`[tina4] file fetch failed: ${res.status}`);
   return URL.createObjectURL(await res.blob());

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { route, router, navigate, _resetRouter } from '../src/router/router';
+import { route, router, navigate, rawHtml, _resetRouter } from '../src/router/router';
 import { html } from '../src/core/html';
 import { signal } from '../src/core/signal';
 
@@ -74,11 +74,23 @@ describe('router — hash mode', () => {
     expect(location.hash).toBe('#/about');
   });
 
-  it('renders string content', () => {
+  it('renders a string handler result as TEXT, not HTML (ADR/R1)', () => {
+    // A plain string result is escaped to text so a route cannot inject markup.
     route('/text', () => '<p>Plain text</p>');
     router.start({ target: '#root', mode: 'hash' });
 
     location.hash = '#/text';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+
+    expect(document.querySelector('#root p')).toBeNull();
+    expect(document.querySelector('#root')?.textContent).toBe('<p>Plain text</p>');
+  });
+
+  it('renders trusted markup via the rawHtml() opt-in', () => {
+    route('/raw', () => rawHtml('<p>Plain text</p>'));
+    router.start({ target: '#root', mode: 'hash' });
+
+    location.hash = '#/raw';
     window.dispatchEvent(new HashChangeEvent('hashchange'));
 
     expect(document.querySelector('#root p')?.textContent).toBe('Plain text');

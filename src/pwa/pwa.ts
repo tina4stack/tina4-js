@@ -44,6 +44,15 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
 
+  // Never cache authenticated API responses (PWA1): a same-origin /api GET or
+  // any request carrying an Authorization header goes straight to the network,
+  // so private data cannot be served to another session from the cache.
+  const _url = new URL(req.url);
+  if (req.headers.get('authorization') ||
+      (_url.origin === self.location.origin && _url.pathname.startsWith('/api'))) {
+    return;
+  }
+
   ${strategy === 'cache-first' ? `
   e.respondWith(
     caches.match(req).then((cached) => cached || fetch(req).then((res) => {
