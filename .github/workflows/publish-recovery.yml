@@ -1,0 +1,84 @@
+name: Recover verified npm publication
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing immutable release tag
+        required: true
+        type: string
+      run_id:
+        description: Original tag workflow run containing the attested package
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish-verified-package:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      SOURCE_RUN: ${{ inputs.run_id }}
+    steps:
+      - name: Validate recovery inputs
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]]
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+      - name: Bind the source workflow run to this existing tag
+        run: |
+          test "$(node -p 'require("./package.json").version')" = "${RELEASE_TAG#v}"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" > /tmp/source-run.json
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          jq -e --arg sha "$SOURCE_SHA" --arg tag "$RELEASE_TAG" \
+            '.head_sha == $sha and .head_branch == $tag and .event == "push" and .path == ".github/workflows/publish.yml"' /tmp/source-run.json
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: verified-release-package
+          path: release-dist
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify original tag provenance and exact asset membership
+        run: |
+          test "$(find release-dist -type f | wc -l)" -eq 3
+          test -f "release-dist/tina4js-${RELEASE_TAG#v}.tgz"
+          test -f release-dist/sbom.spdx.json
+          test -f release-dist/SHA256SUMS
+          for asset in release-dist/*; do
+            test -f "$asset" && test ! -L "$asset"
+            gh attestation verify "$asset" --repo "$GITHUB_REPOSITORY" \
+              --source-ref "refs/tags/$RELEASE_TAG" --source-digest "$(git rev-parse HEAD)" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/publish.yml" --deny-self-hosted-runners
+          done
+          (cd release-dist && sha256sum --check SHA256SUMS)
+      - name: Publish the original verified tarball
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish ./release-dist/*.tgz --ignore-scripts --provenance --access public
+      - name: Extract release notes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path('CHANGELOG.md').read_text()
+          section = text.split('\n## ', 1)[1].split('\n## ', 1)[0]
+          Path('release-notes.md').write_text('## ' + section + '\n')
+          PY
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          body_path: release-notes.md
+          files: release-dist/*
+          fail_on_unmatched_files: true
