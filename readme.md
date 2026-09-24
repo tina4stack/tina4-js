@@ -313,6 +313,6 @@ npm run dev       # dev server with HMR
 
 ## License
 
-MIT
+[MPL-2.0](LICENSE). Copyright (c) 2026 Code Infinity. [Commercial licensing](COMMERCIAL-LICENSE.md) is available separately.
 
 *tina4-js: The Intelligent Native Application 4ramework. [tina4.com](https://tina4.com)*

@@ -1,7 +1,7 @@
 {
   "name": "tina4js",
   "version": "1.7.2",
-  "description": "1.5KB core gzipped, reactive framework — signals, web components, routing, PWA",
+  "description": "1.5KB core gzipped, reactive framework \u2014 signals, web components, routing, PWA",
   "type": "module",
   "main": "dist/tina4.cjs.js",
   "module": "dist/tina4.es.js",
@@ -68,7 +68,9 @@
   "files": [
     "dist/",
     "bin/",
-    "TINA4.md"
+    "TINA4.md",
+    "NOTICE",
+    "COMMERCIAL-LICENSE.md"
   ],
   "scripts": {
     "dev": "vite",
@@ -100,7 +102,7 @@
     "reactive",
     "tina4"
   ],
-  "license": "MIT",
+  "license": "MPL-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/tina4stack/tina4-js"

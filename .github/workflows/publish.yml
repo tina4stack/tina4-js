@@ -42,8 +42,12 @@ jobs:
       - name: Generate SPDX inventory and checksums
         run: |
           python3 scripts/release_evidence.py --output release-dist --name tina4js \
-            --version "$(node -p 'require("./package.json").version')" --license MIT --repository tina4stack/tina4-js
+            --version "$(node -p 'require("./package.json").version')" --license MPL-2.0 --repository tina4stack/tina4-js
           (cd release-dist && sha256sum --check SHA256SUMS)
+      - name: Check inbound dependency licence policy
+        run: |
+          python3 scripts/check_dependency_licenses.py
+          python3 -m unittest discover -s scripts -p test_dependency_licenses.py
       - name: Test release evidence generator
         run: python3 -m unittest discover -s scripts -p 'test_release_evidence.py'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

@@ -1,3 +1,9 @@
+// Copyright (c) 2026 Code Infinity
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 import { describe, it, expect } from 'vitest';
 import { effect } from '../src/core/signal';
 import { createI18n, i18n, t, setLocale, getLocale } from '../src/i18n/i18n';
