@@ -140,9 +140,13 @@ function bindValue(marker: Comment, value: unknown): void {
     });
 
   } else if (typeof value === 'function') {
+    // The hole owns every node between `start` and `anchor`. A fixed node list
+    // missed nodes a nested hole inserted after this render, so they were left
+    // behind when this hole re-rendered (#16).
+    const start = document.createComment('');
     const anchor = document.createComment('');
     parent.replaceChild(anchor, marker);
-    let currentNodes: Node[] = [];
+    parent.insertBefore(start, anchor);
     let innerDisposers: (() => void)[] = [];
 
     effect(() => {
@@ -160,17 +164,12 @@ function bindValue(marker: Comment, value: unknown): void {
       _setEffectCollector(outerCollector);
       innerDisposers = localCollector;
 
-      for (const n of currentNodes) n.parentNode?.removeChild(n);
-      currentNodes = [];
+      for (let n = start.nextSibling; n && n !== anchor; n = start.nextSibling) n.remove();
       const nodes = resultToNodes(result);
       const p = anchor.parentNode;
       if (!p) return; // anchor detached from DOM — skip insertion
       const ns = foreignNsOf(p);
-      for (const n of nodes) {
-        const nn = ns ? toNamespace(n, ns) : n;
-        p.insertBefore(nn, anchor);
-        currentNodes.push(nn);
-      }
+      for (const n of nodes) p.insertBefore(ns ? toNamespace(n, ns) : n, anchor);
     });
 
   } else if (isDocFragment(value)) {
