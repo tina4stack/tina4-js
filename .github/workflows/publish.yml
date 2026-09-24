@@ -91,7 +91,7 @@ jobs:
       - name: Publish the verified tarball
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish release-dist/*.tgz --ignore-scripts --provenance --access public
+        run: npm publish ./release-dist/*.tgz --ignore-scripts --provenance --access public
       - name: Extract this release's changelog
         run: |
           python3 - <<'PY'
