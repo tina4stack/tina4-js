@@ -10,7 +10,7 @@
  * Read STORAGE.md before changing these tests. The safety guarantees are
  * the point of this module; they are verified here.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from './harness';
 import { signal } from '../src/core/signal';
 import {
   persist,

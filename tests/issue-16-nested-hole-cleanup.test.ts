@@ -15,7 +15,7 @@
  * hole's nodes) were never removed.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from './harness';
 import { html, signal } from '../src/core';
 
 describe('issue #16 — nested hole that fills in late is cleaned up by its parent hole', () => {

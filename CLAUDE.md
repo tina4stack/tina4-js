@@ -5,13 +5,22 @@ Version 1.7.0 — 1.5KB core gzipped, reactive JavaScript framework. Signals, We
 ## Build & Test
 
 ```bash
-npm install                # Install dev dependencies
-npm run build              # Vite build → dist/
+npm install                # Install dev dependencies (esbuild, happy-dom, typescript only)
+npm run build              # esbuild library build (scripts/build.mjs) → dist/
 npm run build:types        # TypeScript declarations → dist/**/*.d.ts
-npm test                   # vitest run (see npm test --silent for live count)
-npm run test:watch         # vitest watch mode
+npm run dev                # esbuild dev server + live-reload (scripts/dev.mjs)
+npm test                   # node:test suite (esbuild TS loader + happy-dom preload)
+npm run test:watch         # node --test --watch
 npm run test:size          # Bundle size validation
 ```
+
+**Zero-dependency toolchain (no Vite/Vitest).** The build, dev server and tests
+run on esbuild + node:test alone (`scripts/build.mjs`, `scripts/dev.mjs`,
+`scripts/ts-loader.mjs`). Tests use a small Tina4-owned harness
+(`tests/harness.ts`) that provides the `describe`/`it`/`expect`/`vi` surface over
+`node:test` + `node:assert`, and `scripts/test-setup.mjs` installs happy-dom as
+the DOM. Dev reload is full-page (esbuild SSE at `/esbuild`), the same behaviour
+tina4-js had under Vite (it registered no HMR handlers).
 
 Both `build` AND `build:types` must pass before publishing.
 
@@ -46,7 +55,7 @@ src/
     trackers.ts          # Performance tracking
     styles.ts            # Overlay CSS
 
-tests/                   # 367 vitest tests (happy-dom environment)
+tests/                   # 397 node:test tests (happy-dom, zero-dep toolchain)
 examples/
   todo-app/              # Example todo application
   gallery/               # 10 real-world demos (dashboard, CRUD, chat, auth, cart, persistent prefs, etc.)

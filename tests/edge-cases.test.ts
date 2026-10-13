@@ -9,7 +9,7 @@
  *
  * Each section simulates actual usage patterns a developer would encounter.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from './harness';
 import { signal, computed, effect, batch, isSignal } from '../src/core/signal';
 import { html } from '../src/core/html';
 import { Tina4Element } from '../src/core/component';

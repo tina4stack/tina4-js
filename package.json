@@ -73,25 +73,21 @@
     "COMMERCIAL-LICENSE.md"
   ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
     "build:types": "tsc --emitDeclarationOnly --outDir dist",
     "build:iife": "esbuild src/index.ts --bundle --minify --format=iife --global-name=Tina4 --outfile=dist/tina4js.min.js --target=es2021",
     "pretest": "npm run build && npm run build:iife",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "node --import ./scripts/register-ts.mjs --import ./scripts/test-setup.mjs --test \"tests/**/*.test.ts\"",
+    "test:watch": "node --import ./scripts/register-ts.mjs --import ./scripts/test-setup.mjs --test --watch \"tests/**/*.test.ts\"",
     "pretest:size": "npm run build && npm run build:iife",
-    "test:size": "vitest run tests/size.test.ts",
-    "build:gallery": "vite build --config examples/gallery/vite.gallery.config.ts",
-    "preview": "vite preview"
+    "test:size": "node --import ./scripts/register-ts.mjs --import ./scripts/test-setup.mjs --test tests/size.test.ts",
+    "build:gallery": "esbuild examples/gallery/_entry.ts --bundle --minify --format=iife --global-name=tina4 --outfile=examples/gallery/tina4.bundle.js --target=es2021"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.11",
     "esbuild": "^0.28.2",
     "happy-dom": "^20.8.9",
-    "typescript": "^5.4.0",
-    "vite": "^6.4.3",
-    "vitest": "^4.1.11"
+    "typescript": "^5.4.0"
   },
   "keywords": [
     "framework",

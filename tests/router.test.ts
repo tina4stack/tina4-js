@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from './harness';
 import { route, router, navigate, rawHtml, _resetRouter } from '../src/router/router';
 import { html } from '../src/core/html';
 import { signal } from '../src/core/signal';

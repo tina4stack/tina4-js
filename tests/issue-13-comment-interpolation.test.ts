@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from './harness';
 import { html } from '../src/core/html';
 
 describe('issue #13 — HTML comments do not change interpolation context', () => {

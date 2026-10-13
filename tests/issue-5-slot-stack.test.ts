@@ -13,7 +13,7 @@
  * page chrome on top of the old one. Visible after ~30min AFK.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from './harness';
 import { html, signal, effect } from '../src/core';
 
 describe('issue #5 — reactive slot subtree replacement', () => {
