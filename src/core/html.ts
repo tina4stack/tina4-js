@@ -401,8 +401,24 @@ function toNamespace(node: Node, ns: string): Node {
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
+// Linear single-pass scan from the end, matching `\.([^\s"'<>/=]+)\s*=\s*["']?$`
+// without the backtracking the regex incurs on long non-matching tails (ReDoS-safe).
 function findPropertyBindingName(staticPart: string): string | undefined {
-  return staticPart.match(/\.([^\s"'<>/=]+)\s*=\s*["']?$/)?.[1];
+  const isSpace = (ch: string) => ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r' || ch === '\f' || ch === '\v';
+  const isDelimiter = (ch: string) => isSpace(ch) || ch === '"' || ch === "'" || ch === '<' || ch === '>' || ch === '/' || ch === '=';
+  let i = staticPart.length;
+  if (i > 0 && (staticPart[i - 1] === '"' || staticPart[i - 1] === "'")) i--; // optional quote
+  while (i > 0 && isSpace(staticPart[i - 1])) i--;                            // \s*
+  if (i === 0 || staticPart[i - 1] !== '=') return undefined;                // require =
+  i--;
+  while (i > 0 && isSpace(staticPart[i - 1])) i--;                           // \s*
+  const nameEnd = i;
+  while (i > 0 && !isDelimiter(staticPart[i - 1])) i--;                      // [^\s"'<>/=]+ (dots allowed)
+  const run = staticPart.slice(i, nameEnd);
+  const dot = run.indexOf('.');                                             // leftmost `.` → capture after it
+  if (dot === -1) return undefined;
+  const name = run.slice(dot + 1);
+  return name.length > 0 ? name : undefined;
 }
 
 function resultToNodes(value: unknown): Node[] {
