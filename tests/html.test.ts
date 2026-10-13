@@ -332,6 +332,14 @@ describe('html + property bindings (.value, .innerHTML, etc.)', () => {
     checked.value = false;
     expect(input.checked).toBe(false);
   });
+
+  // Regression: property-name detection is a ReDoS-safe linear scan, not a
+  // backtracking regex (code-scanning js/polynomial-redos, src/core/html.ts).
+  it('detects a camelCase property name (.innerHTML) as a DOM property set', () => {
+    const frag = html`<div .innerHTML=${'<b>x</b>'}></div>`;
+    const div = frag.firstElementChild as HTMLElement;
+    expect(div.querySelector('b')?.textContent).toBe('x');
+  });
 });
 
 describe('html + events', () => {

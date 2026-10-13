@@ -443,7 +443,9 @@ function buildForBackend(target) {
     const routesDir = path.join(cwd, 'src', 'routes');
     fs.mkdirSync(routesDir, { recursive: true });
     const catchAll = path.join(routesDir, 'spa.py');
-    if (!fs.existsSync(catchAll)) {
+    // Atomic exclusive create — `wx` fails if the file already exists, so there is
+    // no check-then-write window (TOCTOU) between an existsSync test and the write.
+    try {
       fs.writeFileSync(catchAll, `from tina4_python import get
 from tina4_python.Template import Template
 
@@ -451,8 +453,10 @@ from tina4_python.Template import Template
 async def spa_catchall(path, request, response):
     """Catch-all for SPA client-side routing"""
     return response(Template.render_twig_template("index.twig", {"request": request}))
-`);
+`, { flag: 'wx' });
       console.log(`  ${c.green('✓')} Generated src/routes/spa.py (catch-all)`);
+    } catch (err) {
+      if (err.code !== 'EEXIST') throw err;
     }
   }
 

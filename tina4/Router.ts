@@ -52,9 +52,11 @@ export class Router {
     //https://stackoverflow.com/questions/831030/how-to-get-get-request-parameters-in-javascript
     getRequestParams() {
         let s1 = location.search.substring(1, location.search.length).split('&'),
-            r = {}, s2, i;
+            r = Object.create(null), s2, i;
         for (i = 0; i < s1.length; i += 1) {
             s2 = s1[i].split('=');
+            // Null-prototype map: an attacker-controlled key (__proto__, constructor)
+            // becomes a plain own property and cannot pollute the prototype chain.
             r[decodeURIComponent(s2[0])] = decodeURIComponent(s2[1]);
         }
 
