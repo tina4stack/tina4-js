@@ -98,7 +98,7 @@ This creates:
 ```
 my-app/
   index.html              # Entry point
-  package.json            # Dependencies: tina4js, vite, typescript
+  package.json            # Dependencies: tina4js, esbuild, typescript
   src/
     main.ts               # App entry -- imports routes, starts router
     routes/

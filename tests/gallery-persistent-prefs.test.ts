@@ -22,7 +22,7 @@
  * keys, so a rename in the example would surface here as a test
  * failure rather than a silent drift.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from './harness';
 import { readFileSync } from 'fs';
 import { signal } from '../src/core/signal';
 import {
