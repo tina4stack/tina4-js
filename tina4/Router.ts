@@ -51,17 +51,12 @@ export class Router {
 
     //https://stackoverflow.com/questions/831030/how-to-get-get-request-parameters-in-javascript
     getRequestParams() {
-        let s1 = location.search.substring(1, location.search.length).split('&'),
-            r = Object.create(null), s2, i;
-        for (i = 0; i < s1.length; i += 1) {
-            s2 = s1[i].split('=');
-            // Null-prototype map: an attacker-controlled key (__proto__, constructor)
-            // becomes a plain own property and cannot pollute the prototype chain.
-            r[decodeURIComponent(s2[0])] = decodeURIComponent(s2[1]);
-        }
-
-        if (JSON.stringify(r) == '{"":"undefined"}') return {};
-        return r;
+        // Parse the query string with the platform's own URLSearchParams and
+        // materialise it via Object.fromEntries. This removes the dynamic
+        // `obj[userKey] = value` write (remote property injection): a key such
+        // as __proto__ becomes a plain own property, never a prototype write,
+        // and standard form decoding (including `+` as space) is applied.
+        return Object.fromEntries(new URLSearchParams(location.search));
     };
 
     cleanUrl(url) {
