@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.4
+
+- fix(router): hash-mode routes now match when reached with a `?query` or
+  `#fragment` tail - the router strips the query and fragment before it compares
+  the path, so a deep link like `#/users?id=7` resolves to the `/users` route
+  instead of falling through. The IIFE bundle is rebuilt with the canonical
+  `build:iife` (esbuild, es2021).
+
 ## 1.7.3
 
 - Remove the Vite/Vitest build toolchain from the bundled examples; the framework and its examples now build and test on esbuild + the Node.js test runner alone, clearing the development-dependency advisories.
