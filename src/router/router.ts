@@ -154,9 +154,16 @@ function resolve(): void {
   const startTime = performance.now();
   const version = ++routeVersion;
 
-  const path = mode === 'hash'
+  // Match against the path alone. History mode reads location.pathname, which
+  // already excludes the ?query and #fragment. Hash mode reads the raw hash, so
+  // a route reached with `#/p?from=/x` or `#/p#frag` would otherwise be matched
+  // query-and-all against the anchored ^…$ pattern and fall through to the
+  // catch-all (#30). Strip both so the two modes see the same path; the query
+  // stays readable on location.hash for apps that want it.
+  const raw = mode === 'hash'
     ? (location.hash.slice(1) || '/')
     : location.pathname;
+  const path = raw.split('#')[0].split('?')[0] || '/';
 
   for (const r of routes) {
     const match = path.match(r.regex);

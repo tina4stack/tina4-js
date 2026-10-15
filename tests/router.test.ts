@@ -62,6 +62,44 @@ describe('router — hash mode', () => {
     expect(captured.postId).toBe('99');
   });
 
+  it('matches a route reached with a ?query string (#30)', () => {
+    route('/athletes/{id}/profile', ({ id }) => html`<h1>Profile ${id}</h1>`);
+    route('*', () => html`<h1>Not found</h1>`);
+    router.start({ target: '#root', mode: 'hash' });
+
+    // The query rides on the hash; the route still matches and the id is clean —
+    // it must not swallow the query, and must not fall through to the catch-all.
+    location.hash = '#/athletes/123/profile?from=/x';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+
+    expect(document.querySelector('#root h1')?.textContent).toBe('Profile 123');
+  });
+
+  it('strips a trailing ?query from the matched path param (#30)', () => {
+    let captured: Record<string, string> = {};
+    route('/user/{id}', (params) => {
+      captured = params;
+      return html`<p>User ${params.id}</p>`;
+    });
+    router.start({ target: '#root', mode: 'hash' });
+
+    location.hash = '#/user/42?tab=stats&page=2';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+
+    expect(captured.id).toBe('42');
+  });
+
+  it('strips a trailing #fragment from the matched path (#30)', () => {
+    route('/docs', () => html`<h1>Docs</h1>`);
+    route('*', () => html`<h1>Not found</h1>`);
+    router.start({ target: '#root', mode: 'hash' });
+
+    location.hash = '#/docs#section-2';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+
+    expect(document.querySelector('#root h1')?.textContent).toBe('Docs');
+  });
+
   it('matches wildcard / 404 route last', () => {
     route('/', () => html`<p>Home</p>`);
     route('*', () => html`<p>Not Found</p>`);
