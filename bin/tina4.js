@@ -20,7 +20,6 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,6 +32,7 @@ const command = args[0];
 
 const c = {
   green: (s) => `\x1b[32m${s}\x1b[0m`,
+  red: (s) => `\x1b[31m${s}\x1b[0m`,
   cyan: (s) => `\x1b[36m${s}\x1b[0m`,
   yellow: (s) => `\x1b[33m${s}\x1b[0m`,
   dim: (s) => `\x1b[2m${s}\x1b[0m`,
@@ -51,10 +51,10 @@ switch (command) {
     createProject(args[1], args.includes('--pwa'), args.includes('--css'));
     break;
   case 'dev':
-    runDev();
+    runDev().catch((e) => { console.error(e); process.exit(1); });
     break;
   case 'build':
-    runBuild(args.includes('--target') ? args[args.indexOf('--target') + 1] : null);
+    runBuild(args.includes('--target') ? args[args.indexOf('--target') + 1] : null).catch((e) => { console.error(e); process.exit(1); });
     break;
   case 'generate':
   case 'g':
@@ -103,18 +103,20 @@ function createProject(name, withPwa, withCss) {
     private: true,
     type: 'module',
     scripts: {
-      dev: 'vite',
-      build: 'vite build',
-      preview: 'vite preview',
-      test: 'vitest run',
+      dev: 'tina4js dev',
+      build: 'tina4js build',
+      'build:php': 'tina4js build --target php',
+      'build:python': 'tina4js build --target python',
       typecheck: 'tsc --noEmit',
     },
     dependencies: {
-      tina4js: '^1.5.3',
+      tina4js: '^1.7.5',
       ...(withCss ? { 'tina4-css': '^2.0.0' } : {}),
     },
     devDependencies: {
-      vite: '^5.4.0',
+      // esbuild is the build tool `tina4js dev/build` runs; the framework stays
+      // zero-dependency, so the bundler lives in the project's devDeps.
+      esbuild: '^0.28.2',
       typescript: '^5.4.0',
     },
   };
@@ -132,37 +134,12 @@ function createProject(name, withPwa, withCss) {
       skipLibCheck: true,
       forceConsistentCasingInFileNames: true,
       lib: ['ES2020', 'DOM', 'DOM.Iterable'],
+      baseUrl: '.',
+      paths: { '@/*': ['src/*'] },
     },
     include: ['src/**/*.ts'],
   };
   writeFile(projectDir, 'tsconfig.json', JSON.stringify(tsconfig, null, 2));
-
-  // ── src/vite-env.d.ts ─────────────────────────────────────────
-  //
-  // src/main.ts below uses import.meta.env, and TINA4.md teaches
-  // import.meta.glob. Both are Vite additions to ImportMeta that TypeScript
-  // does not know about until vite/client is in scope, so without this file a
-  // freshly created project fails `tsc --noEmit` on code this generator wrote.
-  //
-  // The reference goes in a .d.ts and NOT in a tsconfig `types` array on
-  // purpose: `types` is not additive, so setting it would also switch off
-  // automatic inclusion of every other @types/* package, and a later
-  // `npm i -D @types/node` would silently stop taking effect.
-
-  writeFile(projectDir, 'src/vite-env.d.ts', '/// <reference types="vite/client" />\n');
-
-  // ── vite.config.ts ────────────────────────────────────────────
-
-  writeFile(projectDir, 'vite.config.ts', `import { defineConfig } from 'vite';
-
-export default defineConfig({
-  server: {
-    port: 3000,
-    // Proxy API calls to tina4-php/python backend in dev
-    // proxy: { '/api': 'http://localhost:7145' },
-  },
-});
-`);
 
   // ── index.html ────────────────────────────────────────────────
 
@@ -178,20 +155,19 @@ export default defineConfig({
 </head>
 <body>
   <div id="root"></div>
-  <script type="module" src="/src/main.ts"></script>
+  <script type="module" src="/dist/main.js"></script>
+  <script>new EventSource('/esbuild').addEventListener('change', () => location.reload())</script>
 </body>
 </html>
 `);
 
   // ── src/main.ts ───────────────────────────────────────────────
 
-  let mainTs = `import { signal, computed, html, route, router, navigate, api } from 'tina4js';
+  let mainTs = `// Debug overlay first - so it tracks every signal, including the module-level
+// store signals created during the imports below (Ctrl+Shift+D to toggle).
+import 'tina4js/debug';
+import { signal, computed, html, route, router, navigate, api } from 'tina4js';
 import './routes/index';
-
-// Debug overlay in dev mode (Ctrl+Shift+D to toggle, tree-shaken from
-// production builds). Signals created before this dynamic import resolves —
-// including module-level store signals — are buffered and still tracked.
-if (import.meta.env.DEV) import('tina4js/debug');
 `;
 
   if (withPwa) {
@@ -366,8 +342,8 @@ dist/
   // ── Done ──────────────────────────────────────────────────────
 
   console.log(`  ${c.green('✓')} Created project structure`);
-  console.log(`  ${c.green('✓')} package.json, tsconfig, vite config`);
-  console.log(`  ${c.green('✓')} src/vite-env.d.ts (Vite client types)`);
+  console.log(`  ${c.green('✓')} package.json, tsconfig`);
+  console.log(`  ${c.green('✓')} index.html (esbuild bundle + live-reload)`);
   console.log(`  ${c.green('✓')} Home page with reactive counter`);
   console.log(`  ${c.green('✓')} Router with /, /about, 404`);
   console.log(`  ${c.green('✓')} AppHeader web component`);
@@ -378,44 +354,92 @@ dist/
 
   console.log(`\n${c.bold('Next steps:')}\n`);
   console.log(`  cd ${projectName}`);
-  console.log(`  tina4 serve\n`);
+  console.log(`  npm install`);
+  console.log(`  npm run dev\n`);
+}
+
+// ── esbuild app bundler (no Vite) ───────────────────────────────────
+//
+// The app build runs on esbuild alone - the same engine the framework library
+// builds with (scripts/build.mjs) and the examples use (examples/*/build.mjs).
+// An app's entry is src/main.ts; `@` resolves to src/ (matching tsconfig
+// paths), and `tina4js` resolves from the project's node_modules like any dep.
+
+async function loadEsbuild() {
+  try {
+    return await import('esbuild');
+  } catch {
+    console.error(`${c.red('✗')} esbuild not found. Install project deps first: ${c.cyan('npm install')}`);
+    process.exit(1);
+  }
+}
+
+function appEsbuildOptions(cwd, { outfile, minify, sourcemap }) {
+  return {
+    entryPoints: [path.join(cwd, 'src', 'main.ts')],
+    bundle: true,
+    format: 'esm',
+    target: 'es2021',
+    sourcemap,
+    minify,
+    // 'tina4js/debug' is an intentional side-effect import (it registers the dev
+    // overlay); keep it, even though the framework marks debug side-effect-free
+    // for its own library tree-shaking.
+    ignoreAnnotations: true,
+    outfile,
+    alias: { '@': path.join(cwd, 'src') },
+    absWorkingDir: cwd,
+    logLevel: 'info',
+  };
 }
 
 // ── Dev ─────────────────────────────────────────────────────────────
 
-function runDev() {
-  console.log(`\n${c.cyan('Starting dev server...')}\n`);
-  try {
-    execSync('npx vite', { stdio: 'inherit', cwd: process.cwd() });
-  } catch { /* user ctrl-c */ }
+async function runDev() {
+  const cwd = process.cwd();
+  const { context } = await loadEsbuild();
+  const port = Number(process.env.PORT) || 3000;
+  console.log(`\n${c.cyan('Starting dev server (esbuild)...')}\n`);
+  const ctx = await context(
+    appEsbuildOptions(cwd, { outfile: path.join(cwd, 'dist', 'main.js'), minify: false, sourcemap: true }),
+  );
+  await ctx.watch();
+  const { hosts, port: servedPort } = await ctx.serve({ servedir: cwd, port });
+  const host = hosts[0] ?? 'localhost';
+  console.log(`  ${c.green('▶')} http://${host}:${servedPort}  — watching src/, live-reload via /esbuild\n`);
 }
 
 // ── Build ───────────────────────────────────────────────────────────
 
-function runBuild(target) {
+async function runBuild(target) {
   if (target === 'php' || target === 'python') {
-    buildForBackend(target);
-  } else {
-    console.log(`\n${c.cyan('Building for production...')}\n`);
-    execSync('npx vite build', { stdio: 'inherit', cwd: process.cwd() });
-    console.log(`\n${c.green('✓')} Build complete — output in dist/\n`);
+    await buildForBackend(target);
+    return;
   }
+  const cwd = process.cwd();
+  const { build } = await loadEsbuild();
+  console.log(`\n${c.cyan('Building for production (esbuild)...')}\n`);
+  await build(
+    appEsbuildOptions(cwd, { outfile: path.join(cwd, 'dist', 'main.js'), minify: true, sourcemap: false }),
+  );
+  console.log(`\n${c.green('✓')} Build complete — output in dist/main.js\n`);
 }
 
-function buildForBackend(target) {
+async function buildForBackend(target) {
   const cwd = process.cwd();
   const outDir = path.join(cwd, 'src', 'public', 'js');
+  const { build } = await loadEsbuild();
 
   console.log(`\n${c.cyan(`Building for tina4-${target}...`)}\n`);
 
   // Ensure output directory exists
   fs.mkdirSync(outDir, { recursive: true });
 
-  // Build with Vite, output to src/public/js/
-  execSync(`npx vite build --outDir "${outDir}" --emptyOutDir`, {
-    stdio: 'inherit',
-    cwd,
-  });
+  // Build with esbuild, output to src/public/js/tina4.es.js (the path the twig
+  // template below points at).
+  await build(
+    appEsbuildOptions(cwd, { outfile: path.join(outDir, 'tina4.es.js'), minify: true, sourcemap: false }),
+  );
 
   // Generate index.twig from index.html
   const indexHtml = path.join(cwd, 'index.html');
@@ -524,30 +548,36 @@ function getTina4ContextMd() {
 ## File Conventions
 
 - Components: \`src/components/kebab-case.ts\`
-- Routes: \`src/routes/index.ts\`, or one file per feature wired with a wildcard (below)
+- Routes: \`src/routes/index.ts\` - the barrel that imports each route/feature module
 - Pages: \`src/pages/kebab-case.ts\`
 - Static files: \`src/public/\`
 - Styles: \`src/public/css/\`
 
-**Wildcard imports.** \`route()\` appends to the router table and \`customElements.define()\`
-runs at module scope, so importing a file *is* registering what it declares. One glob
-replaces the whole barrel file:
+**Wiring routes + components.** \`route()\` appends to the router table and
+\`customElements.define()\` runs at module scope, so importing a file *is* registering what
+it declares. The build runs on esbuild (no Vite), which has no \`import.meta.glob\`, so keep
+a small hand-written barrel - one \`import './feature'\` per module, catch-all last:
 
 \`\`\`ts
 // src/main.ts
-import { route, router, html } from 'tina4js';
+import 'tina4js/debug';            // dev overlay (Ctrl+Shift+D); inert in prod
+import { router } from 'tina4js';
+import './routes/index';           // the barrel runs every route(...) call
 
-import.meta.glob('./routes/*.ts', { eager: true });
-import.meta.glob('./components/**/*.ts', { eager: true });
-
-route('*', () => html\`<h1>404</h1>\`);   // catch-all AFTER the glob
 router.start({ target: '#root', mode: 'history' });
 \`\`\`
 
-\`{ eager: true }\` is mandatory. Without it the glob returns loader functions nobody calls,
-so nothing registers at all. Keep the catch-all out of the globbed folder: glob keys arrive
-in alphabetical path order and the router takes the first matching pattern, so a \`404.ts\`
-inside the folder renders for every path.
+\`\`\`ts
+// src/routes/index.ts
+import { route, html } from 'tina4js';
+import './home';                   // each feature module registers its own routes
+import './about';
+
+route('*', () => html\`<h1>404</h1>\`);   // catch-all LAST, so a real route always wins
+\`\`\`
+
+Import order is explicit, which is the point: the router takes the first matching pattern,
+so listing \`route('*', ...)\` last keeps a \`404\` from shadowing real routes.
 
 ## Rules
 
@@ -561,8 +591,8 @@ inside the folder renders for every path.
 8. Use \`static props = { name: String }\` for component attributes
 9. Use \`\` static styles = \`css\` \`\` for scoped styles (Shadow DOM)
 10. Use \`static shadow = false\` for light DOM components
-11. Wire folders with \`import.meta.glob(pattern, { eager: true })\` instead of a hand-written
-    barrel. The pattern must be a literal string, and \`route('*', ...)\` goes after the glob
+11. Wire folders with a hand-written barrel (one \`import './feature'\` per module in
+    \`src/routes/index.ts\`); \`route('*', ...)\` goes last so a real route always wins
 
 ## Signal Patterns
 
