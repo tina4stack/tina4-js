@@ -34,34 +34,39 @@ describe('tina4js CLI onboarding', () => {
     expect(help).toContain('generate component <name>');
   });
 
-  it('creates a current project and hands startup to the unified client', () => {
+  it('scaffolds an esbuild project (no Vite) and points at npm run dev', () => {
     const result = output(dir, ['create', 'my-app']);
     const pkg = JSON.parse(readFileSync(join(dir, 'my-app/package.json'), 'utf-8'));
     const main = readFileSync(join(dir, 'my-app/src/main.ts'), 'utf-8');
 
-    expect(pkg.dependencies.tina4js).toBe('^1.5.3');
-    expect(result).toContain('tina4 serve');
-    expect(result).not.toContain('npm run dev');
+    expect(pkg.dependencies.tina4js).toBe('^1.7.5');
+    // The app build runs on esbuild via the tina4js CLI - no Vite anywhere.
+    expect(pkg.scripts.dev).toBe('tina4js dev');
+    expect(pkg.scripts.build).toBe('tina4js build');
+    expect(pkg.devDependencies.esbuild).toBeDefined();
+    expect(pkg.devDependencies.vite).toBeUndefined();
+    expect(pkg.dependencies.vite).toBeUndefined();
+    expect(result).toContain('npm run dev');
     expect(main).toContain("mode: 'history'");
     expect(main).not.toContain("mode: 'hash'");
+    // No Vite-only import.meta features in the generated entry.
+    expect(main).not.toContain('import.meta.env');
+    expect(main).not.toContain('import.meta.glob');
   });
 
-  it('types import.meta for the project it creates', () => {
-    // src/main.ts uses import.meta.env and TINA4.md teaches import.meta.glob.
-    // Both are Vite additions to ImportMeta, so without vite/client in scope a
-    // brand new project failed `tsc --noEmit` with TS2339 on generated code —
-    // invisible at run time, because vite build strips types without checking.
+  it('ships no Vite config and wires the @ alias for tsc', () => {
     run(dir, ['create', 'typed-app']);
-    const decl = readFileSync(join(dir, 'typed-app/src/vite-env.d.ts'), 'utf-8');
-    expect(decl).toContain('/// <reference types="vite/client" />');
+    // esbuild has no import.meta.glob/env, so the scaffold needs neither a
+    // vite-env.d.ts nor a vite.config.ts.
+    expect(existsSync(join(dir, 'typed-app/src/vite-env.d.ts'))).toBe(false);
+    expect(existsSync(join(dir, 'typed-app/vite.config.ts'))).toBe(false);
 
-    // The reference must come from that .d.ts and NOT from a tsconfig `types`
-    // array: `types` is not additive, so setting it would also switch off
-    // automatic inclusion of every other @types/* package.
     const tsconfig = JSON.parse(readFileSync(join(dir, 'typed-app/tsconfig.json'), 'utf-8'));
+    // `@/*` -> src/* matches the esbuild `@` alias; `types` stays unset so every
+    // @types/* package is still auto-included.
+    expect(tsconfig.compilerOptions.paths['@/*']).toEqual(['src/*']);
     expect(tsconfig.compilerOptions.types).toBeUndefined();
 
-    // Nothing else in the scaffold runs tsc, so type errors ship unseen.
     const pkg = JSON.parse(readFileSync(join(dir, 'typed-app/package.json'), 'utf-8'));
     expect(pkg.scripts.typecheck).toBe('tsc --noEmit');
   });

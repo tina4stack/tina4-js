@@ -1,6 +1,6 @@
 {
   "name": "tina4js",
-  "version": "1.7.4",
+  "version": "1.7.5",
   "description": "1.5KB core gzipped, reactive framework \u2014 signals, web components, routing, PWA",
   "type": "module",
   "main": "dist/tina4.cjs.js",
@@ -102,5 +102,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/tina4stack/tina4-js"
-  }
+  },
+  "dependencies": {}
 }
