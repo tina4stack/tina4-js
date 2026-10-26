@@ -27,7 +27,7 @@ tina4-css (`dist/tina4js.min.js`) so all Tina4 backend frameworks get it automat
 
 **Building the IIFE bundle:**
 ```bash
-npm run build                 # Vite build → ES/CJS modules in dist/
+npm run build                 # esbuild build → ES/CJS modules in dist/
 npm run build:types           # TypeScript declarations
 # IIFE for script-tag usage:
 npx esbuild src/index.ts --bundle --minify --format=iife --global-name=Tina4 --outfile=dist/tina4js.min.js --target=es2021
@@ -58,7 +58,7 @@ cd my-app
 tina4 serve
 ```
 
-This creates a working TypeScript/Vite project, installs its packages, and starts it through the
+This creates a working TypeScript/esbuild project, installs its packages, and starts it through the
 same client used by every Tina4 framework. Do not make `npx tina4js create`, `npm install`, or
 `npm run dev` the default onboarding path. The package CLI remains a fallback when the unified
 client is unavailable.
