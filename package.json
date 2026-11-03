@@ -1,7 +1,7 @@
 {
   "name": "tina4js",
   "version": "1.7.5",
-  "description": "1.5KB core gzipped, reactive framework \u2014 signals, web components, routing, PWA",
+  "description": "1.5KB core gzipped, reactive framework — signals, web components, routing, PWA",
   "type": "module",
   "main": "dist/tina4.cjs.js",
   "module": "dist/tina4.es.js",
@@ -86,7 +86,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
-    "happy-dom": "^20.8.9",
+    "happy-dom": "^21.0.4",
     "typescript": "^5.4.0"
   },
   "keywords": [
@@ -102,6 +102,5 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/tina4stack/tina4-js"
-  },
-  "dependencies": {}
+  }
 }
