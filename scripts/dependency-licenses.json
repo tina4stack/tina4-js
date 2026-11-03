@@ -293,7 +293,7 @@
     {
       "ecosystem": "npm",
       "name": "happy-dom",
-      "version": "20.14.6",
+      "version": "21.0.4",
       "platform": "",
       "lock_license": "MIT",
       "upstream_declaration": "MIT",
