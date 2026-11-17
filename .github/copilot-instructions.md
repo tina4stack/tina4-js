@@ -26,4 +26,4 @@ count.value;            // read
 - `api.configure({baseUrl})` then `api.get(path)` — singleton, not constructor
 - `ws.connect(url)` — not `ws(url)`
 
-See llms.txt for full API reference.
+For the complete API reference, read `CLAUDE.md` in this repo and the docs it links. `llms.txt` is the link index (llmstxt.org format); https://tina4.com/llms-full.txt has the full documentation in one file.
