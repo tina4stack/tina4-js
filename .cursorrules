@@ -46,4 +46,4 @@ Signals use property access, NOT function calls:
 npm install && npm run build && npm run build:types && npm test
 ```
 
-See llms.txt for complete API reference.
+For the complete API reference, read `CLAUDE.md` in this repo and the docs it links. `llms.txt` is the link index (llmstxt.org format); https://tina4.com/llms-full.txt has the full documentation in one file.
